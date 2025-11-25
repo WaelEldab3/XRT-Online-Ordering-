@@ -57,15 +57,31 @@ app.get('/', (req, res) => {
 // Serve static files from public directory
 app.use(express.static('public'));
 
-// Swagger JSON specification endpoint
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(specs);
-});
-
 // Custom Swagger UI route
 app.get('/api-docs', (req, res) => {
-  res.sendFile('public/swagger.html', { root: '.' });
+  try {
+    res.sendFile('public/swagger.html', { root: '.' });
+  } catch (error) {
+    console.error('Error serving Swagger UI:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to load API documentation interface'
+    });
+  }
+});
+
+// Swagger JSON specification endpoint
+app.get('/api-docs.json', (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(specs);
+  } catch (error) {
+    console.error('Error generating Swagger JSON:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to generate API documentation'
+    });
+  }
 });
 
 // API information endpoint
