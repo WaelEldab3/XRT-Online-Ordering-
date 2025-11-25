@@ -29,8 +29,7 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'JWT access token for API authentication'
-        }
+        },
       },
       schemas: {
         User: {
@@ -42,102 +41,25 @@ const options = {
             },
             name: {
               type: 'string',
-              description: 'User full name'
+              description: 'User name'
             },
             email: {
               type: 'string',
               format: 'email',
-              description: 'User email address'
+              description: 'User email'
             },
             role: {
               type: 'string',
-              enum: ['super_admin', 'admin', 'manager', 'client', 'user'],
+              enum: ['user', 'admin', 'super_admin'],
               description: 'User role'
-            },
-            customRole: {
-              type: 'string',
-              description: 'Custom role ID (if assigned)'
-            },
-            permissions: {
-              type: 'array',
-              items: {
-                type: 'string'
-              },
-              description: 'User permissions'
             },
             isApproved: {
               type: 'boolean',
-              description: 'Whether user account is approved'
+              description: 'Whether user is approved'
             },
             isBanned: {
               type: 'boolean',
-              description: 'Whether user account is banned'
-            },
-            isActive: {
-              type: 'boolean',
-              description: 'Whether user account is active'
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Account creation date'
-            }
-          }
-        },
-        Role: {
-          type: 'object',
-          properties: {
-            _id: {
-              type: 'string',
-              description: 'Role ID'
-            },
-            name: {
-              type: 'string',
-              description: 'Role name (unique identifier)'
-            },
-            displayName: {
-              type: 'string',
-              description: 'Role display name'
-            },
-            description: {
-              type: 'string',
-              description: 'Role description'
-            },
-            permissions: {
-              type: 'array',
-              items: {
-                type: 'string'
-              },
-              description: 'Role permissions'
-            },
-            isSystem: {
-              type: 'boolean',
-              description: 'Whether this is a system role'
-            }
-          }
-        },
-        AuthResponse: {
-          type: 'object',
-          properties: {
-            status: {
-              type: 'string',
-              example: 'success'
-            },
-            accessToken: {
-              type: 'string',
-              description: 'JWT access token'
-            },
-            refreshToken: {
-              type: 'string',
-              description: 'JWT refresh token'
-            },
-            data: {
-              type: 'object',
-              properties: {
-                user: {
-                  $ref: '#/components/schemas/User'
-                }
-              }
+              description: 'Whether user is banned'
             }
           }
         },
@@ -154,30 +76,129 @@ const options = {
             }
           }
         },
-        SuccessResponse: {
+        RegisterRequest: {
+          type: 'object',
+          required: ['name', 'email', 'password', 'confirmPassword'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'User name'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'User email address'
+            },
+            password: {
+              type: 'string',
+              minLength: 8,
+              description: 'Password (min 8 characters)'
+            },
+            confirmPassword: {
+              type: 'string',
+              description: 'Confirm password'
+            }
+          }
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'User email address'
+            },
+            password: {
+              type: 'string',
+              description: 'User password'
+            }
+          }
+        },
+        Role: {
           type: 'object',
           properties: {
-            status: {
+            _id: {
               type: 'string',
-              example: 'success'
+              description: 'Role ID'
             },
-            data: {
-              type: 'object',
-              description: 'Response data'
+            name: {
+              type: 'string',
+              description: 'Role name'
+            },
+            displayName: {
+              type: 'string',
+              description: 'Human-readable role name'
+            },
+            description: {
+              type: 'string',
+              description: 'Role description'
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'List of permissions'
+            }
+          }
+        },
+        CreateRoleRequest: {
+          type: 'object',
+          required: ['name', 'displayName'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'Unique role identifier'
+            },
+            displayName: {
+              type: 'string',
+              description: 'Human-readable role name'
+            },
+            description: {
+              type: 'string',
+              description: 'Role description'
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'List of permissions for this role'
             }
           }
         }
-      }
+      },
+      security: [
+        {
+          bearerAuth: []
+        }
+      ]
     },
-    security: [
-      {
-        bearerAuth: []
-      }
-    ]
   },
-  apis: ['./controllers/*.js', './routes/*.js'], // Path to the API docs
+  apis: ['./controllers/*.js'], // Only scan controllers for now
 };
 
-const specs = swaggerJsdoc(options);
+let specs;
+
+try {
+  console.log('Generating Swagger specifications...');
+  specs = swaggerJsdoc(options);
+  console.log('Swagger specifications generated successfully');
+  console.log('Available endpoints:', Object.keys(specs.paths || {}));
+} catch (error) {
+  console.error('Error generating Swagger specs:', error);
+  console.error('Error details:', error.stack);
+  // Create a minimal fallback spec
+  specs = {
+    openapi: '3.0.0',
+    info: {
+      title: 'XRT Customized System API',
+      version: '1.0.0',
+      description: 'Enterprise-grade API (Limited documentation due to parsing error)'
+    },
+    paths: {}
+  };
+}
 
 export { swaggerUi, specs };
