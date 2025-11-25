@@ -54,6 +54,30 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the API' });
 });
 
+// Simple test endpoint
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint to check Swagger specs
+app.get('/swagger-test', (req, res) => {
+  try {
+    res.json({
+      status: 'success',
+      message: 'Swagger specs loaded successfully',
+      hasSpecs: !!specs,
+      specKeys: specs ? Object.keys(specs) : null,
+      specInfo: specs ? specs.info : null
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to test swagger specs',
+      error: error.message
+    });
+  }
+});
+
 // Serve static files from public directory
 app.use(express.static('public'));
 
@@ -70,28 +94,16 @@ app.get('/api-docs', (req, res) => {
   }
 });
 
-// Test endpoint to check Swagger specs
-app.get('/swagger-test', (req, res) => {
-  try {
-    res.json({
-      status: 'success',
-      message: 'Swagger specs loaded successfully',
-      hasSpecs: !!specs,
-      specKeys: specs ? Object.keys(specs) : null
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to test swagger specs',
-      error: error.message
-    });
-  }
-});
-
 // Swagger JSON specification endpoint
 app.get('/api-docs.json', (req, res) => {
   try {
     console.log('Generating Swagger JSON...');
+    console.log('Specs object:', specs ? 'exists' : 'undefined');
+    
+    if (!specs) {
+      throw new Error('Swagger specs not initialized');
+    }
+    
     res.setHeader('Content-Type', 'application/json');
     res.send(specs);
   } catch (error) {
