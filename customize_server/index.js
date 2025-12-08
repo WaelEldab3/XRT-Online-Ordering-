@@ -4,8 +4,9 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import passport from 'passport';
 import authRoutes from './routes/auth.js';
-import roleRoutes from './routes/roles.js';
-import customerRoutes from './routes/customers.js';
+import businessRoutes from './routes/businesses.js';
+import locationRoutes from './routes/locations.js';
+import withdrawRoutes from './routes/withdraws.js';
 import { connectDB } from './config/database.js';
 import { allowedOrigins, API_BASE_URL } from './config/config.js';
 import './config/passport.js';
@@ -15,6 +16,7 @@ import { swaggerUi, specs } from './config/swagger.js';
 console.log('Swagger config imported');
 console.log('Specs type:', typeof specs);
 console.log('Specs keys:', specs ? Object.keys(specs) : 'undefined');
+console.log('Server restarting...');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -23,38 +25,43 @@ const port = process.env.PORT || 3001;
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-    
-    // Check if allowedOrigins is defined and is an array
-    if (!allowedOrigins || !Array.isArray(allowedOrigins)) {
-      console.error('allowedOrigins is not properly configured:', allowedOrigins);
-      return callback(null, true); // Allow all origins if config is broken
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}))
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or Postman)
+      if (!origin) return callback(null, true);
+
+      // Check if allowedOrigins is defined and is an array
+      if (!allowedOrigins || !Array.isArray(allowedOrigins)) {
+        console.error('allowedOrigins is not properly configured:', allowedOrigins);
+        return callback(null, true); // Allow all origins if config is broken
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 
 // Database connection
-connectDB().then(() => {
-  console.log('✅ Database connection established');
-}).catch(err => {
-  console.error('❌ Database connection error:', err.message);
-  process.exit(1);
-});
+connectDB()
+  .then(() => {
+    console.log('✅ Database connection established');
+  })
+  .catch(err => {
+    console.error('❌ Database connection error:', err.message);
+    process.exit(1);
+  });
 
-// Routes
+// Register routes
 app.use(`${API_BASE_URL}/auth`, authRoutes);
-app.use(`${API_BASE_URL}/roles`, roleRoutes);
-app.use(`${API_BASE_URL}/customers`, customerRoutes);
+app.use(`${API_BASE_URL}/businesses`, businessRoutes);
+app.use(`${API_BASE_URL}/locations`, locationRoutes);
+app.use(`${API_BASE_URL}/withdraws`, withdrawRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -74,17 +81,18 @@ app.get('/swagger-test', (req, res) => {
       message: 'Swagger specs loaded successfully',
       hasSpecs: !!specs,
       specKeys: specs ? Object.keys(specs) : null,
-      specInfo: specs ? specs.info : null
+      specInfo: specs ? specs.info : null,
     });
   } catch (error) {
     res.status(500).json({
       status: 'error',
       message: 'Failed to test swagger specs',
-      error: error.message
+      error: error.message,
     });
   }
 });
 
+// Force restart
 // Serve static files from public directory
 app.use(express.static('public'));
 
@@ -96,7 +104,7 @@ app.get('/api-docs', (req, res) => {
     console.error('Error serving Swagger UI:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to load API documentation interface'
+      message: 'Failed to load API documentation interface',
     });
   }
 });
@@ -106,11 +114,11 @@ app.get('/api-docs.json', (req, res) => {
   try {
     console.log('Generating Swagger JSON...');
     console.log('Specs object:', specs ? 'exists' : 'undefined');
-    
+
     if (!specs) {
       throw new Error('Swagger specs not initialized');
     }
-    
+
     res.setHeader('Content-Type', 'application/json');
     res.send(specs);
   } catch (error) {
@@ -119,50 +127,55 @@ app.get('/api-docs.json', (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to generate API documentation',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 // API information endpoint
-app.get('/api-info', (req, res) => {
+app.get(`${API_BASE_URL}/`, (req, res) => {
   res.json({
-    name: 'XRT Customized System API',
+    message: 'XRT Customized System API',
     version: '1.0.0',
-    description: 'Enterprise authentication and user management system',
-    documentation: `${req.protocol}://${req.get('host')}/api-docs`,
     endpoints: {
-      auth: `${req.protocol}://${req.get('host')}${API_BASE_URL}/auth`,
-      roles: `${req.protocol}://${req.get('host')}${API_BASE_URL}/roles`,
-      customers: `${req.protocol}://${req.get('host')}${API_BASE_URL}/customers`
+      auth: `${API_BASE_URL}/auth`,
+      businesses: `${API_BASE_URL}/businesses`,
+      locations: `${API_BASE_URL}/locations`,
+      docs: `${API_BASE_URL}/api-docs`,
     },
     features: [
       'JWT Authentication',
       'Role-Based Access Control',
       'User Management',
+      'Business Management',
+      'Location Management',
       'Permission System',
-      'API Documentation'
-    ]
+      'API Documentation',
+    ],
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  
+
   // Handle Swagger-related errors specifically
   if (req.path.startsWith('/api-docs') || req.path.startsWith('/swagger')) {
     return res.status(500).json({
       status: 'error',
       message: 'Swagger documentation error',
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Documentation temporarily unavailable'
+      error:
+        process.env.NODE_ENV === 'development'
+          ? err.message
+          : 'Documentation temporarily unavailable',
     });
   }
-  
-  res.status(500).json({ 
+
+  res.status(500).json({
     status: 'error',
     message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    error: process.env.NODE_ENV === 'development' ? err.message : {},
   });
 });
 
@@ -172,18 +185,18 @@ const server = app.listen(port, () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
+process.on('unhandledRejection', err => {
   console.error('UNHANDLED REJECTION! 💥');
   console.error('Error name:', err.name);
   console.error('Error message:', err.message);
   console.error('Stack trace:', err.stack);
-  
+
   // Don't shut down the server in development, just log the error
   if (process.env.NODE_ENV === 'development') {
     console.log('🔧 Development mode: Server will continue running');
     return;
   }
-  
+
   server.close(() => {
     console.log('💀 Server shutting down due to unhandled rejection');
     process.exit(1);
@@ -191,18 +204,18 @@ process.on('unhandledRejection', (err) => {
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
   console.error('UNCAUGHT EXCEPTION! 💥');
   console.error('Error name:', err.name);
   console.error('Error message:', err.message);
   console.error('Stack trace:', err.stack);
-  
+
   // Don't shut down the server in development, just log the error
   if (process.env.NODE_ENV === 'development') {
     console.log('🔧 Development mode: Server will continue running');
     return;
   }
-  
+
   server.close(() => {
     console.log('💀 Server shutting down due to uncaught exception');
     process.exit(1);

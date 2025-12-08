@@ -1643,6 +1643,905 @@
         }
       ],
       "description": "Customer management endpoints for CRUD operations, rewards management, and filtering"
+    },
+    {
+      "name": "🏢 Businesses",
+      "item": [
+        {
+          "name": "Create Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('businessId', response.data.id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Business created successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('name');",
+                  "    pm.expect(response.data).to.have.property('legal_name');",
+                  "    pm.expect(response.data).to.have.property('primary_content_email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner\": \"{{userId}}\",\n  \"name\": \"Joe's Pizza Place\",\n  \"legal_name\": \"Joe's Pizza LLC\",\n  \"primary_content_name\": \"Joe Smith\",\n  \"primary_content_email\": \"joe@joespizza.com\",\n  \"primary_content_phone\": \"+1234567890\",\n  \"description\": \"Best pizza in town!\",\n  \"website\": \"https://joespizza.com\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"zipCode\": \"10001\",\n    \"country\": \"USA\"\n  },\n  \"logo\": \"https://joespizza.com/logo.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Businesses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Businesses list returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('results');",
+                  "    pm.expect(response).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Business by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business details returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('name');",
+                  "    pm.expect(response.data).to.have.property('legal_name');",
+                  "    pm.expect(response.data).to.have.property('owner');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business updated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Joe's Pizza Place - Updated\",\n  \"description\": \"Best pizza in town - Now with delivery!\",\n  \"website\": \"https://joespizza-updated.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business activated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('isActive', true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}", "activate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business deactivated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('isActive', false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}/deactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}", "deactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Businesses by Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Owner businesses returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('results');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/owner/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "owner", "{{userId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Businesses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Search results returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses?search=pizza&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "pizza"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Business Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business owner updated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('owner');",
+                  "    pm.expect(response.data.owner).to.have.property('name');",
+                  "    pm.expect(response.data.owner).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}/owner",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}", "owner"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Business deleted successfully\", function () {",
+                  "    // No content expected on successful deletion",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/businesses/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "businesses", "{{businessId}}"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Business management endpoints for CRUD operations, status management, and filtering"
+    },
+    {
+      "name": "📍 Locations",
+      "item": [
+        {
+          "name": "Create Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('locationId', response.data.id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Location created successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('branch_name');",
+                  "    pm.expect(response.data).to.have.property('business_id');",
+                  "    pm.expect(response.data).to.have.property('address');",
+                  "    pm.expect(response.data).to.have.property('contact');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_id\": \"{{businessId}}\",\n  \"branch_name\": \"Downtown Branch\",\n  \"address\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"zipCode\": \"10001\",\n    \"country\": \"USA\",\n    \"building\": \"Tower A\",\n    \"floor\": \"5th Floor\",\n    \"landmark\": \"Near Central Park\"\n  },\n  \"contact\": {\n    \"phone\": \"+1234567890\",\n    \"email\": \"downtown@joespizza.com\",\n    \"website\": \"https://joespizza.com/downtown\"\n  },\n  \"longitude\": -74.0060,\n  \"latitude\": 40.7128,\n  \"timeZone\": \"America/New_York\",\n  \"online_ordering\": {\n    \"pickup\": true,\n    \"delivery\": true\n  },\n  \"opening\": [\n    {\n      \"day_of_week\": \"monday\",\n      \"open_time\": \"09:00\",\n      \"close_time\": \"22:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"tuesday\",\n      \"open_time\": \"09:00\",\n      \"close_time\": \"22:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"wednesday\",\n      \"open_time\": \"09:00\",\n      \"close_time\": \"22:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"thursday\",\n      \"open_time\": \"09:00\",\n      \"close_time\": \"22:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"friday\",\n      \"open_time\": \"09:00\",\n      \"close_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"saturday\",\n      \"open_time\": \"10:00\",\n      \"close_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": \"sunday\",\n      \"open_time\": \"10:00\",\n      \"close_time\": \"21:00\",\n      \"is_closed\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Locations list returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('results');",
+                  "    pm.expect(response).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Location by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Location details returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('branch_name');",
+                  "    pm.expect(response.data).to.have.property('business_id');",
+                  "    pm.expect(response.data).to.have.property('address');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "{{locationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Location updated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('id');",
+                  "    pm.expect(response.data).to.have.property('branch_name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch_name\": \"Downtown Branch - Updated\",\n  \"contact\": {\n    \"phone\": \"+1234567891\",\n    \"email\": \"downtown-updated@joespizza.com\"\n  },\n  \"online_ordering\": {\n    \"pickup\": true,\n    \"delivery\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "{{locationId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Location activated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('isActive', true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/{{locationId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "{{locationId}}", "activate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Location deactivated successfully\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response.data).to.have.property('isActive', false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/{{locationId}}/deactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "{{locationId}}", "deactivate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations by Business",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Business locations returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('results');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/business/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "business", "{{businessId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Nearby Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Nearby locations returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('results');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/nearby?longitude=-74.0060&latitude=40.7128&radius=10&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "nearby"],
+              "query": [
+                {
+                  "key": "longitude",
+                  "value": "-74.0060"
+                },
+                {
+                  "key": "latitude",
+                  "value": "40.7128"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Search results returned\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('status', 'success');",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "    pm.expect(response).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations?search=downtown&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "downtown"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Location deleted successfully\", function () {",
+                  "    // No content expected on successful deletion",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "locations", "{{locationId}}"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Location management endpoints for CRUD operations, status management, and geospatial queries"
     }
   ]
 }

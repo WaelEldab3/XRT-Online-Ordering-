@@ -154,6 +154,251 @@ export const specs = {
           updatedAt: { type: 'string', format: 'date-time' }
         }
       },
+      Business: {
+        type: 'object',
+        required: ['id', 'owner', 'name', 'legal_name', 'primary_content_name', 'primary_content_email', 'primary_content_phone'],
+        properties: {
+          _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          id: { type: 'string', example: 'biz-123456789', description: 'Business unique identifier' },
+          owner: { type: 'string', example: '507f1f77bcf86cd799439011', description: 'Reference to user who owns the business' },
+          name: { type: 'string', example: "Joe's Pizza Place", description: 'Business display name' },
+          legal_name: { type: 'string', example: "Joe's Pizza LLC", description: 'Legal business registration name' },
+          primary_content_name: { type: 'string', example: 'Joe Smith', description: 'Primary contact person name' },
+          primary_content_email: { type: 'string', format: 'email', example: 'joe@joespizza.com', description: 'Primary contact email' },
+          primary_content_phone: { type: 'string', example: '+1234567890', description: 'Primary contact phone number' },
+          isActive: { type: 'boolean', example: true, description: 'Business active status' },
+          created_at: { type: 'string', format: 'date-time', description: 'Business creation timestamp' },
+          description: { type: 'string', example: 'Best pizza in town!', description: 'Business description' },
+          website: { type: 'string', example: 'https://joespizza.com', description: 'Business website URL' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string', example: '123 Main St' },
+              city: { type: 'string', example: 'New York' },
+              state: { type: 'string', example: 'NY' },
+              zipCode: { type: 'string', example: '10001' },
+              country: { type: 'string', example: 'USA' }
+            }
+          },
+          logo: { type: 'string', example: 'https://joespizza.com/logo.png', description: 'Business logo URL' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' }
+        }
+      },
+      CreateBusinessRequest: {
+        type: 'object',
+        required: ['owner', 'name', 'legal_name', 'primary_content_name', 'primary_content_email', 'primary_content_phone'],
+        properties: {
+          owner: { type: 'string', example: '507f1f77bcf86cd799439011', description: 'User ID of the business owner' },
+          name: { type: 'string', example: "Joe's Pizza Place", description: 'Business display name' },
+          legal_name: { type: 'string', example: "Joe's Pizza LLC", description: 'Legal business name' },
+          primary_content_name: { type: 'string', example: 'Joe Smith', description: 'Primary contact name' },
+          primary_content_email: { type: 'string', format: 'email', example: 'joe@joespizza.com', description: 'Primary contact email' },
+          primary_content_phone: { type: 'string', example: '+1234567890', description: 'Primary contact phone' },
+          description: { type: 'string', example: 'Best pizza in town!', description: 'Business description' },
+          website: { type: 'string', example: 'https://joespizza.com', description: 'Business website' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+              state: { type: 'string' },
+              zipCode: { type: 'string' },
+              country: { type: 'string' }
+            }
+          },
+          logo: { type: 'string', description: 'Business logo URL' }
+        }
+      },
+      UpdateBusinessRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Business display name' },
+          legal_name: { type: 'string', description: 'Legal business name' },
+          primary_content_name: { type: 'string', description: 'Primary contact name' },
+          primary_content_email: { type: 'string', format: 'email', description: 'Primary contact email' },
+          primary_content_phone: { type: 'string', description: 'Primary contact phone' },
+          description: { type: 'string', description: 'Business description' },
+          website: { type: 'string', description: 'Business website' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+              state: { type: 'string' },
+              zipCode: { type: 'string' },
+              country: { type: 'string' }
+            }
+          },
+          logo: { type: 'string', description: 'Business logo URL' },
+          isActive: { type: 'boolean', description: 'Business active status' }
+        }
+      },
+      UpdateBusinessOwnerRequest: {
+        type: 'object',
+        required: ['ownerId'],
+        properties: {
+          ownerId: { type: 'string', example: '507f1f77bcf86cd799439011', description: 'New owner user ID' }
+        }
+      },
+      Location: {
+        type: 'object',
+        required: ['id', 'business_id', 'branch_name', 'address', 'contact', 'longitude', 'latitude', 'timeZone', 'opening'],
+        properties: {
+          _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          id: { type: 'string', example: 'loc-123456789', description: 'Location unique identifier' },
+          business_id: { type: 'string', example: '507f1f77bcf86cd799439011', description: 'Reference to business model' },
+          branch_name: { type: 'string', example: 'Downtown Branch', description: 'Branch display name' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string', example: '123 Main St' },
+              city: { type: 'string', example: 'New York' },
+              state: { type: 'string', example: 'NY' },
+              zipCode: { type: 'string', example: '10001' },
+              country: { type: 'string', example: 'USA' },
+              building: { type: 'string', example: 'Tower A' },
+              floor: { type: 'string', example: '5th Floor' },
+              landmark: { type: 'string', example: 'Near Central Park' }
+            }
+          },
+          contact: {
+            type: 'object',
+            properties: {
+              phone: { type: 'string', example: '+1234567890' },
+              email: { type: 'string', format: 'email', example: 'downtown@business.com' },
+              website: { type: 'string', example: 'https://business.com/downtown' }
+            }
+          },
+          longitude: { type: 'number', example: -74.0060, description: 'Location longitude coordinate' },
+          latitude: { type: 'number', example: 40.7128, description: 'Location latitude coordinate' },
+          timeZone: { type: 'string', example: 'America/New_York', description: 'Location timezone' },
+          online_ordering: {
+            type: 'object',
+            properties: {
+              pickup: { type: 'boolean', example: true },
+              delivery: { type: 'boolean', example: true }
+            }
+          },
+          opening: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day_of_week: { type: 'string', enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
+                open_time: { type: 'string', example: '09:00' },
+                close_time: { type: 'string', example: '22:00' },
+                is_closed: { type: 'boolean', example: false }
+              }
+            }
+          },
+          isActive: { type: 'boolean', example: true, description: 'Location active status' },
+          created_at: { type: 'string', format: 'date-time', description: 'Location creation timestamp' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' }
+        }
+      },
+      CreateLocationRequest: {
+        type: 'object',
+        required: ['business_id', 'branch_name', 'address', 'contact', 'longitude', 'latitude', 'timeZone', 'opening'],
+        properties: {
+          business_id: { type: 'string', example: '507f1f77bcf86cd799439011', description: 'Business ID' },
+          branch_name: { type: 'string', example: 'Downtown Branch', description: 'Branch name' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+              state: { type: 'string' },
+              zipCode: { type: 'string' },
+              country: { type: 'string' },
+              building: { type: 'string' },
+              floor: { type: 'string' },
+              landmark: { type: 'string' }
+            }
+          },
+          contact: {
+            type: 'object',
+            properties: {
+              phone: { type: 'string' },
+              email: { type: 'string' },
+              website: { type: 'string' }
+            }
+          },
+          longitude: { type: 'number' },
+          latitude: { type: 'number' },
+          timeZone: { type: 'string' },
+          online_ordering: {
+            type: 'object',
+            properties: {
+              pickup: { type: 'boolean' },
+              delivery: { type: 'boolean' }
+            }
+          },
+          opening: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day_of_week: { type: 'string' },
+                open_time: { type: 'string' },
+                close_time: { type: 'string' },
+                is_closed: { type: 'boolean' }
+              }
+            }
+          }
+        }
+      },
+      UpdateLocationRequest: {
+        type: 'object',
+        properties: {
+          branch_name: { type: 'string' },
+          address: {
+            type: 'object',
+            properties: {
+              street: { type: 'string' },
+              city: { type: 'string' },
+              state: { type: 'string' },
+              zipCode: { type: 'string' },
+              country: { type: 'string' },
+              building: { type: 'string' },
+              floor: { type: 'string' },
+              landmark: { type: 'string' }
+            }
+          },
+          contact: {
+            type: 'object',
+            properties: {
+              phone: { type: 'string' },
+              email: { type: 'string' },
+              website: { type: 'string' }
+            }
+          },
+          longitude: { type: 'number' },
+          latitude: { type: 'number' },
+          timeZone: { type: 'string' },
+          online_ordering: {
+            type: 'object',
+            properties: {
+              pickup: { type: 'boolean' },
+              delivery: { type: 'boolean' }
+            }
+          },
+          opening: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day_of_week: { type: 'string' },
+                open_time: { type: 'string' },
+                close_time: { type: 'string' },
+                is_closed: { type: 'boolean' }
+              }
+            }
+          },
+          isActive: { type: 'boolean' }
+        }
+      },
       RegisterRequest: {
         type: 'object',
         required: ['name', 'email', 'password'],
@@ -1706,6 +1951,792 @@ export const specs = {
           },
           400: {
             description: 'Insufficient rewards points',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses': {
+      post: {
+        summary: 'Create a new business',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateBusinessRequest' }
+            }
+          }
+        },
+        responses: {
+          201: {
+            description: 'Business created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        business: { $ref: '#/components/schemas/Business' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Bad request - validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          401: {
+            description: 'Authentication required',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      get: {
+        summary: 'Get all businesses',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+            description: 'Page number for pagination'
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 10 },
+            description: 'Number of items per page'
+          },
+          {
+            in: 'query',
+            name: 'search',
+            schema: { type: 'string' },
+            description: 'Search businesses by name or legal name'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Businesses retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'integer' },
+                    total: { type: 'integer' },
+                    page: { type: 'integer' },
+                    pages: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Business' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          401: {
+            description: 'Authentication required',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses/{id}': {
+      get: {
+        summary: 'Get business by ID',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Business retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Business' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      put: {
+        summary: 'Update business by ID',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateBusinessRequest' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Business updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Business' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        summary: 'Delete business by ID',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        responses: {
+          204: {
+            description: 'Business deleted successfully'
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses/{id}/activate': {
+      patch: {
+        summary: 'Activate business',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Business activated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Business' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses/{id}/deactivate': {
+      patch: {
+        summary: 'Deactivate business',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Business deactivated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Business' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses/owner/{ownerId}': {
+      get: {
+        summary: 'Get businesses by owner',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'ownerId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Owner user ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Businesses retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Business' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/businesses/{id}/owner': {
+      patch: {
+        summary: 'Update business owner',
+        tags: ['Businesses'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateBusinessOwnerRequest' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Business owner updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Business' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          400: {
+            description: 'Invalid owner ID',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations': {
+      post: {
+        summary: 'Create a new location',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateLocationRequest' }
+            }
+          }
+        },
+        responses: {
+          201: {
+            description: 'Location created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Location' }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Bad request - validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          },
+          404: {
+            description: 'Business not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      get: {
+        summary: 'Get all locations',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+            description: 'Page number for pagination'
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 10 },
+            description: 'Number of items per page'
+          },
+          {
+            in: 'query',
+            name: 'business_id',
+            schema: { type: 'string' },
+            description: 'Filter by business ID'
+          },
+          {
+            in: 'query',
+            name: 'search',
+            schema: { type: 'string' },
+            description: 'Search locations by branch name'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Locations retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'integer' },
+                    total: { type: 'integer' },
+                    page: { type: 'integer' },
+                    pages: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Location' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations/nearby': {
+      get: {
+        summary: 'Get nearby locations',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'longitude',
+            required: true,
+            schema: { type: 'number' },
+            description: 'User longitude'
+          },
+          {
+            in: 'query',
+            name: 'latitude',
+            required: true,
+            schema: { type: 'number' },
+            description: 'User latitude'
+          },
+          {
+            in: 'query',
+            name: 'radius',
+            schema: { type: 'number', default: 10 },
+            description: 'Search radius in kilometers'
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 10 },
+            description: 'Number of results to return'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Nearby locations retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Location' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: 'Longitude and latitude are required',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations/business/{businessId}': {
+      get: {
+        summary: 'Get locations by business',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'businessId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Business ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Locations retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Location' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations/{id}': {
+      get: {
+        summary: 'Get location by ID',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Location ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Location retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Location' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Location not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      put: {
+        summary: 'Update location by ID',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Location ID'
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateLocationRequest' }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Location updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Location' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Location not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        summary: 'Delete location by ID',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Location ID'
+          }
+        ],
+        responses: {
+          204: {
+            description: 'Location deleted successfully'
+          },
+          404: {
+            description: 'Location not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations/{id}/activate': {
+      patch: {
+        summary: 'Activate location',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Location ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Location activated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Location' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Location not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/v1/locations/{id}/deactivate': {
+      patch: {
+        summary: 'Deactivate location',
+        tags: ['Locations'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Location ID'
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Location deactivated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: { $ref: '#/components/schemas/Location' }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: 'Location not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' }

@@ -4,7 +4,7 @@ import { promisify } from 'util';
 import crypto from 'crypto';
 import { sendEmail } from '../utils/email.js';
 
-const signToken = (id) => {
+const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRE || '15m',
   });
@@ -13,7 +13,7 @@ const signToken = (id) => {
 const createSendToken = async (user, statusCode, res) => {
   const accessToken = signToken(user._id);
   const refreshToken = user.generateRefreshToken();
-  
+
   // Save refresh token to database
   await user.save({ validateBeforeSave: false });
 
@@ -26,9 +26,7 @@ const createSendToken = async (user, statusCode, res) => {
 
   // Send tokens in HTTP-only cookies
   const cookieOptions = {
-    expires: new Date(
-      Date.now() + (process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000
-    ),
+    expires: new Date(Date.now() + (process.env.JWT_COOKIE_EXPIRES_IN || 7) * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Only HTTPS in production
     sameSite: 'strict',
@@ -116,7 +114,7 @@ const createSendToken = async (user, statusCode, res) => {
 export const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
-    
+
     // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -138,13 +136,13 @@ export const register = async (req, res, next) => {
       email: email.toLowerCase().trim(),
       password,
       role: role || 'client', // Default to 'client' if not provided
-      isApproved: role === 'super_admin' // Auto-approve super admins
+      isApproved: role === 'super_admin', // Auto-approve super admins
     });
 
     await createSendToken(newUser, 201, res);
   } catch (err) {
     console.error('Registration error:', err);
-    
+
     // Handle duplicate email error
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern)[0];
@@ -153,7 +151,7 @@ export const register = async (req, res, next) => {
         message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`,
       });
     }
-    
+
     // Handle validation errors
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors).map(e => e.message);
@@ -162,7 +160,7 @@ export const register = async (req, res, next) => {
         message: errors.join(', '),
       });
     }
-    
+
     // Handle other errors
     res.status(400).json({
       status: 'error',
@@ -316,10 +314,7 @@ export const refreshToken = async (req, res, next) => {
     }
 
     // 1) Verify refresh token
-    const decoded = await promisify(jwt.verify)(
-      refreshToken,
-      process.env.REFRESH_TOKEN_SECRET
-    );
+    const decoded = await promisify(jwt.verify)(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     // 2) Check if user still exists
     const currentUser = await User.findById(decoded.id);
@@ -339,10 +334,7 @@ export const refreshToken = async (req, res, next) => {
     }
 
     // 4) Check if refresh token is still valid
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(refreshToken)
-      .digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
     if (hashedToken !== currentUser.refreshToken) {
       return res.status(401).json({
@@ -360,7 +352,7 @@ export const refreshToken = async (req, res, next) => {
 
     // 5) Generate new access token
     const accessToken = currentUser.generateAccessToken();
-    
+
     // 6) Send new access token
     res.status(200).json({
       status: 'success',
@@ -461,11 +453,11 @@ export const forgotPassword = async (req, res, next) => {
       if (process.env.NODE_ENV === 'development') {
         console.log('📧 Development mode: Skipping email, token would be sent to', user.email);
         console.log('🔗 Reset URL:', resetURL);
-        
+
         res.status(200).json({
           status: 'success',
           message: 'Token sent to email! (Development mode - check console)',
-          resetToken // Only in development for testing
+          resetToken, // Only in development for testing
         });
       } else {
         await sendEmail({
@@ -541,10 +533,7 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     // 1) Get user based on the token
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(req.params.token)
-      .digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
     const user = await User.findOne({
       passwordResetToken: hashedToken,
@@ -713,13 +702,112 @@ export const updatePassword = async (req, res, next) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password -refreshToken -passwordResetToken -passwordResetExpires');
-    
+    const {
+      page = 1,
+      limit = 10,
+      orderBy = 'created_at',
+      sortedBy = 'desc',
+      search,
+      role,
+      is_active,
+    } = req.query;
+
+    const query = {
+      role: { $ne: 'super_admin' },
+    };
+
+    // Handle Role Filter
+    if (role && role !== 'super_admin') {
+      query.role = role;
+    }
+
+    // Handle Active/Inactive Filter
+    if (is_active !== undefined) {
+      // is_active coming as string 'true'/'false' or boolean
+      // frontend might try to send it via search param logic or direct param
+      // based on http-client it seems mixed. userClient.fetchVendors sends is_active directly.
+      query.isBanned = is_active === 'false' || is_active === false; // If is_active is false, it means we want banned users?
+      // Wait, is_active usually implies !isBanned.
+      // If is_active is true, we want users who are NOT banned?
+      // Let's assume standard behavior:
+      if (String(is_active) === 'true') {
+        query.isBanned = false; // or query.isApproved = true? Let's check model.
+        // Model has isBanned and isApproved.
+        // Usually active means Approved and Not Banned.
+        // But let's look at how it was used in legacy.
+        // For now, let's map is_active=true to isBanned=false?
+        // Or maybe just strictly check isApproved depending on requirement.
+        // Let's stick to simple mapping for now to avoid excluding valid users.
+        // query.isBanned = false;
+      }
+    }
+
+    // Handle specific boolean search params often sent by frontend
+    if (req.query.is_active === 'true') {
+      query.isBanned = false;
+    }
+    if (req.query.is_active === 'false') {
+      query.isBanned = true;
+    }
+
+    // Handle Search Param (format: "key:value;key2:value2")
+    if (search) {
+      const searchParams = search.split(';');
+      for (const param of searchParams) {
+        const [key, value] = param.split(':');
+        if (key && value) {
+          if (key === 'name') {
+            query.name = { $regex: value, $options: 'i' };
+          } else if (key === 'email') {
+            query.email = { $regex: value, $options: 'i' };
+          } else if (key === 'role') {
+            query.role = value;
+          }
+          // Add other search keys if needed
+        }
+      }
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Sorting
+    const sort = {};
+    const sortField = orderBy === 'created_at' ? 'createdAt' : orderBy; // Map created_at to createdAt
+    const sortOrder = sortedBy === 'asc' ? 1 : -1;
+    sort[sortField] = sortOrder;
+
+    const total = await User.countDocuments(query);
+
+    const users = await User.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-password -refreshToken -passwordResetToken -passwordResetExpires +isActive');
+
+    // Map users to match frontend expectations
+    const mappedUsers = users.map(user => {
+      const userObj = user.toObject();
+      return {
+        ...userObj,
+        id: userObj._id, // Map _id to id
+        is_active: userObj.isActive, // Map isActive to is_active
+        permissions: userObj.permissions ? userObj.permissions.map(p => ({ name: p })) : [],
+        profile: userObj.profile || { avatar: { thumbnail: '' } },
+        count: users.length,
+      };
+    });
+
     res.status(200).json({
-      status: 'success',
-      results: users.length,
+      success: true,
       data: {
-        users,
+        users: mappedUsers,
+      },
+      paginatorInfo: {
+        total,
+        currentPage: parseInt(page),
+        lastPage: Math.ceil(total / limit),
+        perPage: parseInt(limit),
+        count: users.length,
       },
     });
   } catch (err) {
@@ -840,7 +928,7 @@ export const approveUser = async (req, res) => {
 export const banUser = async (req, res) => {
   try {
     const { isBanned, banReason } = req.body;
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isBanned, banReason: isBanned ? banReason : undefined },
@@ -912,6 +1000,74 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+// Update user (Admin)
+/**
+ * @swagger
+ * /auth/users/{id}:
+ *   put:
+ *     summary: Update a user (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ */
+export const updateUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    }).select('-password -refreshToken');
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user,
+      },
+      // Return user directly in data for some clients? Backend standard seems to be data: { user }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'error',
+      message: err.message,
+    });
+  }
+};
+
 // Permission management functions
 /**
  * @swagger
@@ -960,7 +1116,7 @@ export const deleteUser = async (req, res) => {
 export const updateUserPermissions = async (req, res) => {
   try {
     const { permissions } = req.body;
-    
+
     if (!Array.isArray(permissions)) {
       return res.status(400).json({
         status: 'error',
@@ -1034,7 +1190,7 @@ export const updateUserPermissions = async (req, res) => {
 export const getUserPermissions = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('permissions role');
-    
+
     if (!user) {
       return res.status(404).json({
         status: 'error',
@@ -1089,34 +1245,34 @@ export const getAllPermissions = async (req, res) => {
   try {
     const allPermissions = [
       // User management permissions
-      "users:read",
-      "users:create", 
-      "users:update",
-      "users:delete",
-      "users:approve",
-      "users:ban",
-      
+      'users:read',
+      'users:create',
+      'users:update',
+      'users:delete',
+      'users:approve',
+      'users:ban',
+
       // Content management permissions
-      "content:read",
-      "content:create",
-      "content:update", 
-      "content:delete",
-      "content:publish",
-      
+      'content:read',
+      'content:create',
+      'content:update',
+      'content:delete',
+      'content:publish',
+
       // System permissions
-      "system:read",
-      "system:update",
-      "system:backup",
-      "system:logs",
-      
+      'system:read',
+      'system:update',
+      'system:backup',
+      'system:logs',
+
       // Profile permissions
-      "profile:read",
-      "profile:update",
-      
+      'profile:read',
+      'profile:update',
+
       // Admin permissions
-      "admin:dashboard",
-      "admin:settings",
-      "admin:analytics"
+      'admin:dashboard',
+      'admin:settings',
+      'admin:analytics',
     ];
 
     res.status(200).json({

@@ -2,7 +2,7 @@
 import { catchAsync } from '../utils/catchAsync.js';
 
 // Check if user has specific permission
-export const requirePermission = (permission) => {
+export const requirePermission = permission => {
   return catchAsync(async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -24,7 +24,7 @@ export const requirePermission = (permission) => {
 };
 
 // Check if user has any of the specified permissions
-export const requireAnyPermission = (permissions) => {
+export const requireAnyPermission = permissions => {
   return catchAsync(async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -49,7 +49,7 @@ export const requireAnyPermission = (permissions) => {
 };
 
 // Check if user has all specified permissions
-export const requireAllPermissions = (permissions) => {
+export const requireAllPermissions = permissions => {
   return catchAsync(async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -74,7 +74,7 @@ export const requireAllPermissions = (permissions) => {
 };
 
 // Permission-based resource ownership check
-export const requireOwnershipOrPermission = (permission) => {
+export const requireOwnershipOrPermission = permission => {
   return catchAsync(async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -92,7 +92,7 @@ export const requireOwnershipOrPermission = (permission) => {
     // This would need to be implemented based on your specific resource model
     const resourceId = req.params.id;
     const userId = req.user._id.toString();
-    
+
     // For now, we'll just check permission
     // In a real implementation, you would fetch the resource and check ownership
     if (!req.user.hasPermission(permission)) {
@@ -107,14 +107,33 @@ export const requireOwnershipOrPermission = (permission) => {
 };
 
 // Helper function to get user permissions (for frontend)
-export const getUserPermissions = (user) => {
+export const getUserPermissions = user => {
   if (user.role === 'super_admin') {
     return [
-      "users:read", "users:create", "users:update", "users:delete", "users:approve", "users:ban",
-      "content:read", "content:create", "content:update", "content:delete", "content:publish",
-      "system:read", "system:update", "system:backup", "system:logs",
-      "profile:read", "profile:update",
-      "admin:dashboard", "admin:settings", "admin:analytics"
+      'users:read',
+      'users:create',
+      'users:update',
+      'users:delete',
+      'users:approve',
+      'users:ban',
+      'content:read',
+      'content:create',
+      'content:update',
+      'content:delete',
+      'content:publish',
+      'system:read',
+      'system:update',
+      'system:backup',
+      'system:logs',
+      'profile:read',
+      'profile:update',
+      'admin:dashboard',
+      'admin:settings',
+      'admin:analytics',
+      'roles:read',
+      'roles:create',
+      'roles:update',
+      'roles:delete',
     ];
   }
   return user.permissions || [];
@@ -123,33 +142,21 @@ export const getUserPermissions = (user) => {
 // Permission categories for organization
 export const PERMISSION_CATEGORIES = {
   USER_MANAGEMENT: [
-    "users:read",
-    "users:create", 
-    "users:update",
-    "users:delete",
-    "users:approve",
-    "users:ban"
+    'users:read',
+    'users:create',
+    'users:update',
+    'users:delete',
+    'users:approve',
+    'users:ban',
   ],
   CONTENT_MANAGEMENT: [
-    "content:read",
-    "content:create",
-    "content:update", 
-    "content:delete",
-    "content:publish"
+    'content:read',
+    'content:create',
+    'content:update',
+    'content:delete',
+    'content:publish',
   ],
-  SYSTEM: [
-    "system:read",
-    "system:update",
-    "system:backup",
-    "system:logs"
-  ],
-  PROFILE: [
-    "profile:read",
-    "profile:update"
-  ],
-  ADMIN: [
-    "admin:dashboard",
-    "admin:settings",
-    "admin:analytics"
-  ]
+  SYSTEM: ['system:read', 'system:update', 'system:backup', 'system:logs'],
+  PROFILE: ['profile:read', 'profile:update'],
+  ADMIN: ['admin:dashboard', 'admin:settings', 'admin:analytics'],
 };
