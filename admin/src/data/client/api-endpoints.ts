@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   USER_DELETE: 'auth/users/:id',
   USER_PERMISSIONS: 'auth/users/:id/permissions',
   ALL_PERMISSIONS: 'auth/permissions',
+  ROLES: 'roles',
   
   // Business endpoints
   BUSINESSES: 'businesses',

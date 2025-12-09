@@ -136,6 +136,8 @@ export const register = async (req, res, next) => {
       email: email.toLowerCase().trim(),
       password,
       role: role || 'client', // Default to 'client' if not provided
+      customRole: req.body.customRole || null,
+      permissions: req.body.permissions || [],
       isApproved: role === 'super_admin', // Auto-approve super admins
     });
 
@@ -712,33 +714,22 @@ export const getAllUsers = async (req, res) => {
       is_active,
     } = req.query;
 
-    const query = {
-      role: { $ne: 'super_admin' },
-    };
+    const query = {};
 
     // Handle Role Filter
-    if (role && role !== 'super_admin') {
-      query.role = role;
+    if (role) {
+      if (role === 'admin') {
+        query.$or = [{ role: 'super_admin' }, { customRole: { $ne: null } }];
+      } else {
+        query.role = role;
+      }
     }
+    // Removed default super_admin exclusion - show all users by default
 
     // Handle Active/Inactive Filter
     if (is_active !== undefined) {
-      // is_active coming as string 'true'/'false' or boolean
-      // frontend might try to send it via search param logic or direct param
-      // based on http-client it seems mixed. userClient.fetchVendors sends is_active directly.
-      query.isBanned = is_active === 'false' || is_active === false; // If is_active is false, it means we want banned users?
-      // Wait, is_active usually implies !isBanned.
-      // If is_active is true, we want users who are NOT banned?
-      // Let's assume standard behavior:
       if (String(is_active) === 'true') {
-        query.isBanned = false; // or query.isApproved = true? Let's check model.
-        // Model has isBanned and isApproved.
-        // Usually active means Approved and Not Banned.
-        // But let's look at how it was used in legacy.
-        // For now, let's map is_active=true to isBanned=false?
-        // Or maybe just strictly check isApproved depending on requirement.
-        // Let's stick to simple mapping for now to avoid excluding valid users.
-        // query.isBanned = false;
+        query.isBanned = false;
       }
     }
 
@@ -761,9 +752,14 @@ export const getAllUsers = async (req, res) => {
           } else if (key === 'email') {
             query.email = { $regex: value, $options: 'i' };
           } else if (key === 'role') {
-            query.role = value;
+            if (value === 'admin') {
+              // If search param specifies role:admin
+              query.$or = [{ role: 'super_admin' }, { customRole: { $ne: null } }];
+              delete query.role; // Remove previous role constraint if any
+            } else {
+              query.role = value;
+            }
           }
-          // Add other search keys if needed
         }
       }
     }
@@ -782,6 +778,7 @@ export const getAllUsers = async (req, res) => {
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit))
+      .populate('customRole')
       .select('-password -refreshToken -passwordResetToken -passwordResetExpires +isActive');
 
     // Map users to match frontend expectations
@@ -789,11 +786,12 @@ export const getAllUsers = async (req, res) => {
       const userObj = user.toObject();
       return {
         ...userObj,
-        id: userObj._id, // Map _id to id
+        id: userObj._id.toString(), // Map _id to id
         is_active: userObj.isActive, // Map isActive to is_active
         permissions: userObj.permissions ? userObj.permissions.map(p => ({ name: p })) : [],
         profile: userObj.profile || { avatar: { thumbnail: '' } },
         count: users.length,
+        // Ensure customRole is properly formatted if needed
       };
     });
 
@@ -808,6 +806,68 @@ export const getAllUsers = async (req, res) => {
         lastPage: Math.ceil(total / limit),
         perPage: parseInt(limit),
         count: users.length,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'error',
+      message: err.message,
+    });
+  }
+};
+// Get user by ID (Admin)
+/**
+ * @swagger
+ * /auth/users/{id}:
+ *   get:
+ *     summary: Get user by ID (Admin only)
+ *     tags: [User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       404:
+ *         description: User not found
+ */
+export const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate(
+      'customRole',
+      'name displayName permissions'
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user,
       },
     });
   } catch (err) {
@@ -1041,10 +1101,46 @@ export const deleteUser = async (req, res) => {
  */
 export const updateUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    }).select('-password -refreshToken');
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    // Update fields
+    const allowedFields = [
+      'name',
+      'email',
+      'role',
+      'customRole',
+      'permissions',
+      'isApproved',
+      'isBanned',
+      'banReason',
+      'isActive',
+      'profile',
+      'bio',
+      'socials',
+    ]; // Add other allowed fields as necessary
+
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key)) {
+        user[key] = req.body[key];
+      }
+    });
+
+    // Explicitly handle customRole nulling if sent as null (forEach might skip if undefined, but JSON null is object value)
+    if (req.body.customRole === null) user.customRole = null;
+
+    await user.save();
+
+    // Select fields after save
+    const updatedUser = await User.findById(user._id)
+      .populate('customRole')
+      .select('-password -refreshToken');
 
     if (!user) {
       return res.status(404).json({

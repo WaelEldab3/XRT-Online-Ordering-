@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import businessRoutes from './routes/businesses.js';
 import locationRoutes from './routes/locations.js';
 import withdrawRoutes from './routes/withdraws.js';
+import roleRoutes from './routes/roles.js';
 import { connectDB } from './config/database.js';
 import { allowedOrigins, API_BASE_URL } from './config/config.js';
 import './config/passport.js';
@@ -62,6 +63,7 @@ app.use(`${API_BASE_URL}/auth`, authRoutes);
 app.use(`${API_BASE_URL}/businesses`, businessRoutes);
 app.use(`${API_BASE_URL}/locations`, locationRoutes);
 app.use(`${API_BASE_URL}/withdraws`, withdrawRoutes);
+app.use(`${API_BASE_URL}/roles`, roleRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -141,6 +143,8 @@ app.get(`${API_BASE_URL}/`, (req, res) => {
       auth: `${API_BASE_URL}/auth`,
       businesses: `${API_BASE_URL}/businesses`,
       locations: `${API_BASE_URL}/locations`,
+      roles: `${API_BASE_URL}/roles`,
+      withdraws: `${API_BASE_URL}/withdraws`,
       docs: `${API_BASE_URL}/api-docs`,
     },
     features: [

@@ -26,6 +26,9 @@ const UserWalletPointsAddView = dynamic(
 const MakeAdminView = dynamic(
   () => import('@/components/user/make-admin-view'),
 );
+const UserRoleAssignmentView = dynamic(
+  () => import('@/components/user/user-role-assignment-view'),
+);
 const UserPermissionsView = dynamic(
   () => import('@/components/user/user-permissions-view'),
 );
@@ -40,6 +43,9 @@ const CategoryDeleteView = dynamic(
 );
 const CouponDeleteView = dynamic(
   () => import('@/components/coupon/coupon-delete-view'),
+);
+const RoleDeleteView = dynamic(
+  () => import('@/components/role/role-delete-view'),
 );
 
 const ProductDeleteView = dynamic(
@@ -179,10 +185,10 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <AttributeDeleteView />;
     case 'DELETE_CATEGORY':
       return <CategoryDeleteView />;
-    case 'DELETE_COUPON':
-      return <CouponDeleteView />;
     case 'DELETE_TAX':
       return <TaxDeleteView />;
+    case 'DELETE_ROLE':
+      return <RoleDeleteView />;
     case 'DELETE_STORE_NOTICE':
       return <StoreNoticeDeleteView />;
     case 'DELETE_SHIPPING':
@@ -211,6 +217,8 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <RefundImageModal />;
     case 'MAKE_ADMIN':
       return <MakeAdminView />;
+    case 'ASSIGN_ROLE':
+      return <UserRoleAssignmentView />;
     case 'USER_PERMISSIONS':
       return <UserPermissionsView />;
     case 'EDIT_PROFILE':

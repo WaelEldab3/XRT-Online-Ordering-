@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Table } from '@/components/ui/table';
 import ActionButtons from '@/components/common/action-buttons';
 import { siteSettings } from '@/settings/site.settings';
+import { Routes } from '@/config/routes';
 import {
   Category,
   MappedPaginatorInfo,
@@ -112,6 +113,19 @@ const AdminsList = ({
       ),
     },
     {
+      title: t('table:table-item-role'),
+      dataIndex: 'role',
+      key: 'role',
+      align: alignLeft,
+      width: 150,
+      render: (role: string, record: any) => {
+        if (record.customRole) {
+          return record.customRole.displayName;
+        }
+        return role === 'super_admin' ? 'Super Admin' : 'Client';
+      },
+    },
+    {
       title: t('table:table-item-permissions'),
       dataIndex: 'permissions',
       key: 'permissions',
@@ -186,6 +200,8 @@ const AdminsList = ({
                 isUserActive={is_active}
                 showAddWalletPoints={true}
                 showMakeAdminButton={true}
+                deleteModalView="DELETE_USER"
+                editUrl={Routes.user.editByIdWithoutLang(id)}
               />
             )}
           </>

@@ -1,33 +1,20 @@
-import Button from '@/components/ui/button';
-import Input from '@/components/ui/input';
-import PasswordInput from '@/components/ui/password-input';
-import { useForm } from 'react-hook-form';
-import Card from '@/components/common/card';
-import Description from '@/components/ui/description';
-import { useRegisterMutation, useUpdateUserMutation } from '@/data/user';
-import { useTranslation } from 'next-i18next';
-import { yupResolver } from '@hookform/resolvers/yup';
-import {
-  customerValidationSchema,
-  customerUpdateValidationSchema,
-} from './user-validation-schema';
-import { User } from '@/types';
-import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
-import { useRouter } from 'next/router';
-import { Routes } from '@/config/routes';
-import { toast } from 'react-toastify';
+import Select from '@/components/ui/select/select';
+import Label from '@/components/ui/label';
+import { useRolesQuery } from '@/data/role';
+import { Controller } from 'react-hook-form';
 
 type FormValues = {
   name: string;
   email: string;
   password?: string;
-  // permission: Permission;
+  role?: any;
 };
 
 const defaultValues = {
   email: '',
   password: '',
   name: '',
+  role: '',
 };
 
 type UserFormProps = {
@@ -39,6 +26,7 @@ const UserForm = ({ initialValues }: UserFormProps) => {
   const router = useRouter();
   const { mutate: registerUser, isLoading: creating } = useRegisterMutation();
   const { mutate: updateUser, isLoading: updating } = useUpdateUserMutation();
+  const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
 
   const isNew = !initialValues;
   const isLoading = creating || updating;
@@ -47,7 +35,7 @@ const UserForm = ({ initialValues }: UserFormProps) => {
     register,
     handleSubmit,
     setError,
-
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: initialValues
@@ -55,52 +43,70 @@ const UserForm = ({ initialValues }: UserFormProps) => {
           name: initialValues.name,
           email: initialValues.email,
           password: '',
+          role: initialValues.customRole
+            ? {
+                label: initialValues.customRole.displayName,
+                value: initialValues.customRole.id,
+              }
+            : initialValues.role
+              ? {
+                  label:
+                    initialValues.role === 'super_admin'
+                      ? 'Super Admin'
+                      : 'Client',
+                  value: initialValues.role,
+                }
+              : { label: 'Client', value: 'client' },
         }
-      : defaultValues,
+      : { ...defaultValues, role: { label: 'Client', value: 'client' } },
     resolver: yupResolver(
       isNew ? customerValidationSchema : customerUpdateValidationSchema,
     ),
   });
 
-  async function onSubmit({ name, email, password }: FormValues) {
+  const roleOptions = [
+    { label: 'Super Admin', value: 'super_admin' },
+    { label: 'Client', value: 'client' },
+    ...(roles?.map((role) => ({
+      label: role.displayName,
+      value: role.id,
+    })) || []),
+  ];
+
+  async function onSubmit({ name, email, password, role }: FormValues) {
+    const roleValue = role?.value;
+    const isCustomRole = roleValue !== 'super_admin' && roleValue !== 'client';
+
+    const input = {
+      name,
+      email,
+      password: password || undefined,
+      role: isCustomRole ? 'client' : roleValue, // Default to client if custom role
+      customRole: isCustomRole ? roleValue : null,
+      permissions: isCustomRole ? [] : undefined, // Clear permissions if not custom role? Wait if switching back to super_admin
+    };
+
     if (isNew) {
-      registerUser(
-        {
-          name,
-          email,
-          password: password!,
-          // permission: Permission.StoreOwner,
-        },
-        {
-          onError: (error: any) => {
-            Object.keys(error?.response?.data).forEach((field: any) => {
-              setError(field, {
-                type: 'manual',
-                message: error?.response?.data[field][0],
-              });
+      registerUser(input, {
+        onError: (error: any) => {
+          Object.keys(error?.response?.data).forEach((field: any) => {
+            setError(field, {
+              type: 'manual',
+              message: error?.response?.data[field][0],
             });
-          },
-          onSuccess: (data) => {
-            if (data) {
-              router.push(Routes.user.list);
-            }
-          },
+          });
         },
-      );
+        onSuccess: (data) => {
+          if (data) {
+            router.push(Routes.user.list);
+          }
+        },
+      });
     } else {
       updateUser(
         {
-          variables: {
-            id: initialValues?.id as string,
-            input: {
-              name,
-              // email, // Email might not be editable depending on backend, but let's include it if allowed
-              // password, // Only send if provided
-              // Profile update logic might be separate or included here.
-              // Start with name, and basic info.
-              ...(password && { password }),
-            },
-          },
+          id: initialValues?.id as string,
+          input: input,
         },
         {
           onError: (error: any) => {
@@ -150,6 +156,23 @@ const UserForm = ({ initialValues }: UserFormProps) => {
             className="mb-4"
             required={isNew}
           />
+
+          <div className="mb-4">
+            <Label>{t('form:input-label-role')}</Label>
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  isLoading={loadingRoles}
+                  options={roleOptions}
+                  isClearable={false}
+                />
+              )}
+            />
+            {/* Add error handling for role if needed */}
+          </div>
         </Card>
       </div>
       <StickyFooterPanel className="z-0">

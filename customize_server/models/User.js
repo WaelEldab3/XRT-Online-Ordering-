@@ -4,83 +4,8 @@ import validator from 'validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import Role from './Role.js';
 
-// Role schema for custom roles
-const roleSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    maxlength: [50, "Role name cannot be more than 50 characters"]
-  },
-  displayName: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: [100, "Display name cannot be more than 100 characters"]
-  },
-  description: {
-    type: String,
-    trim: true,
-    maxlength: [500, "Description cannot be more than 500 characters"]
-  },
-  permissions: {
-    type: [String],
-    default: [],
-    enum: [
-      // User management permissions
-      "users:read",
-      "users:create", 
-      "users:update",
-      "users:delete",
-      "users:approve",
-      "users:ban",
-      
-      // Content management permissions
-      "content:read",
-      "content:create",
-      "content:update", 
-      "content:delete",
-      "content:publish",
-      
-      // System permissions
-      "system:read",
-      "system:update",
-      "system:backup",
-      "system:logs",
-      
-      // Profile permissions
-      "profile:read",
-      "profile:update",
-      
-      // Admin permissions
-      "admin:dashboard",
-      "admin:settings",
-      "admin:analytics",
-      
-      // Role management permissions
-      "roles:read",
-      "roles:create",
-      "roles:update",
-      "roles:delete"
-    ]
-  },
-  isSystem: {
-    type: Boolean,
-    default: false,
-    select: false
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    select: false
-  }
-}, { timestamps: true });
 
 const userSchema = new mongoose.Schema(
   {
@@ -448,7 +373,6 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-const Role = mongoose.model("Role", roleSchema);
 const User = mongoose.model("User", userSchema);
 
 export { Role, User };

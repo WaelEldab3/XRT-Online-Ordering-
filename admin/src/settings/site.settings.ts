@@ -378,6 +378,11 @@ export const siteSettings = {
             label: 'text-customers',
             icon: 'CustomersIcon',
           },
+          {
+            href: Routes.role.list,
+            label: 'Roles',
+            icon: 'AdminListIcon',
+          },
         ],
       },
 

@@ -462,6 +462,9 @@ export interface User {
   address: Address[];
   orders?: OrderPaginator;
   email_verified: boolean;
+  customRole?: Role;
+  role?: string;
+  permissions?: string[];
 }
 
 export interface Domain {
@@ -481,6 +484,8 @@ export interface UpdateUser {
   profile?: UserProfileInput;
   address?: UserAddressUpsertInput[];
   role?: string;
+  customRole?: string;
+  permissions?: string[];
 }
 
 export interface Profile {
@@ -797,6 +802,7 @@ export interface CreateProduct {
   max_price?: number;
   min_price?: number;
   variation_options?: UpsertVariationsHasMany;
+
   video: {
     url: string;
   }[];
@@ -1527,6 +1533,7 @@ export interface RegisterInput {
   password: string;
   name: string;
   role?: string;
+  customRole?: string;
   shop_id?: number;
   // permission: Permission;
 }
@@ -1550,6 +1557,39 @@ export interface ResetPasswordInput {
   email: string;
   password: string;
 }
+
+export interface Role {
+  _id: string;
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  permissions: string[];
+  isSystem?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RolePaginator {
+    data: Role[];
+    paginatorInfo: PaginatorInfo<Role>;
+}
+
+export interface CreateRoleInput {
+  name: string;
+  displayName: string;
+  description?: string;
+  permissions: string[];
+}
+
+export interface UpdateRoleInput {
+  name?: string;
+  displayName?: string;
+  description?: string;
+  permissions?: string[];
+}
+
+
 
 export declare interface MakeAdminInput {
   user_id: string;

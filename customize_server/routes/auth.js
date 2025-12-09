@@ -58,6 +58,7 @@ router.patch('/users/:id/approve', requirePermission('users:approve'), authContr
 router.patch('/users/:id/ban', requirePermission('users:ban'), authController.banUser);
 router.delete('/users/:id', requirePermission('users:delete'), authController.deleteUser);
 router.patch('/users/:id', requirePermission('users:update'), authController.updateUser);
+router.get('/users/:id', requirePermission('users:read'), authController.getUser);
 
 // Permission management endpoints
 router.patch(

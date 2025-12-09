@@ -99,7 +99,7 @@ const ActionButtons = ({
   }
 
   function handleMakeAdmin() {
-    openModal('MAKE_ADMIN', id);
+    openModal('ASSIGN_ROLE', id);
   }
 
   function handleUpdateRefundStatus() {

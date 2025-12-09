@@ -1,4 +1,5 @@
-import { Role, User } from '../models/User.js';
+import Role from '../models/Role.js';
+import User from '../models/User.js';
 
 // Create a new custom role
 /**

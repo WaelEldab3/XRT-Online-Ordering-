@@ -22,6 +22,9 @@ export const Routes = {
   checkout: '/orders/checkout',
   verifyEmail: '/verify-email',
   verifyLicense: '/verify-license',
+  role: {
+    ...routesFactory('/roles'),
+  },
   user: {
     ...routesFactory('/users'),
   },
@@ -155,7 +158,8 @@ export const Routes = {
         : `/${language}/products/${slug}/translate`;
     },
   },
-  visitStore: (slug: string) => `${process.env.NEXT_PUBLIC_SHOP_URL?.replace(/\/$/, '')}/${slug}`,
+  visitStore: (slug: string) =>
+    `${process.env.NEXT_PUBLIC_SHOP_URL?.replace(/\/$/, '')}/${slug}`,
   vendorRequestForFlashSale: {
     ...routesFactory('/flash-sale/vendor-request'),
   },
