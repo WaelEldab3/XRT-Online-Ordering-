@@ -38,6 +38,14 @@ export const API_ENDPOINTS = {
   LOCATION_NEARBY: 'locations/nearby',
   LOCATIONS_BY_BUSINESS: 'locations/business/:businessId',
   
+  // Customer endpoints
+  CUSTOMERS: 'customers',
+  CUSTOMER_CREATE: 'customers',
+  CUSTOMER_UPDATE: 'customers/:id',
+  CUSTOMER_DELETE: 'customers/:id',
+  CUSTOMER_IMPORT: 'customers/import',
+  CUSTOMER_EXPORT: 'customers/export',
+  
   // Legacy endpoints
   SETTINGS: 'settings',
   PROFILE_UPDATE: 'profile-update',
@@ -52,7 +60,6 @@ export const API_ENDPOINTS = {
   // User management endpoints (legacy - using USERS endpoint with role filters)
   STAFFS: 'auth/users',
   ADMIN_LIST: 'auth/users', 
-  CUSTOMERS: 'auth/users',
   VENDORS_LIST: 'auth/users',
   MY_STAFFS: 'auth/users',
   ALL_STAFFS: 'auth/users',

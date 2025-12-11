@@ -20,7 +20,7 @@ export interface Props extends InputHTMLAttributes<HTMLInputElement> {
   control: any;
 }
 
-const PhoneNumberInput: React.FC<Props> = ({
+const PhoneNumberInput = React.forwardRef<any, Props>(({
   label,
   required,
   showLabel = true,
@@ -33,7 +33,7 @@ const PhoneNumberInput: React.FC<Props> = ({
   name,
   control,
   ...rest
-}) => {
+}, ref) => {
   return (
     <div className={twMerge(cn('mb-5', className))}>
       <Controller
@@ -76,6 +76,6 @@ const PhoneNumberInput: React.FC<Props> = ({
       {error && <p className="my-2 text-xs text-red-500 text-start">{error}</p>}
     </div>
   );
-};
+});
 
 export default PhoneNumberInput;

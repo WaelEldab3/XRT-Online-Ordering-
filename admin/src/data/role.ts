@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient, UseQueryOptions, UseQueryResult } from 'react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryOptions,
+  UseQueryResult,
+} from 'react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { API_ENDPOINTS } from './client/api-endpoints';
@@ -38,7 +44,7 @@ export const useRoleQuery = ({ id }: { id: string }) => {
     [API_ENDPOINTS.ROLES, id],
     () => roleClient.fetchRole({ id }),
     {
-      enabled: Boolean(id),
+      enabled: Boolean(id) && id !== 'undefined',
     },
   );
 };
@@ -91,11 +97,41 @@ export const useDeleteRoleMutation = () => {
 };
 
 export const usePermissionsQuery = (
-  options?: UseQueryOptions<string[], Error>
+  options?: UseQueryOptions<string[], Error>,
 ): UseQueryResult<string[], Error> => {
   return useQuery<string[], Error>(
     [API_ENDPOINTS.ALL_PERMISSIONS],
     () => roleClient.fetchAllPermissions(),
-    options
+    options,
   );
+};
+
+export const useAssignRoleMutation = () => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation(roleClient.assignRoleToUser, {
+    onSuccess: () => {
+      toast.success(t('common:successfully-updated'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(API_ENDPOINTS.USERS);
+      queryClient.invalidateQueries(API_ENDPOINTS.ROLES);
+    },
+  });
+};
+
+export const useRemoveRoleMutation = () => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation(roleClient.removeRoleFromUser, {
+    onSuccess: () => {
+      toast.success(t('common:successfully-updated'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(API_ENDPOINTS.USERS);
+      queryClient.invalidateQueries(API_ENDPOINTS.ROLES);
+    },
+  });
 };

@@ -1,4 +1,4 @@
-import { ProductType } from '@/types';
+import { ProductType, CategoryProductCount } from '@/types';
 
 // Mock data for dashboard widgets when server is not available
 
@@ -107,7 +107,7 @@ export const mockTopRatedProducts = [
   }
 ];
 
-export const mockProductCountByCategory = [
+export const mockProductCountByCategory: CategoryProductCount[] = [
   {
     category_id: 1,
     category_name: "Electronics",
@@ -141,6 +141,12 @@ export const mockProductCountByCategory = [
 ];
 
 export const mockDashboardStats = {
+  totalRevenue: 123456.78,
+  todaysRevenue: 2345.67,
+  totalOrders: 1567,
+  totalVendors: 89,
+  totalShops: 45,
+  totalRefunds: 1234.56,
   todayTotalOrderByStatus: [
     { status: 'pending', count: 12, total: 1299.99 },
     { status: 'processing', count: 8, total: 2345.67 },
@@ -158,6 +164,12 @@ export const mockDashboardStats = {
     { status: 'processing', count: 156, total: 34567.89 },
     { status: 'completed', count: 789, total: 123456.78 },
     { status: 'cancelled', count: 45, total: 3456.78 }
+  ],
+  yearlyTotalOrderByStatus: [
+    { status: 'pending', count: 1234, total: 123456.78 },
+    { status: 'processing', count: 890, total: 234567.89 },
+    { status: 'completed', count: 3456, total: 567890.12 },
+    { status: 'cancelled', count: 234, total: 12345.67 }
   ],
   totalYearSaleByMonth: [
     { month: 'Jan', total: 45678.90 },

@@ -87,7 +87,7 @@ const RoleList = ({
     },
     {
       title: t('table:table-item-actions'),
-      dataIndex: 'id',
+      dataIndex: '_id',
       key: 'actions',
       align: 'right',
       width: 120,

@@ -10,8 +10,13 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useState } from 'react';
 import PageHeading from '@/components/common/page-heading';
+import Link from '@/components/ui/link';
+import { useModalAction } from '@/components/ui/modal/modal.context';
+import Button from '@/components/ui/button';
+
 export default function Admins() {
   const { t } = useTranslation();
+  const { openModal } = useModalAction();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [orderBy, setOrder] = useState('created_at');
@@ -37,11 +42,20 @@ export default function Admins() {
     setPage(current);
   }
 
+  function handleCreateAdmin() {
+    openModal('CREATE_ADMIN');
+  }
+
   return (
     <>
-      <Card className="mb-8 flex items-center">
+      <Card className="mb-8 flex flex-col items-center justify-between md:flex-row">
         <div className="md:w-1/4">
           <PageHeading title={t('text-admins')} />
+        </div>
+        <div className="flex w-full flex-col items-center space-y-4 md:w-3/4 md:flex-row md:justify-end md:space-y-0 md:space-x-4/rtl:space-x-reverse">
+          <Button onClick={handleCreateAdmin}>
+            <span>+ Add Admin</span>
+          </Button>
         </div>
       </Card>
 

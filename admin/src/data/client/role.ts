@@ -32,4 +32,22 @@ export const roleClient = {
     );
     return response.data.permissions;
   },
+  assignRoleToUser: ({
+    userId,
+    roleId,
+  }: {
+    userId: string;
+    roleId: string;
+  }) => {
+    return HttpClient.patch<any>(
+      `${API_ENDPOINTS.ROLES}/users/${userId}/assign`,
+      { roleId },
+    );
+  },
+  removeRoleFromUser: ({ userId }: { userId: string }) => {
+    return HttpClient.patch<any>(
+      `${API_ENDPOINTS.ROLES}/users/${userId}/remove`,
+      {},
+    );
+  },
 };

@@ -138,6 +138,13 @@ export interface TodayTotalOrderByStatus {
   outForDelivery: number;
 }
 
+export interface CategoryProductCount {
+  category_id: number;
+  category_name: string;
+  shop_name: string;
+  product_count: number;
+}
+
 export enum PaymentStatus {
   PENDING = 'payment-pending',
   PROCESSING = 'payment-processing',
@@ -1535,6 +1542,7 @@ export interface RegisterInput {
   role?: string;
   customRole?: string;
   shop_id?: number;
+  permissions?: string[];
   // permission: Permission;
 }
 
@@ -1571,8 +1579,8 @@ export interface Role {
 }
 
 export interface RolePaginator {
-    data: Role[];
-    paginatorInfo: PaginatorInfo<Role>;
+  data: Role[];
+  paginatorInfo: PaginatorInfo<Role>;
 }
 
 export interface CreateRoleInput {
@@ -1588,8 +1596,6 @@ export interface UpdateRoleInput {
   description?: string;
   permissions?: string[];
 }
-
-
 
 export declare interface MakeAdminInput {
   user_id: string;
@@ -2044,6 +2050,43 @@ export interface ItemProps {
   id: number;
   title: string;
 }
+
+export interface Customer {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  business_id: string;
+  location_id: string;
+  rewards: number;
+  isActive: boolean;
+  last_order_at: string | null;
+  preferences?: {
+    dietary: string[];
+    allergies: string[];
+    favoriteItems: string[];
+    specialInstructions: string;
+  };
+  addresses?: Array<{
+    type: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    isDefault: boolean;
+  }>;
+  loyaltyTier?: string;
+  totalOrders?: number;
+  totalSpent?: number;
+  notes?: string;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CustomerPaginator extends PaginatorInfo<Customer> {}
 
 export interface ShopPaginator extends PaginatorInfo<Shop> {}
 

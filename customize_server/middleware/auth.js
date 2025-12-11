@@ -6,18 +6,15 @@ import User from '../models/User.js';
 const protect = async (req, res, next) => {
   try {
     let token;
-    
+
     // 1) Get token and check if it exists
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     } else if (req.cookies.access_token) {
       token = req.cookies.access_token;
     }
 
-    if (!token) {
+    if (!token || token === 'loggedout' || token === 'null' || token === 'undefined') {
       return res.status(401).json({
         status: 'error',
         message: 'You are not logged in! Please log in to get access.',
@@ -28,7 +25,9 @@ const protect = async (req, res, next) => {
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id).select('+isActive +isApproved +isBanned +banReason');
+    const currentUser = await User.findById(decoded.id).select(
+      '+isActive +isApproved +isBanned +banReason'
+    );
     if (!currentUser) {
       return res.status(401).json({
         status: 'error',
@@ -74,7 +73,7 @@ const protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Authentication error:', err);
-    
+
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({
         status: 'error',
@@ -93,7 +92,7 @@ const protect = async (req, res, next) => {
         message: 'Authentication failed. Please log in again.',
       });
     }
-    
+
     return res.status(401).json({
       status: 'error',
       message: 'Authentication failed. Please log in again.',
@@ -179,11 +178,4 @@ const isAdmin = (req, res, next) => {
   });
 };
 
-export {
-  protect,
-  restrictTo,
-  isLoggedIn,
-  isAuthenticated,
-  isNotAuthenticated,
-  isAdmin,
-};
+export { protect, restrictTo, isLoggedIn, isAuthenticated, isNotAuthenticated, isAdmin };

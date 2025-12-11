@@ -175,6 +175,14 @@ const DeleteOwnershipTransferRequest = dynamic(
     import('@/components/ownership-transfer/ownership-transfer-delete-view'),
 );
 
+const CreateAdminView = dynamic(
+  () => import('@/components/admin/create-admin-view'),
+);
+
+const AdminPermissionsView = dynamic(
+  () => import('@/components/admin/admin-permissions-view'),
+);
+
 function renderModal(view: MODAL_VIEWS | undefined, data: any) {
   switch (view) {
     case 'DELETE_PRODUCT':
@@ -283,6 +291,10 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <TransferShopOwnershipView />;
     case 'DELETE_OWNERSHIP_TRANSFER_REQUEST':
       return <DeleteOwnershipTransferRequest />;
+    case 'CREATE_ADMIN':
+      return <CreateAdminView />;
+    case 'ADMIN_PERMISSIONS_VIEW':
+      return <AdminPermissionsView />;
     default:
       return null;
   }

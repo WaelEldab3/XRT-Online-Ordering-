@@ -19,7 +19,7 @@ export default function UpdateRolePage() {
     id: query.id as string,
   });
 
-  if (loading) return <Loader text={t('common:text-loading')} />;
+  if (loading || !query.id) return <Loader text={t('common:text-loading')} />;
   if (error) return <ErrorMessage message={error.message} />;
 
   return (

@@ -12,6 +12,7 @@ import AppLayout from '@/components/layouts/app';
 import { Routes } from '@/config/routes';
 import { Config } from '@/config';
 import { useMeQuery } from '@/data/user';
+import { useDashboardLoading } from '@/hooks/use-app-loading';
 
 const AdminDashboard = dynamic(() => import('@/components/dashboard/admin'));
 const OwnerDashboard = dynamic(() => import('@/components/dashboard/owner'));
@@ -23,8 +24,18 @@ export default function Dashboard({
   userPermissions: string[];
   userRole: string;
 }) {
-  const { data: userData } = useMeQuery();
+  const { data: userData, isLoading: userLoading } = useMeQuery();
   const user = (userData as any)?.data?.user || userData;
+
+  // Only use dashboard loading hook if user is authenticated
+  // This prevents the loader from showing on initial app load before login
+  const { token } = getAuthCredentials();
+  
+  // Always call the hook, but pass empty array if not authenticated
+  useDashboardLoading({
+    loadingStates: token ? [userLoading] : [],
+    loadingMessage: 'Loading user profile...'
+  });
 
   // Use real user role from customize_server
   if (user?.role === 'super_admin') {

@@ -59,23 +59,22 @@ const Avatar: React.FC<AvatarProps> = ({
 }) => {
   const [isError, setError] = React.useState(false);
 
-  // Filter out unwanted props
-  const filteredRest = React.useMemo(() => {
+  // Separate props for div and image elements
+  const { divProps, imageProps } = React.useMemo(() => {
     const restObj = rest as any;
-    const {
-      fetchPriority: _fetchPriority,
-      fetchpriority: _fetchpriority,
-      className: _className,
-      src: _src,
-      name: _name,
-      size: _size,
-      initials: _initials,
-      customSize: _customSize,
-      rounded: _rounded,
-      onClick: _onClick,
-      ...filtered
-    } = restObj;
-    return filtered;
+
+    // Extract fetchPriority props for image
+    const { fetchPriority, fetchpriority, ...otherProps } = restObj;
+
+    // Props for div element (excluding all image-specific props)
+    const cleanDivProps = { ...otherProps };
+
+    // Props for image element (only safe props)
+    // We explicitly DROP fetchPriority/fetchpriority to avoid React warnings on the underlying <img> tag
+    // until we are sure how next/image handles it in this version.
+    const cleanImageProps = {};
+
+    return { divProps: cleanDivProps, imageProps: cleanImageProps };
   }, [rest]);
 
   // checking customSize value
@@ -105,7 +104,7 @@ const Avatar: React.FC<AvatarProps> = ({
           height: customSize ?? classes.size[size],
         }}
         onClick={onClick}
-        {...filteredRest}
+        {...divProps}
       >
         <Image
           alt={name}
@@ -114,6 +113,7 @@ const Avatar: React.FC<AvatarProps> = ({
           sizes="(max-width: 768px) 100vw"
           priority={false}
           onError={() => setError(() => true)}
+          {...imageProps}
         />
       </div>
     );

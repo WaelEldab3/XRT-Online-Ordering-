@@ -363,11 +363,6 @@ export const siteSettings = {
         icon: 'SettingsIcon',
         childMenu: [
           {
-            href: Routes.user.list,
-            label: 'text-all-users',
-            icon: 'UsersIcon',
-          },
-          {
             href: Routes.adminList,
             label: 'text-admin-list',
             icon: 'AdminListIcon',
@@ -381,7 +376,7 @@ export const siteSettings = {
           {
             href: Routes.role.list,
             label: 'Roles',
-            icon: 'AdminListIcon',
+            icon: 'UsersIcon',
           },
         ],
       },
