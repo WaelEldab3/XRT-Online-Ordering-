@@ -4,6 +4,9 @@ import Router from 'next/router';
 import invariant from 'tiny-invariant';
 import { AUTH_CRED } from '@/utils/constants';
 
+import { API_ENDPOINTS } from './api-endpoints';
+import { getAuthCredentials, setAuthCredentials } from '@/utils/auth-utils';
+
 invariant(
   process.env.NEXT_PUBLIC_REST_API_ENDPOINT,
   'NEXT_PUBLIC_REST_API_ENDPOINT is not defined, please define it in your .env file',
@@ -18,11 +21,7 @@ const Axios = axios.create({
 
 // Change request data/error
 Axios.interceptors.request.use((config) => {
-  const authCred = Cookies.get(AUTH_CRED);
-  let token = '';
-  if (authCred) {
-    token = JSON.parse(authCred)['token'];
-  }
+  const { token } = getAuthCredentials();
   // @ts-ignore
   config.headers = {
     ...config.headers,
@@ -34,7 +33,42 @@ Axios.interceptors.request.use((config) => {
 // Change response data/error here
 Axios.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+      const { refreshToken, permissions, role } = getAuthCredentials();
+
+      if (refreshToken) {
+        try {
+          const { data } = await axios.post(
+            process.env.NEXT_PUBLIC_REST_API_ENDPOINT +
+              API_ENDPOINTS.REFRESH_TOKEN,
+            { refreshToken },
+          );
+
+          if (data && data.accessToken) {
+            setAuthCredentials(
+              data.accessToken,
+              permissions,
+              role,
+              refreshToken,
+            );
+            originalRequest.headers['Authorization'] =
+              `Bearer ${data.accessToken}`;
+            return Axios(originalRequest);
+          }
+        } catch (refreshError) {
+          // If refresh fails, proceed to logout
+        }
+      }
+    }
+
     if (
       (error.response && error.response.status === 401) ||
       (error.response && error.response.status === 403) ||
@@ -117,8 +151,8 @@ export class HttpClient {
         ].includes(k)
           ? `${k}.slug:${v}`
           : ['is_approved'].includes(k)
-          ? formatBooleanSearchParam(k, v as boolean)
-          : `${k}:${v}`,
+            ? formatBooleanSearchParam(k, v as boolean)
+            : `${k}:${v}`,
       )
       .join(';');
   }

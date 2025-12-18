@@ -8,6 +8,7 @@ import businessRoutes from './routes/businesses.js';
 import locationRoutes from './routes/locations.js';
 import withdrawRoutes from './routes/withdraws.js';
 import roleRoutes from './routes/roles.js';
+import customerRoutes from './routes/customers.js';
 import { connectDB } from './config/database.js';
 import { allowedOrigins, API_BASE_URL } from './config/config.js';
 import './config/passport.js';
@@ -64,34 +65,11 @@ app.use(`${API_BASE_URL}/businesses`, businessRoutes);
 app.use(`${API_BASE_URL}/locations`, locationRoutes);
 app.use(`${API_BASE_URL}/withdraws`, withdrawRoutes);
 app.use(`${API_BASE_URL}/roles`, roleRoutes);
+app.use(`${API_BASE_URL}/customers`, customerRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the API' });
-});
-
-// Simple test endpoint
-app.get('/test', (req, res) => {
-  res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
-});
-
-// Test endpoint to check Swagger specs
-app.get('/swagger-test', (req, res) => {
-  try {
-    res.json({
-      status: 'success',
-      message: 'Swagger specs loaded successfully',
-      hasSpecs: !!specs,
-      specKeys: specs ? Object.keys(specs) : null,
-      specInfo: specs ? specs.info : null,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to test swagger specs',
-      error: error.message,
-    });
-  }
 });
 
 // Force restart
@@ -145,6 +123,7 @@ app.get(`${API_BASE_URL}/`, (req, res) => {
       locations: `${API_BASE_URL}/locations`,
       roles: `${API_BASE_URL}/roles`,
       withdraws: `${API_BASE_URL}/withdraws`,
+      customers: `${API_BASE_URL}/customers`,
       docs: `${API_BASE_URL}/api-docs`,
     },
     features: [

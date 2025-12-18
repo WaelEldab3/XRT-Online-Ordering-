@@ -35,6 +35,9 @@ export const userClient = {
   register: (variables: RegisterInput) => {
     return HttpClient.post<AuthResponse>(API_ENDPOINTS.REGISTER, variables);
   },
+  createUser: (variables: RegisterInput) => {
+    return HttpClient.post<User>(API_ENDPOINTS.USERS, variables);
+  },
   update: ({ id, input }: { id: string; input: UpdateUser }) => {
     return HttpClient.patch<User>(`${API_ENDPOINTS.USERS}/${id}`, input);
   },
@@ -47,26 +50,44 @@ export const userClient = {
   verifyForgetPasswordToken: (variables: VerifyForgetPasswordTokenInput) => {
     return HttpClient.post<any>(
       API_ENDPOINTS.VERIFY_FORGET_PASSWORD_TOKEN,
-      variables
+      variables,
     );
   },
-  resetPassword: (variables: ResetPasswordInput & { token: string }) => {
-    return HttpClient.patch<any>(`${API_ENDPOINTS.RESET_PASSWORD}/${variables.token}`, { password: variables.password });
+  resetPassword: (
+    variables: ResetPasswordInput & { token: string; email: string },
+  ) => {
+    return HttpClient.post<any>(API_ENDPOINTS.RESET_PASSWORD, {
+      email: variables.email,
+      otp: variables.token,
+      password: variables.password,
+    });
   },
   makeAdmin: (variables: MakeAdminInput & { id: string }) => {
-    return HttpClient.patch<any>(API_ENDPOINTS.USER_APPROVE.replace(':id', variables.id), variables);
+    return HttpClient.patch<any>(
+      API_ENDPOINTS.USER_APPROVE.replace(':id', variables.id),
+      variables,
+    );
   },
   block: (variables: BlockUserInput & { id: string }) => {
-    return HttpClient.patch<any>(API_ENDPOINTS.USER_BAN.replace(':id', variables.id), variables);
+    return HttpClient.patch<any>(
+      API_ENDPOINTS.USER_BAN.replace(':id', variables.id),
+      variables,
+    );
   },
   unblock: (variables: BlockUserInput & { id: string }) => {
-    return HttpClient.patch<any>(API_ENDPOINTS.USER_BAN.replace(':id', variables.id), { ...variables, ban: false });
+    return HttpClient.patch<any>(
+      API_ENDPOINTS.USER_BAN.replace(':id', variables.id),
+      { ...variables, ban: false },
+    );
   },
   addWalletPoints: (variables: WalletPointsInput) => {
     return HttpClient.post<any>(API_ENDPOINTS.ADD_WALLET_POINTS, variables);
   },
   addLicenseKey: (variables: KeyInput) => {
-    return HttpClient.post<any>(API_ENDPOINTS.ADD_LICENSE_KEY_VERIFY, variables);
+    return HttpClient.post<any>(
+      API_ENDPOINTS.ADD_LICENSE_KEY_VERIFY,
+      variables,
+    );
   },
 
   fetchUsers: ({ name, ...params }: Partial<UserQueryOptions>) => {
@@ -103,13 +124,18 @@ export const userClient = {
   fetchCustomers: ({ ...params }: Partial<UserQueryOptions>) => {
     return HttpClient.get<UserPaginator>(API_ENDPOINTS.USERS, {
       searchJoin: 'and',
-      role: 'customer',
+      role: 'client',
       ...params,
     });
   },
-  getMyStaffs: ({ is_active, shop_id, name, ...params }: Partial<UserQueryOptions & { shop_id: string }>) => {
+  getMyStaffs: ({
+    is_active,
+    shop_id,
+    name,
+    ...params
+  }: Partial<UserQueryOptions & { shop_id: string }>) => {
     // Temporarily disabled - not implemented in customize_server yet
-    return Promise.resolve({ 
+    return Promise.resolve({
       current_page: 1,
       first_page_url: '',
       from: 0,
@@ -122,12 +148,12 @@ export const userClient = {
       prev_page_url: null,
       to: 0,
       total: 0,
-      data: []
+      data: [],
     });
   },
   getAllStaffs: ({ is_active, name, ...params }: Partial<UserQueryOptions>) => {
     // Temporarily disabled - not implemented in customize_server yet
-    return Promise.resolve({ 
+    return Promise.resolve({
       current_page: 1,
       first_page_url: '',
       from: 0,
@@ -140,8 +166,7 @@ export const userClient = {
       prev_page_url: null,
       to: 0,
       total: 0,
-      data: []
+      data: [],
     });
   },
-  
 };

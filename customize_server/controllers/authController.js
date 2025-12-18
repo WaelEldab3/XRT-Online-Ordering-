@@ -116,10 +116,10 @@ export const register = async (req, res, next) => {
     const { name, email, password, role } = req.body;
 
     // Validate required fields
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !role) {
       return res.status(400).json({
         status: 'error',
-        message: 'Name, email, and password are required',
+        message: 'Name, email, password, and role are required',
       });
     }
 
@@ -135,8 +135,7 @@ export const register = async (req, res, next) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
-      role: role || 'client', // Default to 'client' if not provided
-      customRole: req.body.customRole || null,
+      role,
       permissions: req.body.permissions || [],
       isApproved: role === 'super_admin', // Auto-approve super admins
     });
@@ -167,6 +166,116 @@ export const register = async (req, res, next) => {
     res.status(400).json({
       status: 'error',
       message: err.message || 'Registration failed',
+    });
+  }
+};
+
+/**
+ * @swagger
+ * /auth/users:
+ *   post:
+ *     summary: Create a new user (Admin only)
+ *     tags: [Admin User Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Insufficient permissions
+ */
+export const createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role } = req.body;
+    
+    console.log('Create user request body:', req.body);
+    console.log('Extracted values:', { name, email, password: password ? '***' : undefined, role });
+
+    // Validate required fields
+    if (!name || !email || !password || !role) {
+      console.log('Validation failed. Missing fields:', {
+        name: !!name,
+        email: !!email,
+        password: !!password,
+        role: !!role
+      });
+      return res.status(400).json({
+        status: 'error',
+        message: 'Name, email, password, and role are required',
+      });
+    }
+
+    // Additional validation
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Password must be at least 8 characters long',
+      });
+    }
+
+    console.log('Attempting to create user with role:', role);
+    const newUser = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      role,
+      permissions: req.body.permissions || [],
+      isApproved: true, // Admin-created users are auto-approved
+    });
+
+    // Remove password from output
+    newUser.password = undefined;
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        user: newUser,
+      },
+    });
+  } catch (err) {
+    console.error('User creation error:', err);
+
+    // Handle duplicate email error
+    if (err.code === 11000) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email already exists',
+      });
+    }
+
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({
+        status: 'error',
+        message: errors.join(', '),
+      });
+    }
+
+    res.status(400).json({
+      status: 'error',
+      message: err.message || 'User creation failed',
     });
   }
 };
@@ -393,6 +502,10 @@ export const logout = (req, res) => {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
   });
+  res.cookie('access_token', 'loggedout', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
   res.status(200).json({ status: 'success' });
 };
 
@@ -439,38 +552,33 @@ export const forgotPassword = async (req, res, next) => {
       });
     }
 
-    // 2) Generate the random reset token
-    const resetToken = user.createPasswordResetToken();
+    // 2) Generate the random reset OTP
+    const otp = user.createPasswordResetToken();
     await user.save({ validateBeforeSave: false });
 
     // 3) Send it to user's email
-    const resetURL = `${req.protocol}://${req.get(
-      'host'
-    )}/api/v1/users/reset-password/${resetToken}`;
-
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+    const message = `Your password reset OTP is: ${otp}\n\nThis code is valid for 10 minutes.\nIf you didn't request a password reset, please ignore this email.`;
 
     try {
       // In development, skip email sending and just return success
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Development mode: Skipping email, token would be sent to', user.email);
-        console.log('🔗 Reset URL:', resetURL);
+        console.log('📧 Development mode: OTP for', user.email, 'is:', otp);
 
         res.status(200).json({
-          status: 'success',
-          message: 'Token sent to email! (Development mode - check console)',
-          resetToken, // Only in development for testing
+          success: true,
+          message: 'OTP sent to email! (Development mode - check console)',
+          otp, // Only in development for testing
         });
       } else {
         await sendEmail({
           email: user.email,
-          subject: 'Your password reset token (valid for 10 min)',
+          subject: 'Your password reset OTP (valid for 10 min)',
           message,
         });
 
         res.status(200).json({
-          status: 'success',
-          message: 'Token sent to email!',
+          success: true,
+          message: 'OTP sent to email!',
         });
       }
     } catch (err) {
@@ -534,48 +642,139 @@ export const forgotPassword = async (req, res, next) => {
  */
 export const resetPassword = async (req, res, next) => {
   try {
-    // 1) Get user based on the token
-    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const { email, otp, password } = req.body;
+
+    // Validate required fields
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP are required',
+      });
+    }
+
+    // 1) Get user based on the OTP
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
     const user = await User.findOne({
-      passwordResetToken: hashedToken,
+      email,
+      passwordResetToken: hashedOtp,
       passwordResetExpires: { $gt: Date.now() },
     });
 
-    // 2) If token has not expired, and there is user, set the new password
+    // 2) If OTP has not expired, and there is user, set the new password
     if (!user) {
       return res.status(400).json({
-        status: 'error',
-        message: 'Token is invalid or has expired',
+        success: false,
+        message: 'OTP is invalid or has expired',
       });
     }
 
     // Validate password
-    if (!req.body.password || typeof req.body.password !== 'string') {
+    if (!password || typeof password !== 'string') {
       return res.status(400).json({
-        status: 'error',
+        success: false,
         message: 'Password is required and must be a string',
       });
     }
 
-    if (req.body.password.length < 8) {
+    if (password.length < 8) {
       return res.status(400).json({
-        status: 'error',
+        success: false,
         message: 'Password must be at least 8 characters long',
       });
     }
 
     // 3) Update changedPasswordAt property for the user
-    user.password = req.body.password;
+    user.password = password;
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
 
-    // 4) Log the user in, send JWT
-    await createSendToken(user, 200, res);
+    // 4) Return success
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful! You can now login with your new password.',
+    });
   } catch (err) {
     res.status(400).json({
-      status: 'error',
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/**
+ * @swagger
+ * /auth/verify-reset-token:
+ *   post:
+ *     summary: Verify password reset token is valid
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               token:
+ *                 type: string
+ *                 description: Password reset token
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Token is valid
+ *       400:
+ *         description: Token is invalid or expired
+ */
+export const verifyResetToken = async (req, res) => {
+  try {
+    const { email, token } = req.body;
+
+    if (!email || !token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and token are required',
+      });
+    }
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find user with matching email and valid token
+    const user = await User.findOne({
+      email,
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is invalid or has expired',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Token is valid',
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
       message: err.message,
     });
   }
@@ -719,7 +918,10 @@ export const getAllUsers = async (req, res) => {
     // Handle Role Filter
     if (role) {
       if (role === 'admin') {
-        query.$or = [{ role: 'super_admin' }, { customRole: { $ne: null } }];
+        // Show all users who are NOT 'client' and NOT 'super_admin' (assuming these are the staff/admins)
+        // Or if you want to include super_admin in the list but not client, adjust accordingly.
+        // The user asked "not show the super admin in the list".
+        query.role = { $nin: ['client', 'super_admin'] };
       } else {
         query.role = role;
       }
@@ -754,8 +956,7 @@ export const getAllUsers = async (req, res) => {
           } else if (key === 'role') {
             if (value === 'admin') {
               // If search param specifies role:admin
-              query.$or = [{ role: 'super_admin' }, { customRole: { $ne: null } }];
-              delete query.role; // Remove previous role constraint if any
+              query.role = { $nin: ['client', 'super_admin'] };
             } else {
               query.role = value;
             }
@@ -778,7 +979,6 @@ export const getAllUsers = async (req, res) => {
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('customRole')
       .select('-password -refreshToken -passwordResetToken -passwordResetExpires +isActive');
 
     // Map users to match frontend expectations
@@ -791,7 +991,6 @@ export const getAllUsers = async (req, res) => {
         permissions: userObj.permissions ? userObj.permissions.map(p => ({ name: p })) : [],
         profile: userObj.profile || { avatar: { thumbnail: '' } },
         count: users.length,
-        // Ensure customRole is properly formatted if needed
       };
     });
 
@@ -852,10 +1051,7 @@ export const getAllUsers = async (req, res) => {
  */
 export const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate(
-      'customRole',
-      'name displayName permissions'
-    );
+    const user = await User.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({
@@ -864,10 +1060,22 @@ export const getUser = async (req, res) => {
       });
     }
 
+    // Map user data to match frontend expectations
+    const userObj = user.toObject();
+    const mappedUser = {
+      ...userObj,
+      id: userObj._id.toString(), // Map _id to id
+      is_active: userObj.isActive, // Map isActive to is_active
+      permissions: userObj.permissions ? userObj.permissions.map(p => ({ name: p })) : [],
+      profile: userObj.profile || { avatar: { thumbnail: '' } },
+    };
+
+    console.log('getUser response:', mappedUser);
+
     res.status(200).json({
       status: 'success',
       data: {
-        user,
+        user: mappedUser,
       },
     });
   } catch (err) {
@@ -1115,7 +1323,7 @@ export const updateUser = async (req, res) => {
       'name',
       'email',
       'role',
-      'customRole',
+      'role',
       'permissions',
       'isApproved',
       'isBanned',
@@ -1132,15 +1340,10 @@ export const updateUser = async (req, res) => {
       }
     });
 
-    // Explicitly handle customRole nulling if sent as null (forEach might skip if undefined, but JSON null is object value)
-    if (req.body.customRole === null) user.customRole = null;
-
     await user.save();
 
     // Select fields after save
-    const updatedUser = await User.findById(user._id)
-      .populate('customRole')
-      .select('-password -refreshToken');
+    const updatedUser = await User.findById(user._id).select('-password -refreshToken');
 
     if (!user) {
       return res.status(404).json({

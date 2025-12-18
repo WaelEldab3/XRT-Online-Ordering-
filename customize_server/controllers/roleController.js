@@ -130,7 +130,7 @@ export const createRole = async (req, res) => {
       displayName,
       description,
       permissions,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
 
     res.status(201).json({
@@ -177,9 +177,20 @@ export const createRole = async (req, res) => {
  */
 export const getAllRoles = async (req, res) => {
   try {
+    const { orderBy, sortedBy } = req.query;
+
+    // Default sort
+    let sort = { createdAt: -1 };
+
+    // Dynamic sort if parameters provided
+    if (orderBy) {
+      sort = {};
+      sort[orderBy] = sortedBy === 'asc' ? 1 : -1;
+    }
+
     const roles = await Role.find({ isSystem: { $ne: true } })
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort(sort);
 
     res.status(200).json({
       status: 'success',
@@ -230,8 +241,7 @@ export const getAllRoles = async (req, res) => {
  */
 export const getRoleById = async (req, res) => {
   try {
-    const role = await Role.findById(req.params.id)
-      .populate('createdBy', 'name email');
+    const role = await Role.findById(req.params.id).populate('createdBy', 'name email');
 
     if (!role) {
       return res.status(404).json({

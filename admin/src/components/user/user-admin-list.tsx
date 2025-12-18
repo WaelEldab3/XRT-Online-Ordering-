@@ -19,6 +19,7 @@ import { NoDataFound } from '@/components/icons/no-data-found';
 import TitleWithSort from '@/components/ui/title-with-sort';
 import Badge from '../ui/badge/badge';
 import Avatar from '../common/avatar';
+import { useModalAction } from '@/components/ui/modal/modal.context';
 
 type IProps = {
   admins: User[] | undefined;
@@ -36,6 +37,13 @@ const AdminsList = ({
 }: IProps) => {
   const { t } = useTranslation();
   const { alignLeft, alignRight } = useIsRTL();
+  const { openModal } = useModalAction();
+
+  // Filter out super_admin
+  // @ts-ignore
+  const filteredAdmins = admins?.filter(
+    (admin: any) => admin.role !== 'super_admin',
+  );
 
   const [sortingObj, setSortingObj] = useState<{
     sort: SortOrder;
@@ -48,7 +56,9 @@ const AdminsList = ({
   const onHeaderClick = (column: any | null) => ({
     onClick: () => {
       onSort((currentSortDirection: SortOrder) =>
-        currentSortDirection === SortOrder.Desc ? SortOrder.Asc : SortOrder.Desc
+        currentSortDirection === SortOrder.Desc
+          ? SortOrder.Asc
+          : SortOrder.Desc,
       );
 
       onOrder(column);
@@ -65,29 +75,11 @@ const AdminsList = ({
     {
       title: (
         <TitleWithSort
-          title={t('table:table-item-id')}
-          ascending={
-            sortingObj.sort === SortOrder.Asc && sortingObj.column === 'id'
-          }
-          isActive={sortingObj.column === 'id'}
-        />
-      ),
-      className: 'cursor-pointer',
-      dataIndex: 'id',
-      key: 'id',
-      align: alignLeft,
-      width: 150,
-      onHeaderCell: () => onHeaderClick('id'),
-      render: (id: number) => `#${t('table:table-item-id')}: ${id}`,
-    },
-    {
-      title: (
-        <TitleWithSort
           title={t('table:table-item-title')}
           ascending={
-            sortingObj.sort === SortOrder.Asc && sortingObj.column === 'id'
+            sortingObj.sort === SortOrder.Asc && sortingObj.column === 'name'
           }
-          isActive={sortingObj.column === 'id'}
+          isActive={sortingObj.column === 'name'}
         />
       ),
       className: 'cursor-pointer',
@@ -99,7 +91,7 @@ const AdminsList = ({
       onHeaderCell: () => onHeaderClick('name'),
       render: (
         name: string,
-        { profile, email }: { profile: any; email: string }
+        { profile, email }: { profile: any; email: string },
       ) => (
         <div className="flex items-center">
           <Avatar name={name} src={profile?.avatar?.thumbnail} />
@@ -113,75 +105,21 @@ const AdminsList = ({
       ),
     },
     {
-      title: t('table:table-item-role'),
-      dataIndex: 'role',
-      key: 'role',
-      align: alignLeft,
-      width: 150,
-      render: (role: string, record: any) => {
-        if (record.customRole) {
-          return record.customRole.displayName;
-        }
-        return role === 'super_admin' ? 'Super Admin' : 'Client';
-      },
-    },
-    {
       title: t('table:table-item-permissions'),
-      dataIndex: 'permissions',
+      dataIndex: 'id',
       key: 'permissions',
       align: alignLeft,
-      width: 300,
-      render: (permissions: any) => {
+      width: 150,
+      render: (id: string) => {
         return (
-          <div className="flex flex-wrap gap-1.5 whitespace-nowrap">
-            {permissions?.map(
-              ({ name, index }: { name: string; index: number }) => (
-                <span
-                  key={index}
-                  className="rounded bg-gray-200/50 px-2.5 py-1"
-                >
-                  {name}
-                </span>
-              )
-            )}
-          </div>
+          <button
+            onClick={() => openModal('ADMIN_PERMISSIONS_VIEW', id)}
+            className="text-accent transition-colors hover:text-accent-hover focus:outline-none bg-transparent border border-accent rounded px-3 py-1 cursor-pointer"
+          >
+            {t('common:text-view-permissions')}
+          </button>
         );
       },
-    },
-    {
-      title: t('table:table-item-available_wallet_points'),
-      dataIndex: ['wallet', 'available_points'],
-      key: 'available_wallet_points',
-      align: 'center',
-      width: 150,
-    },
-    {
-      title: (
-        <TitleWithSort
-          title={t('table:table-item-status')}
-          ascending={
-            sortingObj.sort === SortOrder.Asc &&
-            sortingObj.column === 'is_active'
-          }
-          isActive={sortingObj.column === 'is_active'}
-        />
-      ),
-      width: 150,
-      className: 'cursor-pointer',
-      dataIndex: 'is_active',
-      key: 'is_active',
-      align: 'center',
-      onHeaderCell: () => onHeaderClick('is_active'),
-      render: (is_active: boolean) => (
-        <Badge
-          textKey={is_active ? 'common:text-active' : 'common:text-inactive'}
-          color={
-            is_active
-              ? 'bg-accent/10 !text-accent'
-              : 'bg-status-failed/10 text-status-failed'
-          }
-        />
-      ),
     },
     {
       title: t('table:table-item-actions'),
@@ -196,9 +134,9 @@ const AdminsList = ({
             {data?.id != id && (
               <ActionButtons
                 id={id}
-                userStatus={true}
+                userStatus={false}
                 isUserActive={is_active}
-                showAddWalletPoints={true}
+                showAddWalletPoints={false}
                 showMakeAdminButton={true}
                 deleteModalView="DELETE_USER"
                 editUrl={Routes.user.editByIdWithoutLang(id)}
@@ -225,7 +163,7 @@ const AdminsList = ({
               <p className="text-[13px]">{t('table:empty-table-sorry-text')}</p>
             </div>
           )}
-          data={admins as { profile: any; email: string }[] | undefined}
+          data={filteredAdmins as { profile: any; email: string }[] | undefined}
           rowKey="id"
           scroll={{ x: 1000 }}
         />

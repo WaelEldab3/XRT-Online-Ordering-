@@ -2,12 +2,12 @@ import { Table } from '@/components/ui/table';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import cn from 'classnames';
-import { Product } from '@/types';
+import { CategoryProductCount } from '@/types';
 import { useIsRTL } from '@/utils/locals';
 import { NoDataFound } from '@/components/icons/no-data-found';
 
 export type IProps = {
-  products: Product[] | undefined;
+  products: CategoryProductCount[] | undefined;
   title: string;
   className?: string;
 };

@@ -1,4 +1,4 @@
-import { Product, ProductQueryOptions } from '@/types';
+import { Product, ProductQueryOptions, CategoryProductCount } from '@/types';
 import { useQuery } from 'react-query';
 import { API_ENDPOINTS } from './client/api-endpoints';
 import { dashboardClient } from '@/data/client/dashboard';
@@ -16,7 +16,7 @@ export function useAnalyticsQuery() {
     {
       retry: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
       staleTime: Infinity,
       cacheTime: Infinity,
@@ -31,7 +31,7 @@ export function usePopularProductsQuery(options: Partial<ProductQueryOptions>) {
     {
       retry: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
       staleTime: Infinity,
       cacheTime: Infinity,
@@ -46,7 +46,7 @@ export function useLowProductStockQuery(options: Partial<ProductQueryOptions>) {
     {
       retry: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
       staleTime: Infinity,
       cacheTime: Infinity,
@@ -61,14 +61,14 @@ export function useProductByCategoryQuery({
   limit?: number;
   language?: string;
 }) {
-  return useQuery(
+  return useQuery<CategoryProductCount[], Error>(
     [API_ENDPOINTS.CATEGORY_WISE_PRODUCTS, { limit, language }],
     () => Promise.resolve(mockProductCountByCategory),
     {
       keepPreviousData: false,
       retry: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
       staleTime: Infinity,
       cacheTime: Infinity,
@@ -102,7 +102,7 @@ export function useTopRatedProductsQuery(
     {
       retry: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnReconnect: false,
       staleTime: Infinity,
       cacheTime: Infinity,

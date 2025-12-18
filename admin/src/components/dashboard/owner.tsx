@@ -9,7 +9,6 @@ import {
 import {
   adminOnly,
   adminAndOwnerOnly,
-  getAuthCredentials,
   hasAccess,
 } from '@/utils/auth-utils';
 import usePrice from '@/utils/use-price';
@@ -24,6 +23,9 @@ import { BasketIcon } from '@/components/icons/summary/basket';
 import Button from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import PageHeading from '@/components/common/page-heading';
+import { getAuthCredentials } from '@/utils/auth-utils';
+import { useDashboardLoading } from '@/hooks/use-app-loading';
+import { TodayTotalOrderByStatus } from '@/types';
 const ShopList = dynamic(() => import('@/components/dashboard/shops/shops'));
 const Message = dynamic(() => import('@/components/dashboard/shops/message'));
 const StoreNotices = dynamic(
@@ -72,6 +74,17 @@ const OwnerShopLayout = () => {
     error: topRatedProductsError,
   } = useTopRatedProductsQuery({ limit: 10, language: locale });
 
+  // Always call the hook, but pass empty array if not authenticated
+  const { token } = getAuthCredentials();
+  useDashboardLoading({
+    loadingStates: token ? [
+      loading,
+      productByCategoryLoading,
+      topRatedProductsLoading
+    ] : [],
+    loadingMessage: 'Loading dashboard data...'
+  });
+
   const { price: total_revenue } = usePrice(
     data && {
       amount: data?.totalRevenue!,
@@ -119,7 +132,7 @@ const OwnerShopLayout = () => {
         setOrderDataRange(data?.weeklyTotalOrderByStatus);
         break;
       case 30:
-        setOrderDataRange(data?.todayTotalOrderByStatus);
+        setOrderDataRange(data?.monthlyTotalOrderByStatus);
         break;
       case 365:
         setOrderDataRange(data?.yearlyTotalOrderByStatus);
@@ -130,6 +143,17 @@ const OwnerShopLayout = () => {
         break;
     }
   });
+
+  // Transform order status data from array to object format
+  const transformOrderStatusData = (orderStatusArray: any[] | undefined) => {
+    if (!orderStatusArray) return {};
+    
+    return orderStatusArray.reduce((acc, item) => {
+      const statusKey = item.status.replace('-', '');
+      acc[statusKey] = item.count;
+      return acc;
+    }, {} as TodayTotalOrderByStatus);
+  };
 
   return (
     <>
@@ -194,7 +218,7 @@ const OwnerShopLayout = () => {
           </div>
         </div>
         <OrderStatusWidget
-          order={orderDataRange}
+          order={transformOrderStatusData(orderDataRange)}
           timeFrame={activeTimeFrame}
           allowedStatus={['pending', 'processing', 'complete', 'cancel']}
         />

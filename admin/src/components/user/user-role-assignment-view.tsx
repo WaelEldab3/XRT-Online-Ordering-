@@ -6,7 +6,7 @@ import {
   useModalState,
 } from '@/components/ui/modal/modal.context';
 import { useUpdateUserMutation, useUserQuery } from '@/data/user';
-import { useRolesQuery } from '@/data/role';
+import { useRolesQuery, useAssignRoleMutation, useRemoveRoleMutation } from '@/data/role';
 import Select from '@/components/ui/select/select';
 import Label from '@/components/ui/label';
 import Button from '@/components/ui/button';
@@ -20,7 +20,8 @@ const UserRoleAssignmentView = () => {
   const { t } = useTranslation();
   const { data: userId } = useModalState();
   const { closeModal } = useModalAction();
-  const { mutate: updateUser, isLoading: updating } = useUpdateUserMutation();
+  const { mutate: assignRole, isLoading: assigning } = useAssignRoleMutation();
+  const { mutate: removeRole, isLoading: removing } = useRemoveRoleMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
   const { data: user, isLoading: loadingUser } = useUserQuery({ id: userId });
 
@@ -52,7 +53,6 @@ const UserRoleAssignmentView = () => {
   }, [user, setValue]);
 
   const roleOptions = [
-    { label: 'Super Admin', value: 'super_admin' },
     { label: 'Client', value: 'client' },
     ...(roles?.map((role) => ({
       label: role.displayName,
@@ -62,22 +62,30 @@ const UserRoleAssignmentView = () => {
 
   async function onSubmit({ role }: FormValues) {
     const roleValue = role?.value;
-    const isCustomRole = roleValue !== 'super_admin' && roleValue !== 'client';
 
-    const input = {
-      role: isCustomRole ? 'client' : roleValue,
-      customRole: isCustomRole ? roleValue : null,
-    };
+    // For now, we only support assigning Custom Roles or removing them (setting to Client)
+    // Super Admin assignment should probably remain separate or be explicitly handled if needed.
+    // Assuming 'client' means removing any custom role.
 
-    updateUser(
-      { id: userId, input },
-      {
-        onSuccess: () => {
-          closeModal();
+    if (roleValue === 'client') {
+      removeRole(
+        { userId },
+        {
+          onSuccess: () => closeModal(),
         },
-      },
-    );
+      );
+    } else {
+      // It's a custom role ID
+      assignRole(
+        { userId, roleId: roleValue },
+        {
+          onSuccess: () => closeModal(),
+        },
+      );
+    }
   }
+
+  const updating = assigning || removing;
 
   if (loadingUser) {
     return <Loader text={t('common:text-loading')} />;

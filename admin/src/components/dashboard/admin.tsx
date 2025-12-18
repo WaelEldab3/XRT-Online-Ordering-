@@ -28,6 +28,9 @@ import { ShoppingIcon } from '@/components/icons/summary/shopping';
 import { BasketIcon } from '@/components/icons/summary/basket';
 import { ChecklistIcon } from '@/components/icons/summary/checklist';
 import Search from '@/components/common/search';
+import { getAuthCredentials } from '@/utils/auth-utils';
+import { useDashboardLoading } from '@/hooks/use-app-loading';
+import { TodayTotalOrderByStatus } from '@/types';
 
 // const TotalOrderByStatus = dynamic(
 //   () => import('@/components/dashboard/total-order-by-status')
@@ -65,16 +68,6 @@ export default function Dashboard() {
     data?.todayTotalOrderByStatus,
   );
 
-  const { price: total_revenue } = usePrice(
-    data && {
-      amount: data?.totalRevenue!,
-    },
-  );
-  const { price: todays_revenue } = usePrice(
-    data && {
-      amount: data?.todaysRevenue!,
-    },
-  );
   const {
     error: orderError,
     orders: orderData,
@@ -121,6 +114,32 @@ export default function Dashboard() {
     limit: 10,
   });
 
+  // Always call the hook, but pass empty array if not authenticated
+  const { token } = getAuthCredentials();
+  useDashboardLoading({
+    loadingStates: token ? [
+      loading,
+      orderLoading,
+      popularProductLoading,
+      withdrawLoading,
+      topRatedProductsLoading,
+      lowStockProductLoading,
+      productByCategoryLoading
+    ] : [],
+    loadingMessage: 'Loading dashboard data...'
+  });
+
+  const { price: total_revenue } = usePrice(
+    data && {
+      amount: data?.totalRevenue!,
+    },
+  );
+  const { price: todays_revenue } = usePrice(
+    data && {
+      amount: data?.todaysRevenue!,
+    },
+  );
+
   let salesByYear: number[] = Array.from({ length: 12 }, (_) => 0);
   if (!!data?.totalYearSaleByMonth?.length) {
     salesByYear = data.totalYearSaleByMonth.map((item: any) =>
@@ -164,6 +183,17 @@ export default function Dashboard() {
         break;
     }
   });
+
+  // Transform order status data from array to object format
+  const transformOrderStatusData = (orderStatusArray: any[] | undefined) => {
+    if (!orderStatusArray) return {};
+    
+    return orderStatusArray.reduce((acc, item) => {
+      const statusKey = item.status.replace('-', '');
+      acc[statusKey] = item.count;
+      return acc;
+    }, {} as TodayTotalOrderByStatus);
+  };
 
   if (
     loading ||
@@ -255,7 +285,7 @@ export default function Dashboard() {
         </div>
 
         <OrderStatusWidget
-          order={orderDataRange}
+          order={transformOrderStatusData(orderDataRange)}
           timeFrame={activeTimeFrame}
           allowedStatus={[
             'pending',

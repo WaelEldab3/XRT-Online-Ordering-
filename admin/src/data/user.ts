@@ -66,6 +66,7 @@ export function useLogin() {
           data.accessToken,
           data.data.user.permissions || permissions || [],
           data.data.user.role || role,
+          data.refreshToken,
         );
 
         // Redirect to dashboard or intended page
@@ -110,6 +111,12 @@ export const useRegisterMutation = () => {
         toastId: 'successRegister',
       });
     },
+    onError: (error: any) => {
+      const {
+        response: { data },
+      } = error ?? {};
+      toast.error(data?.message || t('common:registration-failed'));
+    },
     // Always refetch after error or success:
     onSettled: () => {
       queryClient.invalidateQueries(API_ENDPOINTS.REGISTER);
@@ -117,7 +124,30 @@ export const useRegisterMutation = () => {
   });
 };
 
+export const useCreateUserMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation(userClient.createUser, {
+    onSuccess: () => {
+      toast.success(t('common:successfully-created'));
+    },
+    onError: (error: any) => {
+      const {
+        response: { data },
+      } = error ?? {};
+      toast.error(data?.message || t('common:create-user-failed'));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(API_ENDPOINTS.USERS);
+      queryClient.invalidateQueries(API_ENDPOINTS.ADMIN_LIST);
+      queryClient.invalidateQueries(API_ENDPOINTS.STAFFS);
+    },
+  });
+};
+
 export const useUpdateUserMutation = () => {
+  // ...existing code...
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation(userClient.update, {
@@ -265,11 +295,12 @@ export const useAddWalletPointsMutation = () => {
 };
 
 export const useUserQuery = ({ id }: { id: string }) => {
-  return useQuery<User, Error>(
+  return useQuery<any, Error>(
     [API_ENDPOINTS.USERS, id],
     () => userClient.fetchUser({ id }),
     {
       enabled: Boolean(id),
+      select: (data) => data?.data?.user,
     },
   );
 };

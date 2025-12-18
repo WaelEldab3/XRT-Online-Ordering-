@@ -37,65 +37,74 @@ const LoginForm = () => {
   const { mutate: login, isLoading, error } = useLogin();
 
   function onSubmit(values: LoginInput, e?: React.BaseSyntheticEvent) {
-      // Prevent any default form submission behavior
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      
-      login(
-        {
-          email: values.email,
-          password: values.password,
-        },
-        {
-          onSuccess: (data) => {
-            // Handle customize_server response format: { status: 'success', accessToken, refreshToken, data: { user } }
-            if (data?.accessToken || data?.token) {
-              const token = data?.accessToken || data?.token;
-              const user = data?.data?.user || data;
-              const permissions = (user as any)?.permissions || [];
-              const role = (user as any)?.role || '';
-              
-              // Check if role is allowed (not permissions array)
-              if (role === 'super_admin' || role === 'admin' || role === 'client') {
-                setAuthCredentials(token || '', permissions, role);
-                Router.push(Routes.dashboard);
-                return;
-              }
-              const errorMsg = t('form:error-enough-permission');
-              setErrorMessage(errorMsg);
-              toast.error(errorMsg);
-            } else {
-              const errorMsg = t('form:error-credential-wrong');
-              setErrorMessage(errorMsg);
-              toast.error(errorMsg);
+    // Prevent any default form submission behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    login(
+      {
+        email: values.email,
+        password: values.password,
+      },
+      {
+        onSuccess: (data) => {
+          // Handle customize_server response format: { status: 'success', accessToken, refreshToken, data: { user } }
+          if (data?.accessToken || data?.token) {
+            const token = data?.accessToken || data?.token;
+            const refreshToken = data?.refreshToken;
+            const user = data?.data?.user || data;
+            const permissions = (user as any)?.permissions || [];
+            const role = (user as any)?.role || '';
+
+            // Check if role is allowed (not permissions array)
+            if (
+              role === 'super_admin' ||
+              role === 'admin' ||
+              role === 'client'
+            ) {
+              setAuthCredentials(token || '', permissions, role, refreshToken);
+              Router.push(Routes.dashboard);
+              return;
             }
-          },
-          onError: (error: any) => {
-            let errorMsg = t('common:login-failed');
-            
-            // Handle different error types
-            if (error?.response?.status === 401) {
-              errorMsg = t('form:error-credential-wrong');
-            } else if (error?.response?.status === 403) {
-              errorMsg = t('form:error-enough-permission');
-            } else if (error?.response?.status === 429) {
-              errorMsg = t('form:error-too-many-attempts');
-            } else if (error?.message) {
-              errorMsg = error.message;
-            }
-            
+            const errorMsg = t('form:error-enough-permission');
             setErrorMessage(errorMsg);
             toast.error(errorMsg);
-          },
-        }
-      );
-    }
+          } else {
+            const errorMsg = t('form:error-credential-wrong');
+            setErrorMessage(errorMsg);
+            toast.error(errorMsg);
+          }
+        },
+        onError: (error: any) => {
+          let errorMsg = t('common:login-failed');
+
+          // Handle different error types
+          if (error?.response?.status === 401) {
+            errorMsg = t('form:error-credential-wrong');
+          } else if (error?.response?.status === 403) {
+            errorMsg = t('form:error-enough-permission');
+          } else if (error?.response?.status === 429) {
+            errorMsg = t('form:error-too-many-attempts');
+          } else if (error?.message) {
+            errorMsg = error.message;
+          }
+
+          setErrorMessage(errorMsg);
+          toast.error(errorMsg);
+        },
+      },
+    );
+  }
 
   return (
     <>
-      <Form<LoginInput> validationSchema={loginFormSchema} onSubmit={onSubmit} useFormProps={{ defaultValues }}>
+      <Form<LoginInput>
+        validationSchema={loginFormSchema}
+        onSubmit={onSubmit}
+        useFormProps={{ defaultValues }}
+      >
         {({ register, formState: { errors } }) => (
           <>
             <Input

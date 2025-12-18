@@ -5,6 +5,7 @@ import { UIProvider } from '@/contexts/ui.context';
 import { SettingsProvider } from '@/contexts/settings.context';
 import ErrorMessage from '@/components/ui/error-message';
 import PageLoader from '@/components/ui/page-loader/page-loader';
+import AppLoader from '@/components/ui/app-loader/app-loader';
 import { ToastContainer } from 'react-toastify';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Hydrate } from 'react-query/hydration';
@@ -15,6 +16,7 @@ import { ModalProvider } from '@/components/ui/modal/modal.context';
 import DefaultSeo from '@/components/ui/default-seo';
 import ManagedModal from '@/components/ui/modal/managed-modal';
 import { CartProvider } from '@/contexts/quick-cart/cart.context';
+import { AppLoadingProvider } from '@/contexts/app-loading.context';
 import { useState } from 'react';
 import type { NextPageWithLayout } from '@/types';
 import { useRouter } from 'next/router';
@@ -51,24 +53,27 @@ const CustomApp = ({ Component, pageProps }: AppPropsWithLayout) => {
           <AppSettings>
             <UIProvider>
               <ModalProvider>
-                <>
-                  <CartProvider>
-                    <DefaultSeo />
-                    {authProps ? (
-                      <PrivateRoute authProps={authProps}>
+                <AppLoadingProvider>
+                  <>
+                    <AppLoader />
+                    <CartProvider>
+                      <DefaultSeo />
+                      {authProps ? (
+                        <PrivateRoute authProps={authProps}>
+                          <Layout {...pageProps}>
+                            <Component {...pageProps} />
+                          </Layout>
+                        </PrivateRoute>
+                      ) : (
                         <Layout {...pageProps}>
                           <Component {...pageProps} />
                         </Layout>
-                      </PrivateRoute>
-                    ) : (
-                      <Layout {...pageProps}>
-                        <Component {...pageProps} />
-                      </Layout>
-                    )}
-                    <ToastContainer autoClose={2000} theme="colored" />
-                    <ManagedModal />
-                  </CartProvider>
-                </>
+                      )}
+                      <ToastContainer autoClose={2000} theme="colored" />
+                      <ManagedModal />
+                    </CartProvider>
+                  </>
+                </AppLoadingProvider>
               </ModalProvider>
             </UIProvider>
           </AppSettings>

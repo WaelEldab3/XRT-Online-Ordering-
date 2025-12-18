@@ -1,7 +1,23 @@
 import Select from '@/components/ui/select/select';
+import Card from '@/components/common/card';
+import Description from '@/components/ui/description';
+import Button from '@/components/ui/button';
+import Input from '@/components/ui/input';
+import PasswordInput from '@/components/ui/password-input';
+import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
 import Label from '@/components/ui/label';
 import { useRolesQuery } from '@/data/role';
-import { Controller } from 'react-hook-form';
+import { useRegisterMutation, useUpdateUserMutation } from '@/data/user';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/router';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { User } from '@/types';
+import {
+  customerUpdateValidationSchema,
+  customerValidationSchema,
+} from './user-validation-schema';
+import { Routes } from '@/config/routes';
 
 type FormValues = {
   name: string;
@@ -43,20 +59,17 @@ const UserForm = ({ initialValues }: UserFormProps) => {
           name: initialValues.name,
           email: initialValues.email,
           password: '',
-          role: initialValues.customRole
+          role: initialValues.role
             ? {
-                label: initialValues.customRole.displayName,
-                value: initialValues.customRole.id,
+                label:
+                  initialValues.role === 'super_admin'
+                    ? 'Super Admin'
+                    : initialValues.role === 'client'
+                      ? 'Client'
+                      : initialValues.role, // Display role string if custom
+                value: initialValues.role,
               }
-            : initialValues.role
-              ? {
-                  label:
-                    initialValues.role === 'super_admin'
-                      ? 'Super Admin'
-                      : 'Client',
-                  value: initialValues.role,
-                }
-              : { label: 'Client', value: 'client' },
+            : { label: 'Client', value: 'client' },
         }
       : { ...defaultValues, role: { label: 'Client', value: 'client' } },
     resolver: yupResolver(
@@ -75,19 +88,25 @@ const UserForm = ({ initialValues }: UserFormProps) => {
 
   async function onSubmit({ name, email, password, role }: FormValues) {
     const roleValue = role?.value;
-    const isCustomRole = roleValue !== 'super_admin' && roleValue !== 'client';
 
     const input = {
       name,
       email,
       password: password || undefined,
-      role: isCustomRole ? 'client' : roleValue, // Default to client if custom role
-      customRole: isCustomRole ? roleValue : null,
-      permissions: isCustomRole ? [] : undefined, // Clear permissions if not custom role? Wait if switching back to super_admin
+      role: roleValue, // Just send the value (ID or 'client'/'super_admin')
+      permissions: undefined, // Let backend handle permissions based on role lookup if implemented, or just empty?
+      // Previous code cleared permissions if custom role.
+      // Now backend `User` model doesn't auto-fetch permissions from Role ID unless I implement it.
+      // The user's request was "depend on the role property".
+      // If `roleValue` is an ID, and I passed it, backend saves it as string.
+      // Permissions are NOT automatic anymore unless backend implements it.
+      // I will send `roleValue` as is.
     };
 
     if (isNew) {
-      registerUser(input, {
+      registerUser(
+        { ...input, password: password as string },
+        {
         onError: (error: any) => {
           Object.keys(error?.response?.data).forEach((field: any) => {
             setError(field, {

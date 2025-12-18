@@ -10,6 +10,13 @@ const UserPermissionsView = () => {
   const { data } = useModalState();
   const { closeModal } = useModalAction();
 
+  // Handle both string permissions and object permissions with name property
+  const normalizePermissions = (permissions: any[]) => {
+    return permissions.map(p => typeof p === 'string' ? p : p?.name).filter(Boolean);
+  };
+
+  const permissions = data?.permissions ? normalizePermissions(data.permissions) : [];
+
   return (
     <div className="m-auto w-full max-w-sm rounded-md bg-white p-5 shadow-lg md:max-w-md md:p-6 text-center">
       <div className="mb-4 flex items-center justify-between">
@@ -26,17 +33,15 @@ const UserPermissionsView = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 justify-center">
-        {data && data.permissions && data.permissions.length > 0 ? (
-          data.permissions.map(
-            (permission: { name: string }, index: number) => (
-              <span
-                key={index}
-                className="rounded bg-accent/10 px-3 py-1 text-sm text-accent"
-              >
-                {permission.name}
-              </span>
-            ),
-          )
+        {permissions.length > 0 ? (
+          permissions.map((permission: string, index: number) => (
+            <span
+              key={index}
+              className="rounded bg-accent/10 px-3 py-1 text-sm text-accent"
+            >
+              {permission}
+            </span>
+          ))
         ) : (
           <span className="text-sm text-gray-500">
             {t('common:text-no-permissions-found')}

@@ -17,8 +17,16 @@ export const adminOnly = [SUPER_ADMIN];
 export const ownerOnly = [STORE_OWNER]; // Now 'client'
 export const ownerAndStaffOnly = [STORE_OWNER, STAFF]; // Now includes 'client'
 
-export function setAuthCredentials(token: string, permissions: any, role: any) {
-  Cookie.set(AUTH_CRED, JSON.stringify({ token, permissions, role }));
+export function setAuthCredentials(
+  token: string,
+  permissions: any,
+  role: any,
+  refreshToken?: string,
+) {
+  Cookie.set(
+    AUTH_CRED,
+    JSON.stringify({ token, permissions, role, refreshToken }),
+  );
 }
 export function setEmailVerified(emailVerified: boolean) {
   Cookie.set(EMAIL_VERIFIED, JSON.stringify({ emailVerified }));
@@ -34,6 +42,7 @@ export function getAuthCredentials(context?: any): {
   token: string | null;
   permissions: string[] | null;
   role: string | null;
+  refreshToken: string | null;
 } {
   let authCred;
   if (context) {
