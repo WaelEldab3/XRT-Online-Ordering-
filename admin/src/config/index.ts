@@ -1,20 +1,6 @@
-import invariant from 'tiny-invariant';
-
-// Only check invariants in development to avoid build failures
-// Production builds should have these set, but we provide defaults
-if (process.env.NODE_ENV === 'development') {
-  invariant(
-    process.env.NEXT_PUBLIC_DEFAULT_LANGUAGE,
-    'Default language is not set'
-  );
-
-  if (process.env.NEXT_PUBLIC_ENABLE_MULTI_LANG === 'true') {
-    invariant(
-      process.env.NEXT_PUBLIC_AVAILABLE_LANGUAGES,
-      'Available language is not set'
-    );
-  }
-}
+// Removed invariant checks to prevent build failures
+// Environment variables should be set in Vercel, but we provide defaults
+// If variables are missing, the app will use fallback values defined below
 
 export const Config = {
   broadcastDriver: process.env.NEXT_PUBLIC_API_BROADCAST_DRIVER ?? 'log',

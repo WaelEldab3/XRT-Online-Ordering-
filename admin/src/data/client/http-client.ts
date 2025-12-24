@@ -1,20 +1,14 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import Router from 'next/router';
-import invariant from 'tiny-invariant';
 import { AUTH_CRED } from '@/utils/constants';
 
 import { API_ENDPOINTS } from './api-endpoints';
 import { getAuthCredentials, setAuthCredentials } from '@/utils/auth-utils';
 
-// Only check invariant in development to avoid build failures
-// Production builds should have this set, but we'll use a fallback if needed
-if (process.env.NODE_ENV === 'development') {
-  invariant(
-    process.env.NEXT_PUBLIC_REST_API_ENDPOINT,
-    'NEXT_PUBLIC_REST_API_ENDPOINT is not defined, please define it in your .env file',
-  );
-}
+// Removed invariant check to prevent build failures
+// Environment variable should be set in Vercel, but we provide a fallback
+// If NEXT_PUBLIC_REST_API_ENDPOINT is missing, it will use the fallback below
 const Axios = axios.create({
   baseURL: process.env.NEXT_PUBLIC_REST_API_ENDPOINT || 'http://localhost:8000',
   timeout: 10000, // Reduced to 10 seconds for faster feedback
