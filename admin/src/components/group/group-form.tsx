@@ -175,8 +175,8 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
           title: initialValues?.settings?.handpickedProducts?.title,
           products: initialValues?.settings?.handpickedProducts?.products
             ? initialValues?.settings?.handpickedProducts?.products?.map(
-                (product: any) => product,
-              )
+              (product: any) => product,
+            )
             : [],
         },
         newArrival: {
@@ -194,8 +194,8 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
       },
       icon: initialValues?.icon
         ? typeIconList.find(
-            (singleIcon) => singleIcon.value === initialValues?.icon,
-          )
+          (singleIcon) => singleIcon.value === initialValues?.icon,
+        )
         : '',
     },
   });
@@ -353,11 +353,10 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
       <div className="flex flex-wrap my-5 sm:my-8">
         <Description
           title={t('form:item-description')}
-          details={`${
-            initialValues
+          details={`${initialValues
               ? t('form:item-description-update')
               : t('form:item-description-add')
-          } ${t('form:group-description-help-text')}`}
+            } ${t('form:group-description-help-text')}`}
           className="w-full px-0 pb-5 sm:w-4/12 sm:py-8 sm:pe-4 md:w-1/3 md:pe-5"
         />
 
@@ -368,7 +367,7 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
             error={t(errors.name?.message!)}
             variant="outline"
             className="mb-5"
-            // disabled={[].includes(Config.defaultLanguage)}
+          // disabled={[].includes(Config.defaultLanguage)}
           />
           {isSlugEditable ? (
             <div className="relative mb-5">
@@ -501,7 +500,7 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
             ''
           )}
           {(layoutType === 'compact' || layoutType === 'minimal') &&
-          fields?.length > 0 ? (
+            fields?.length > 0 ? (
             <Alert
               className="mb-5"
               message="Disabled item will not show in shop end."
@@ -733,7 +732,7 @@ export default function CreateOrUpdateTypeForm({ initialValues }: IProps) {
                       enableCategory
                       enableType
                       onCategoryFilter={(category: Category) => {
-                        setCategory(category?.slug!);
+                        setCategory(category?.id!);
                       }}
                       onTypeFilter={(type: Type) => {
                         setType(type?.slug!);

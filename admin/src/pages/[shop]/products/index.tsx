@@ -173,7 +173,7 @@ export default function ProductsPage() {
               className="w-full"
               type={type}
               onCategoryFilter={(category: Category) => {
-                setCategory(category?.slug!);
+                setCategory(category?.id!);
                 setPage(1);
               }}
               onTypeFilter={(type: Type) => {

@@ -96,7 +96,7 @@ export default function ProductsPage() {
             <CategoryTypeFilter
               type={type}
               onCategoryFilter={(category: Category) => {
-                setCategory(category?.slug!);
+                setCategory(category?.id!);
                 setPage(1);
               }}
               onTypeFilter={(type: Type) => {
