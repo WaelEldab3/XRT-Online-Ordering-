@@ -124,30 +124,16 @@ if (!process.env.VERCEL) {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
-  logger.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  logger.error('UNHANDLED REJECTION! 💥');
   logger.error(`Error: ${err.name} - ${err.message}`);
-  if (env.NODE_ENV === 'development') {
-    logger.info('🔧 Development mode: Server will continue running');
-    return;
-  }
-  if (typeof server !== 'undefined' && server) {
-    server.close(() => {
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
+  // Do not exit process in serverless environment
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err: Error) => {
-  logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  logger.error('UNCAUGHT EXCEPTION! 💥');
   logger.error(`Error: ${err.name} - ${err.message}`);
-  if (env.NODE_ENV === 'development') {
-    logger.info('🔧 Development mode: Server will continue running');
-    return;
-  }
-  process.exit(1);
+  // Do not exit process in serverless environment
 });
 
 export default app;
