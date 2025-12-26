@@ -300,14 +300,14 @@ export default function SettingsForm({ settings }: IProps) {
               label={t('Timezone')}
               {...register('timezone')}
               variant="outline"
-              
+
               toolTipText={t('Your business timezone for operating hours')}
             />
             <Input
               label={t('Currency')}
               {...register('currency')}
               variant="outline"
-              
+
               toolTipText={t('Primary currency for pricing')}
             />
           </div>
@@ -316,14 +316,14 @@ export default function SettingsForm({ settings }: IProps) {
               label={t('Currency Format')}
               {...register('currencyOptions.formation')}
               variant="outline"
-              
+
             />
             <Input
               label={t('Decimal Places')}
               {...register('currencyOptions.fractions')}
               type="number"
               variant="outline"
-              
+
             />
           </div>
         </Card>
@@ -432,7 +432,6 @@ export default function SettingsForm({ settings }: IProps) {
               {...register('fees.tip_options')}
               variant="outline"
               placeholder="10, 15, 20"
-              toolTipText={t('Enter tip percentages for customers to choose from, e.g. 10, 15, 20')}
             />
           </div>
           <Input
@@ -484,7 +483,7 @@ export default function SettingsForm({ settings }: IProps) {
           </div>
           <Input
             label={t('Minimum Order')}
-              toolTipText={t('Minimum order amount required for delivery')}
+            toolTipText={t('Minimum order amount required for delivery')}
             {...register('delivery.min_order')}
             type="number"
             variant="outline"
