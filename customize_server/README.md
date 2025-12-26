@@ -64,7 +64,7 @@ src/
 ### 🏢 Business Management
 - **Multi-Business Support** - Manage multiple businesses
 - **Business CRUD** - Full business lifecycle
-- **Business Settings** - Operating hours, delivery, fees
+- **Business Settings** - Operating hours, delivery, fees, tips, hero slider
 - **Business Isolation** - Data separation by business
 - **Owner Management** - Business ownership tracking
 
@@ -312,6 +312,12 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 - `users:delete` - Delete users
 - `users:approve` - Approve user accounts
 - `users:ban` - Ban/unban users
+
+#### Category Management
+- `categories:read` - View categories
+- `categories:create` - Create categories
+- `categories:update` - Update categories
+- `categories:delete` - Delete categories
 
 #### Content Management
 - `content:read` - View content

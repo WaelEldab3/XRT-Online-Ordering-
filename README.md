@@ -45,6 +45,7 @@ This monorepo contains two main applications:
 - Business activation/deactivation
 - **Unified Business Settings**: Manage operating hours, delivery fees, and tax settings
 - **Dynamic Fee Structure**: Support for service fees and customizable tips (fixed or percentage-based)
+- **Hero Slider Management**: Manage homepage hero slides with background images and call-to-action buttons
 - **Dedicated Social Settings**: Manage social media profiles in a unified, dedicated section
 - Contact information management
 - Business metadata and branding
@@ -152,6 +153,11 @@ EMAIL_USERNAME=your_email@gmail.com
 EMAIL_PASSWORD=your_app_password
 EMAIL_FROM=noreply@xrt.com
 EMAIL_FROM_NAME=XRT System
+
+# Cloudinary (Required for Image Uploads)
+CLOUDINARY_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ### Frontend Environment Variables (.env.local)
@@ -278,6 +284,10 @@ NEXT_PUBLIC_APP_NAME=XRT Online Ordering
 - **users:delete** - Delete users
 - **users:approve** - Approve user accounts
 - **users:ban** - Ban/unban users
+- **categories:read** - View categories
+- **categories:create** - Create categories
+- **categories:update** - Update categories
+- **categories:delete** - Delete categories
 - **roles:read** - View roles
 - **roles:create** - Create roles
 - **roles:update** - Update roles

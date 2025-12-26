@@ -615,6 +615,26 @@ All responses follow a consistent format:
               }
             }
           },
+          heroSlides: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                bgImage: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    original: { type: 'string' },
+                    thumbnail: { type: 'string' },
+                  },
+                },
+                title: { type: 'string' },
+                subtitle: { type: 'string' },
+                btnText: { type: 'string' },
+                btnLink: { type: 'string' },
+              },
+            },
+          },
           // header_info removed
           footer_text: { type: 'string' },
           messages: {
