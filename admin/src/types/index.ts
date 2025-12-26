@@ -947,6 +947,7 @@ export interface CreateWithdrawInput {
 export interface ApproveWithdrawInput {
   id: string;
   status: WithdrawStatus;
+  note?: string;
 }
 
 // -> TODO: Simplify this
@@ -1950,6 +1951,7 @@ export interface ProductQueryOptions extends QueryOptions {
 
 export interface UserQueryOptions extends QueryOptions {
   name: string;
+  role?: string;
   search?: string;
   is_active?: boolean;
   shop_id: string | number;

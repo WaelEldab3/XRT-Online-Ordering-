@@ -70,7 +70,7 @@ export const useOrdersQuery = (
 ) => {
   const { data, error, isLoading } = useQuery<OrderPaginator, Error>(
     [API_ENDPOINTS.ORDERS, params],
-    () => Promise.resolve(mockOrders),
+    () => Promise.resolve(mockOrders) as any,
     {
       keepPreviousData: true,
       retry: false,
@@ -216,7 +216,7 @@ export function useOrderSeen() {
     isLoading,
     isSuccess,
   } = useMutation(orderClient.orderSeen, {
-    onSuccess: () => {},
+    onSuccess: () => { },
     // Always refetch after error or success:
     onSettled: () => {
       queryClient.invalidateQueries(API_ENDPOINTS.ORDER_SEEN);

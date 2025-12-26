@@ -31,7 +31,7 @@ export const PusherConfig = new Pusher(
         Accept: 'application/json',
       },
     },
-    autoConnect: false,
+
     enabledTransports: ['ws', 'wss'],
   },
 );

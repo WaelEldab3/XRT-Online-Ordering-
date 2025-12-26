@@ -16,7 +16,7 @@ export const withdrawClient = {
     // Handle backend response format: { success: true, data: { withdraw: {...} } }
     return response?.data?.withdraw || response?.data || response;
   },
-  paginated: async ({ shop_id, business_id, ...params }: Partial<WithdrawQueryOptions>) => {
+  paginated: async ({ shop_id, business_id, ...params }: Partial<WithdrawQueryOptions> & { business_id?: string }) => {
     const response = await HttpClient.get<any>(API_ENDPOINTS.WITHDRAWS, {
       ...params,
       business_id: business_id || shop_id,

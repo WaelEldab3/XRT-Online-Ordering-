@@ -1,4 +1,4 @@
-import Router,{ useRouter } from 'next/router';
+import Router, { useRouter } from 'next/router';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
@@ -70,7 +70,7 @@ export const useUpdateTypeMutation = () => {
 
 export const useTypeQuery = ({ slug, language }: GetParams) => {
   return useQuery<Type, Error>(
-    [API_ENDPOINTS.TYPES, { slug, language }], 
+    [API_ENDPOINTS.TYPES, { slug, language }],
     () => {
       // Return mock data for types to avoid 404 errors
       if (slug === 'electronics') {
@@ -80,7 +80,7 @@ export const useTypeQuery = ({ slug, language }: GetParams) => {
           slug: 'electronics',
           image: { thumbnail: '/images/types/electronics.jpg', original: '/images/types/electronics.jpg' },
           settings: { productCard: 'radon' }
-        });
+        } as any);
       }
       if (slug === 'food') {
         return Promise.resolve({
@@ -89,7 +89,7 @@ export const useTypeQuery = ({ slug, language }: GetParams) => {
           slug: 'food',
           image: { thumbnail: '/images/types/food.jpg', original: '/images/types/food.jpg' },
           settings: { productCard: 'radon' }
-        });
+        } as any);
       }
       // Fallback to empty object for other types
       return Promise.resolve({
@@ -98,7 +98,7 @@ export const useTypeQuery = ({ slug, language }: GetParams) => {
         slug: slug || 'unknown',
         image: { thumbnail: '/product-placeholder.svg', original: '/product-placeholder.svg' },
         settings: { productCard: 'radon' }
-      });
+      } as any);
     },
     {
       retry: false,
@@ -125,7 +125,7 @@ export const useTypesQuery = (options?: Partial<TypeQueryOptions>) => {
         image: { thumbnail: '/images/types/food.jpg', original: '/images/types/food.jpg' },
         settings: { productCard: 'radon' }
       }
-    ]),
+    ] as any),
     {
       keepPreviousData: true,
       retry: false,

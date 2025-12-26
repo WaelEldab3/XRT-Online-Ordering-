@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { API_ENDPOINTS } from './client/api-endpoints';
 import { HttpClient } from './client/http-client';
-import { CustomerPaginator, Customer, MappedPaginatorInfo } from '@/types';
+import { CustomerPaginator, Customer, MappedPaginatorInfo, SortOrder } from '@/types';
 import { userClient } from './client/user';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
@@ -22,12 +22,12 @@ export const useCustomersQuery = ({
   // Use users endpoint with role filter for clients
   const { data, error, isLoading } = useQuery<any, Error>(
     [API_ENDPOINTS.USERS, { limit, page, search, orderBy, sortedBy, role: 'client' }],
-    () => userClient.fetchCustomers({ 
-      limit, 
-      page, 
-      search, 
-      orderBy, 
-      sortedBy: sortedBy.toLowerCase() as 'asc' | 'desc',
+    () => userClient.fetchCustomers({
+      limit,
+      page,
+      search,
+      orderBy,
+      sortedBy: sortedBy.toLowerCase() as SortOrder,
     }),
     {
       keepPreviousData: true,
@@ -50,9 +50,9 @@ export const useCustomersQuery = ({
   const transformedData: CustomerPaginator = {
     data: customers,
     total: paginatorInfo.total,
-    page: paginatorInfo.currentPage,
-    pages: paginatorInfo.lastPage,
-    limit: paginatorInfo.perPage,
+    // page: paginatorInfo.currentPage,
+    // pages: paginatorInfo.lastPage,
+    // limit: paginatorInfo.perPage,
     current_page: paginatorInfo.currentPage,
     first_page_url: '',
     from: 0,
@@ -64,14 +64,14 @@ export const useCustomersQuery = ({
     per_page: paginatorInfo.perPage,
     prev_page_url: null,
     to: 0,
-    hasMorePages: paginatorInfo.currentPage < paginatorInfo.lastPage,
+    // hasMorePages: paginatorInfo.currentPage < paginatorInfo.lastPage,
   };
 
   return {
     data: transformedData,
     error,
     isLoading,
-    refetch: () => {},
+    refetch: () => { },
   };
 };
 
@@ -92,7 +92,7 @@ export const useCustomerQuery = (id: string) => {
 export const useCreateCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+
   return useMutation<any, Error, any>(
     (variables) => {
       // Create user with client role
@@ -116,7 +116,7 @@ export const useCreateCustomerMutation = () => {
 export const useUpdateCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+
   return useMutation<any, Error, { id: string; variables: any }>(
     ({ id, variables }) => userClient.update({ id, input: variables }),
     {
@@ -134,7 +134,7 @@ export const useUpdateCustomerMutation = () => {
 export const useDeleteCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+
   return useMutation<any, Error, string>(
     (id) => {
       // Use user delete endpoint
@@ -155,7 +155,7 @@ export const useDeleteCustomerMutation = () => {
 export const useImportCustomersMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  
+
   return useMutation<
     any,
     Error,
@@ -194,7 +194,7 @@ export const useImportCustomersMutation = () => {
 
 export const useExportCustomersMutation = () => {
   const { t } = useTranslation();
-  
+
   return useMutation<
     any,
     Error,
@@ -202,13 +202,13 @@ export const useExportCustomersMutation = () => {
   >(
     async (variables) => {
       // Fetch all customers (users with client role)
-      const response = await userClient.fetchCustomers({ 
+      const response = await userClient.fetchCustomers({
         limit: 10000, // Get all
         role: 'client',
       });
-      
+
       const customers = response?.users || [];
-      
+
       // Convert to CSV
       const headers = ['Name', 'Email', 'Phone', 'Role', 'Created At'];
       const rows = customers.map((customer: any) => [
@@ -218,12 +218,12 @@ export const useExportCustomersMutation = () => {
         customer.role || 'client',
         customer.created_at || '',
       ]);
-      
+
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ...rows.map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(','))
       ].join('\n');
-      
+
       // Return as blob-like object
       return new Blob([csvContent], { type: 'text/csv' });
     },

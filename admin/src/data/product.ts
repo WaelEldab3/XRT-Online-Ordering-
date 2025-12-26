@@ -145,7 +145,7 @@ export const useProductsQuery = (
         perPage: 10,
         hasMorePages: false,
       }
-    }),
+    }) as any,
     {
       keepPreviousData: true,
       retry: false,
@@ -155,8 +155,8 @@ export const useProductsQuery = (
   );
 
   return {
-    products: data?.data ?? [],
-    paginatorInfo: mapPaginatorData(data),
+    products: (data as any)?.data ?? [],
+    paginatorInfo: mapPaginatorData(data as any),
     error,
     loading: isLoading,
   };

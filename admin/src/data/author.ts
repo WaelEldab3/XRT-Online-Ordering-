@@ -65,7 +65,7 @@ export const useUpdateAuthorMutation = () => {
     onSuccess: async (data, variables) => {
       const updatedAuthor = (data as any)?.data || data;
       queryClient.setQueryData(
-        [API_ENDPOINTS.AUTHORS, { slug: variables.slug, language: router.locale }],
+        [API_ENDPOINTS.AUTHORS, { slug: (variables as any).slug, language: router.locale }],
         (old: any) => {
           return { data: updatedAuthor };
         }

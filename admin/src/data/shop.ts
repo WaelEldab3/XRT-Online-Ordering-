@@ -66,7 +66,7 @@ export const useUpdateShopMutation = () => {
     onSuccess: async (data, variables) => {
       const updatedShop = (data as any)?.data || data;
       queryClient.setQueryData(
-        [API_ENDPOINTS.SHOPS, { slug: variables.slug }],
+        [API_ENDPOINTS.SHOPS, { slug: (variables as any).slug }],
         (old: any) => {
           return { data: updatedShop };
         }
@@ -115,7 +115,7 @@ export const useShopQuery = ({ slug, id }: { slug?: string; id?: string }, optio
 export const useShopsQuery = (options: Partial<ShopQueryOptions>) => {
   const { data, error, isLoading } = useQuery<ShopPaginator, Error>(
     [API_ENDPOINTS.SHOPS, options],
-    () => shopClient.paginated(options),
+    () => shopClient.paginated(options) as any,
     {
       keepPreviousData: true,
       retry: false,

@@ -70,7 +70,7 @@ export default function CheckoutPage() {
             count={2}
             //@ts-ignore
             addresses={user?.address?.filter(
-              (address) => address?.type === AddressType.Billing
+              (address: any) => address?.type === AddressType.Billing
             )}
             //@ts-ignore
             atom={billingAddressAtom}
@@ -83,7 +83,7 @@ export default function CheckoutPage() {
             count={3}
             //@ts-ignore
             addresses={user?.address?.filter(
-              (address) => address?.type === AddressType.Shipping
+              (address: any) => address?.type === AddressType.Shipping
             )}
             //@ts-ignore
             atom={shippingAddressAtom}

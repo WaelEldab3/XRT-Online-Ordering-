@@ -59,7 +59,7 @@ export const useUpdateManufacturerMutation = () => {
     onSuccess: async (data, variables) => {
       const updatedManufacturer = (data as any)?.data || data;
       queryClient.setQueryData(
-        [API_ENDPOINTS.MANUFACTURERS, { slug: variables.slug, language: router.locale }],
+        [API_ENDPOINTS.MANUFACTURERS, { slug: (variables as any).slug, language: router.locale }],
         (old: any) => {
           return { data: updatedManufacturer };
         }
