@@ -19,6 +19,8 @@ import PageHeading from '@/components/common/page-heading';
 import LinkButton from '@/components/ui/link-button';
 import { Routes } from '@/config/routes';
 import Select from '@/components/ui/select/select';
+import Label from '@/components/ui/label';
+import Button from '@/components/ui/button';
 
 export default function ItemsPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +61,16 @@ export default function ItemsPage() {
     function handlePagination(current: any) {
         setPage(current);
     }
+
+    function handleClearFilters() {
+        setSearchTerm('');
+        setCategory('');
+        setStatus(null);
+        setAvailability(null);
+        setPage(1);
+    }
+
+    const hasActiveFilters = searchTerm || category || status || availability;
 
     return (
         <>
@@ -101,49 +113,70 @@ export default function ItemsPage() {
                 <div
                     className={cn('flex w-full transition', {
                         'visible h-auto': visible,
-                        'invisible h-0': !visible,
+                        'invisible h-0 overflow-hidden': !visible,
                     })}
                 >
-                    <div className="mt-5 flex w-full flex-col border-t border-gray-200 pt-5 md:mt-8 md:flex-row md:items-center md:pt-8">
-                        <CategoryTypeFilter
-                            className="w-full"
-                            onCategoryFilter={(category: Category) => {
-                                setCategory(category?.id!);
-                                setPage(1);
-                            }}
-                            enableCategory
-                        />
-                        <div className="w-full">
-                            <Select
-                                options={[
-                                    { value: true, label: 'Active' },
-                                    { value: false, label: 'Inactive' },
-                                ]}
-                                value={status}
-                                name="is_active"
-                                placeholder={t('form:input-placeholder-status')}
-                                onChange={(value: any) => {
-                                    setStatus(value);
-                                    setPage(1);
-                                }}
-                                isClearable
-                            />
+                    <div className="mt-5 w-full border-t border-gray-200 pt-5 md:mt-8 md:pt-8">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-heading">
+                                {t('common:text-filter')}
+                            </h3>
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="outline"
+                                    size="small"
+                                    onClick={handleClearFilters}
+                                    className="text-xs"
+                                >
+                                    {t('common:text-clear')}
+                                </Button>
+                            )}
                         </div>
-                        <div className="w-full">
-                            <Select
-                                options={[
-                                    { value: true, label: 'Available' },
-                                    { value: false, label: 'Unavailable' },
-                                ]}
-                                value={availability}
-                                name="is_available"
-                                placeholder={t('form:input-placeholder-availability')}
-                                onChange={(value: any) => {
-                                    setAvailability(value);
-                                    setPage(1);
-                                }}
-                                isClearable
-                            />
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="w-full">
+                                <CategoryTypeFilter
+                                    className="w-full"
+                                    onCategoryFilter={(category: Category) => {
+                                        setCategory(category?.id!);
+                                        setPage(1);
+                                    }}
+                                    enableCategory
+                                />
+                            </div>
+                            <div className="w-full">
+                                <Label>{t('form:input-label-status')}</Label>
+                                <Select
+                                    options={[
+                                        { value: true, label: t('common:text-active') },
+                                        { value: false, label: t('common:text-inactive') },
+                                    ]}
+                                    value={status}
+                                    name="is_active"
+                                    placeholder={t('form:input-placeholder-status')}
+                                    onChange={(value: any) => {
+                                        setStatus(value);
+                                        setPage(1);
+                                    }}
+                                    isClearable
+                                />
+                            </div>
+                            <div className="w-full">
+                                <Label>{t('form:input-label-availability')}</Label>
+                                <Select
+                                    options={[
+                                        { value: true, label: 'Available' },
+                                        { value: false, label: 'Unavailable' },
+                                    ]}
+                                    value={availability}
+                                    name="is_available"
+                                    placeholder={t('form:input-placeholder-availability')}
+                                    onChange={(value: any) => {
+                                        setAvailability(value);
+                                        setPage(1);
+                                    }}
+                                    isClearable
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
