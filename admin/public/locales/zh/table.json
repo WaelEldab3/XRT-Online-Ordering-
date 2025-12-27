@@ -94,5 +94,6 @@
   "table-item-issued-by": "由...发出",
   "table-item-heading": "标题",
   "table-homepage-name": "主页名称",
-  "table-item-target": "应用于"
+  "table-item-target": "应用于",
+  "table-item-role": "角色"
 }

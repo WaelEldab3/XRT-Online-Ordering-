@@ -124,8 +124,12 @@ const UserList = ({
         if (record.customRole) {
           return record.customRole.displayName;
         }
-        if (role === 'super_admin') return 'Super Admin';
-        return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Client';
+        if (role === 'super_admin') return t('common:text-super-admin');
+        if (role === 'staff') return t('common:text-staff');
+        if (role === 'client') return t('common:text-client');
+        return role
+          ? role.charAt(0).toUpperCase() + role.slice(1)
+          : t('common:text-client');
       },
     },
     {
@@ -140,7 +144,7 @@ const UserList = ({
             onClick={() => openModal('USER_PERMISSIONS', { permissions })}
             className="text-accent transition-colors hover:text-accent-hover font-semibold text-sm"
           >
-            {t('common:show-permissions')}
+            {t('common:text-view-permissions')}
           </button>
         );
       },

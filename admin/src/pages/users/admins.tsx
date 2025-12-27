@@ -54,7 +54,7 @@ export default function Admins() {
         </div>
         <div className="flex w-full flex-col items-center space-y-4 md:w-3/4 md:flex-row md:justify-end md:space-y-0 md:space-x-4/rtl:space-x-reverse">
           <Button onClick={handleCreateAdmin}>
-            <span>+ Add Admin</span>
+            <span>+ {t('form:button-label-create-admin')}</span>
           </Button>
         </div>
       </Card>

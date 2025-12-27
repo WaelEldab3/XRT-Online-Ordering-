@@ -21,6 +21,7 @@ export interface User {
   lastLogin?: Date;
   twoFactorSecret?: string;
   twoFactorEnabled: boolean;
+  customRole?: any;
   created_at: Date;
   updated_at: Date;
 }

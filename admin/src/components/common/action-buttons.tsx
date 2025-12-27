@@ -166,7 +166,7 @@ const ActionButtons = ({
         <button
           onClick={handleMakeAdmin}
           className="transition duration-200 text-accent hover:text-accent-hover focus:outline-none"
-          title={t('common:text-assign-role')}
+          title={t('common:text-update-role')}
         >
           <AdminIcon width={17} />
         </button>

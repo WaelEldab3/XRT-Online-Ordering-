@@ -94,5 +94,6 @@
   "table-item-issued-by": "Ausgestellt von",
   "table-item-heading": "Überschrift",
   "table-homepage-name": "Homepage-Name",
-  "table-item-target": "Aufgetragen auf"
+  "table-item-target": "Aufgetragen auf",
+  "table-item-role": "Rolle"
 }

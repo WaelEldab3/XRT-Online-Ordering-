@@ -94,5 +94,6 @@
   "table-item-issued-by": "Expedido por",
   "table-item-heading": "Título",
   "table-homepage-name": "Nombre de la página de inicio",
-  "table-item-target": "Aplicado en"
+  "table-item-target": "Aplicado en",
+  "table-item-role": "Rol"
 }

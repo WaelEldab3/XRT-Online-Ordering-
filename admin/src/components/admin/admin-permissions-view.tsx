@@ -16,16 +16,16 @@ const AdminPermissionsView = () => {
 
   // Get permissions from user data
   const directPermissions = user?.permissions || [];
-  
+
   console.log('AdminPermissionsView - directPermissions:', directPermissions);
-  
+
   // Handle both string permissions and object permissions with name property
   const normalizePermissions = (permissions: any[]) => {
     const normalized = permissions.map(p => typeof p === 'string' ? p : p?.name).filter(Boolean);
     console.log('AdminPermissionsView - normalized permissions:', normalized);
     return normalized;
   };
-  
+
   const allPermissions = normalizePermissions(directPermissions);
 
   return (
@@ -53,7 +53,7 @@ const AdminPermissionsView = () => {
           </div>
         ) : (
           <p className="text-center text-body">
-            {t('common:text-no-permissions')}
+            {t('common:text-no-permissions-found')}
           </p>
         )}
 

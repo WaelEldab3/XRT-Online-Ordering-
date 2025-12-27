@@ -7,23 +7,14 @@ import { useRolesQuery } from '@/data/role';
 import { useCreateUserMutation } from '@/data/user';
 import { useModalAction } from '@/components/ui/modal/modal.context';
 import { useTranslation } from 'next-i18next';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
 import { Role } from '@/types';
-
-const createAdminSchema = yup.object().shape({
-  name: yup.string().required('form:error-name-required'),
-  email: yup
-    .string()
-    .email('form:error-email-format')
-    .required('form:error-email-required'),
-  password: yup.string().required('form:error-password-required'),
-  role: yup.object().required('form:error-role-required'),
-});
+import { customerValidationSchema } from '@/components/user/user-validation-schema';
+import { CheckMarkCircle } from '@/components/icons/checkmark-circle';
 
 const CreateAdminView = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['form', 'common']);
   const { closeModal } = useModalAction();
   const { mutate: createUser, isLoading } = useCreateUserMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
@@ -40,8 +31,32 @@ const CreateAdminView = () => {
       password: '',
       role: null as any,
     },
-    resolver: yupResolver(createAdminSchema),
+    resolver: yupResolver(customerValidationSchema),
   });
+
+  const passwordValue = useWatch({
+    control,
+    name: 'password',
+  });
+
+  const rules = [
+    {
+      label: t('input-label-password-rule-length'),
+      valid: (passwordValue?.length || 0) >= 8,
+    },
+    {
+      label: t('input-label-password-rule-uppercase'),
+      valid: /[A-Z]/.test(passwordValue || ''),
+    },
+    {
+      label: t('input-label-password-rule-lowercase'),
+      valid: /[a-z]/.test(passwordValue || ''),
+    },
+    {
+      label: t('input-label-password-rule-number'),
+      valid: /[0-9]/.test(passwordValue || ''),
+    },
+  ];
 
   const roleOptions = roles?.map((role: Role) => ({
     label: role.displayName,
@@ -51,15 +66,8 @@ const CreateAdminView = () => {
   function onSubmit(values: any) {
     const { name, email, password, role } = values;
 
-    console.log('Form values:', values);
-    console.log('Selected role:', role);
-    console.log('Available roles:', roles);
-
     const selectedRole = roles?.find((r: Role) => r.name === role.value);
     const permissions = selectedRole?.permissions || [];
-
-    console.log('Selected role object:', selectedRole);
-    console.log('Permissions:', permissions);
 
     const userData = {
       name,
@@ -69,8 +77,6 @@ const CreateAdminView = () => {
       permissions,
     };
 
-    console.log('User data to send:', userData);
-
     createUser(userData, {
       onSuccess: () => {
         closeModal();
@@ -79,20 +85,20 @@ const CreateAdminView = () => {
   }
 
   return (
-    <div className="p-5 bg-light sm:p-8 min-w-[350px] sm:min-w-[450px]">
-      <h1 className="mb-4 text-center font-semibold text-heading sm:mb-6">
-        Create Admin
+    <div className="p-5 bg-light sm:p-8 min-w-[350px] sm:min-w-[450px] max-w-lg rounded">
+      <h1 className="mb-4 text-center font-semibold text-heading sm:mb-6 text-xl">
+        {t('form-title-create-admin')}
       </h1>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <Input
-          label={t('form:input-label-name')}
+          label={t('input-label-name')}
           {...registerField('name')}
           error={t(errors.name?.message!)}
           variant="outline"
           className="mb-5"
         />
         <Input
-          label={t('form:input-label-email')}
+          label={t('input-label-email')}
           type="email"
           {...registerField('email')}
           error={t(errors.email?.message!)}
@@ -100,13 +106,31 @@ const CreateAdminView = () => {
           className="mb-5"
         />
         <PasswordInput
-          label={t('form:input-label-password')}
+          label={t('input-label-password')}
           {...registerField('password')}
           error={t(errors.password?.message!)}
-          className="mb-5"
+          className="mb-4"
         />
+
+        <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {rules.map((rule, idx) => (
+            <div key={idx} className="flex items-center text-xs">
+              {rule.valid ? (
+                <CheckMarkCircle className="w-4 h-4 text-accent me-2 flex-shrink-0" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center me-2 flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                </div>
+              )}
+              <span className={rule.valid ? 'text-accent font-medium' : 'text-body-dark'}>
+                {rule.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
         <div className="mb-5">
-          <Label>Role</Label>
+          <Label>{t('input-label-role')}</Label>
           <Controller
             name="role"
             control={control}
@@ -115,19 +139,19 @@ const CreateAdminView = () => {
                 {...field}
                 options={roleOptions}
                 isLoading={loadingRoles}
-                placeholder={t('form:input-placeholder-role')}
+                placeholder={t('input-placeholder-role')}
               />
             )}
           />
           {errors.role && (
-            <p className="my-2 text-xs text-red-500 text-end">
+            <p className="my-2 text-xs text-red-500 text-start">
               {t(errors.role?.message!)}
             </p>
           )}
         </div>
 
         <Button className="w-full" loading={isLoading} disabled={isLoading}>
-          Create Admin
+          {t('button-label-create-admin')}
         </Button>
       </form>
     </div>

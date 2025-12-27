@@ -63,6 +63,12 @@ export const PERMISSIONS = {
   WITHDRAWS_CREATE: 'withdraws:create',
   WITHDRAWS_UPDATE: 'withdraws:update',
   WITHDRAWS_DELETE: 'withdraws:delete',
+
+  // Items
+  ITEMS_READ: 'items:read',
+  ITEMS_CREATE: 'items:create',
+  ITEMS_UPDATE: 'items:update',
+  ITEMS_DELETE: 'items:delete',
 } as const;
 
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS);

@@ -171,7 +171,7 @@ export class AuthController {
       sortedBy: sortedBy as 'asc' | 'desc',
       search: search as string,
       role: role as string,
-      is_active: is_active === 'true',
+      is_active: is_active !== undefined ? String(is_active) === 'true' : undefined,
     });
 
     // Map users to match frontend expectations

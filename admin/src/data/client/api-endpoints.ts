@@ -72,6 +72,7 @@ export const API_ENDPOINTS = {
   ATTRIBUTES: 'attributes',
   TYPES: 'types',
   ANALYTICS: 'analytics',
+  ITEMS: 'items',
 
   // Product endpoints
   POPULAR_PRODUCTS: 'products/popular',

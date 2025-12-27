@@ -5,7 +5,10 @@ import {
 } from '@/components/ui/modal/modal.context';
 import { useBlockUserMutation, useUnblockUserMutation } from '@/data/user';
 
+import { useTranslation } from 'next-i18next';
+
 const CustomerBanView = () => {
+  const { t } = useTranslation();
   const { mutate: blockUser, isLoading: loading } = useBlockUserMutation();
   const { mutate: unblockUser, isLoading: activeLoading } =
     useUnblockUserMutation();
@@ -26,9 +29,9 @@ const CustomerBanView = () => {
     <ConfirmationCard
       onCancel={closeModal}
       onDelete={handleDelete}
-      deleteBtnText={data?.type === 'ban' ? 'Block' : 'Unblock'}
-      title={data?.type === 'ban' ? 'Block Customer' : 'Unblock Customer'}
-      description="Are you sure you want to block this customer?"
+      deleteBtnText={data?.type === 'ban' ? t('common:text-block') : t('common:text-unblock')}
+      title={data?.type === 'ban' ? t('common:text-block-customer') : t('common:text-unblock-customer')}
+      description={data?.type === 'ban' ? t('common:text-block-confirm') : t('common:text-unblock-confirm')}
       deleteBtnLoading={loading || activeLoading}
     />
   );

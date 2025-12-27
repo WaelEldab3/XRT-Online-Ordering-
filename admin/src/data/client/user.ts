@@ -174,4 +174,7 @@ export const userClient = {
       data: [],
     });
   },
+  delete: (id: string) => {
+    return HttpClient.delete<any>(`${API_ENDPOINTS.USERS}/${id}`);
+  },
 };

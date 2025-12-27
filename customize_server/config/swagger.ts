@@ -178,6 +178,25 @@ All responses follow a consistent format:
           updated_at: { type: 'string', format: 'date-time' },
         },
       },
+      Item: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          business_id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          name: { type: 'string', example: 'Margherita Pizza' },
+          description: { type: 'string', example: 'Classic cheese pizza' },
+          sort_order: { type: 'integer', example: 1 },
+          is_active: { type: 'boolean', example: true },
+          base_price: { type: 'number', example: 12.99 },
+          category_id: { type: 'string', example: '507f1f77bcf86cd799439012' },
+          image: { type: 'string', example: 'https://cloudinary.com/item.jpg' },
+          is_available: { type: 'boolean', example: true },
+          is_signature: { type: 'boolean', example: false },
+          max_per_order: { type: 'integer', example: 10 },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+        },
+      },
       Customer: {
         type: 'object',
         required: ['name', 'email', 'phoneNumber', 'business_id', 'location_id'],
@@ -1376,6 +1395,177 @@ All responses follow a consistent format:
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/items': {
+      get: {
+        summary: 'Get all items',
+        tags: ['Items'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'business_id',
+            schema: { type: 'string' },
+            description: 'Business ID (required for non-super admins)',
+          },
+          {
+            in: 'query',
+            name: 'category_id',
+            schema: { type: 'string' },
+            description: 'Filter by category',
+          },
+          {
+            in: 'query',
+            name: 'is_active',
+            schema: { type: 'boolean' },
+          },
+          {
+            in: 'query',
+            name: 'search',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Items retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create item',
+        tags: ['Items'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['name', 'base_price', 'category_id', 'business_id'],
+                properties: {
+                  business_id: { type: 'string' },
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  base_price: { type: 'number' },
+                  category_id: { type: 'string' },
+                  sort_order: { type: 'integer' },
+                  image: { type: 'string', format: 'binary' },
+                  is_active: { type: 'boolean' },
+                  is_available: { type: 'boolean' },
+                  is_signature: { type: 'boolean' },
+                  max_per_order: { type: 'integer' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Item created successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/items/{id}': {
+      get: {
+        summary: 'Get item details',
+        tags: ['Items'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item details',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        summary: 'Update item',
+        tags: ['Items'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  base_price: { type: 'number' },
+                  category_id: { type: 'string' },
+                  sort_order: { type: 'integer' },
+                  image: { type: 'string', format: 'binary' },
+                  is_active: { type: 'boolean' },
+                  is_available: { type: 'boolean' },
+                  is_signature: { type: 'boolean' },
+                  max_per_order: { type: 'integer' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Item updated successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        summary: 'Delete item',
+        tags: ['Items'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item deleted successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
               },
             },
           },

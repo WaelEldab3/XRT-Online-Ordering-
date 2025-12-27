@@ -79,6 +79,12 @@ src/
 - **Category CRUD** - Full category management
 - **Image Upload** - Cloudinary integration
 - **Business-Scoped** - Categories per business
+ 
+ ### 📦 Item Management
+ - **Item CRUD** - Full item management within categories
+ - **Image Upload** - Cloudinary integration for item images
+ - **Filtering** - Filter items by category, active status, etc.
+
 
 ### 🔧 Additional Features
 - **TypeScript** - Full type safety
@@ -237,6 +243,17 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 | POST   | `/categories`       | Create category          | ✅            | `admin` or `super_admin`    |
 | PUT    | `/categories/:id`   | Update category          | ✅            | `admin` or `super_admin`    |
 | DELETE | `/categories/:id`   | Delete category          | ✅            | `admin` or `super_admin`    |
+ 
+ ### Item Management Endpoints
+ 
+ | Method | Endpoint            | Description          | Auth Required | Role Required      |
+ | ------ | ------------------- | -------------------- | ------------- | ------------------ |
+ | GET    | `/items`            | List all items       | ✅            | Any authenticated           |
+ | GET    | `/items/:id`        | Get item details     | ✅            | Any authenticated           |
+ | POST   | `/items`            | Create item          | ✅            | `admin` or `super_admin`    |
+ | PUT    | `/items/:id`        | Update item          | ✅            | `admin` or `super_admin`    |
+ | DELETE | `/items/:id`        | Delete item          | ✅            | `admin` or `super_admin`    |
+
 
 ## 🔐 Authentication Flow
 
@@ -321,6 +338,13 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 - `categories:create` - Create categories
 - `categories:update` - Update categories
 - `categories:delete` - Delete categories
+ 
+ #### Item Management
+ - `items:read` - View items
+ - `items:create` - Create items
+ - `items:update` - Update items
+ - `items:delete` - Delete items
+
 
 #### Content Management
 - `content:read` - View content

@@ -5,7 +5,10 @@ import { GetRoleUseCase } from '../../domain/usecases/roles/GetRoleUseCase';
 import { CreateRoleUseCase } from '../../domain/usecases/roles/CreateRoleUseCase';
 import { UpdateRoleUseCase } from '../../domain/usecases/roles/UpdateRoleUseCase';
 import { DeleteRoleUseCase } from '../../domain/usecases/roles/DeleteRoleUseCase';
+import { AssignRoleUseCase } from '../../domain/usecases/roles/AssignRoleUseCase';
+import { RemoveRoleUseCase } from '../../domain/usecases/roles/RemoveRoleUseCase';
 import { RoleRepository } from '../../infrastructure/repositories/RoleRepository';
+import { UserRepository } from '../../infrastructure/repositories/UserRepository';
 import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 
@@ -15,6 +18,8 @@ export class RoleController {
   private createRoleUseCase: CreateRoleUseCase;
   private updateRoleUseCase: UpdateRoleUseCase;
   private deleteRoleUseCase: DeleteRoleUseCase;
+  private assignRoleUseCase: AssignRoleUseCase;
+  private removeRoleUseCase: RemoveRoleUseCase;
 
   constructor() {
     const roleRepository = new RoleRepository();
@@ -24,6 +29,10 @@ export class RoleController {
     this.createRoleUseCase = new CreateRoleUseCase(roleRepository);
     this.updateRoleUseCase = new UpdateRoleUseCase(roleRepository);
     this.deleteRoleUseCase = new DeleteRoleUseCase(roleRepository);
+
+    const userRepository = new UserRepository();
+    this.assignRoleUseCase = new AssignRoleUseCase(userRepository);
+    this.removeRoleUseCase = new RemoveRoleUseCase(userRepository);
   }
 
   getAllRoles = asyncHandler(async (req: Request, res: Response) => {
@@ -125,6 +134,23 @@ export class RoleController {
     await this.deleteRoleUseCase.execute(req.params.id);
 
     return sendSuccess(res, 'Role deleted successfully');
+  });
+
+  assignRole = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+    const { roleId } = req.body;
+
+    const user = await this.assignRoleUseCase.execute(userId, roleId);
+
+    return sendSuccess(res, 'Role assigned successfully', { user });
+  });
+
+  removeRole = asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    const user = await this.removeRoleUseCase.execute(userId);
+
+    return sendSuccess(res, 'Role removed successfully', { user });
   });
 }
 

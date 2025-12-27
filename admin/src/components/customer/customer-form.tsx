@@ -26,7 +26,7 @@ import { FormValues, CustomerFormProps } from './types';
 import { defaultValues } from './constants';
 
 const CustomerForm = ({ initialValues }: CustomerFormProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['form', 'common']);
   const router = useRouter();
   const { mutate: createCustomer, isLoading: creating } =
     useCreateCustomerMutation();
@@ -143,14 +143,14 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="my-5 flex flex-wrap sm:my-8">
         <Description
-          title={t('form:form-title-information')}
-          details={t('form:customer-form-info-help-text')}
+          title={t('form-title-information')}
+          details={t('customer-form-info-help-text')}
           className="w-full px-0 pb-5 sm:w-4/12 sm:py-8 sm:pe-4 md:w-1/3 md:pe-5"
         />
 
         <Card className="w-full sm:w-8/12 md:w-2/3">
           <Input
-            label={t('form:input-label-name')}
+            label={t('input-label-name')}
             {...register('name')}
             type="text"
             variant="outline"
@@ -160,7 +160,7 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           />
 
           <Input
-            label={t('form:input-label-email')}
+            label={t('input-label-email')}
             {...register('email')}
             type="email"
             variant="outline"
@@ -170,7 +170,7 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           />
 
           <Input
-            label={t('form:input-label-phone')}
+            label={t('input-label-phone')}
             {...register('phoneNumber')}
             type="tel"
             variant="outline"
@@ -180,7 +180,7 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           />
 
           <div className="mb-4">
-            <Label>{t('form:input-label-business')}</Label>
+            <Label>{t('input-label-business')}</Label>
             <Controller
               name="business_id"
               control={control}
@@ -209,7 +209,7 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           </div>
 
           <div className="mb-4">
-            <Label>{t('form:input-label-location')}</Label>
+            <Label>{t('input-label-location')}</Label>
             <Controller
               name="location_id"
               control={control}
@@ -225,8 +225,8 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
                   )}
                   placeholder={
                     selectedBusinessId
-                      ? t('form:placeholder-select-location')
-                      : t('form:placeholder-select-business-first')
+                      ? t('placeholder-select-location')
+                      : t('placeholder-select-business-first')
                   }
                   onChange={(selected: any) => {
                     field.onChange(selected?.value);
@@ -242,7 +242,7 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           </div>
 
           <Input
-            label={t('form:input-label-rewards')}
+            label={t('input-label-rewards')}
             {...register('rewards', { valueAsNumber: true })}
             type="number"
             variant="outline"
@@ -252,12 +252,12 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
           />
 
           <div className="mb-4">
-            <Label>{t('form:input-label-notes')}</Label>
+            <Label>{t('input-label-notes')}</Label>
             <TextArea
               {...register('notes')}
               variant="outline"
               className="mb-4"
-              placeholder={t('form:placeholder-customer-notes')}
+              placeholder={t('placeholder-customer-notes')}
               rows={3}
             />
           </div>
@@ -268,8 +268,8 @@ const CustomerForm = ({ initialValues }: CustomerFormProps) => {
         <div className="mb-4 text-end">
           <Button loading={isLoading} disabled={isLoading}>
             {initialValues
-              ? t('form:button-label-update-customer')
-              : t('form:button-label-create-customer')}
+              ? t('button-label-update-customer')
+              : t('button-label-create-customer')}
           </Button>
         </div>
       </StickyFooterPanel>

@@ -2,10 +2,10 @@ import { IUserRepository } from '../../repositories/IUserRepository';
 import { NotFoundError } from '../../../shared/errors/AppError';
 
 export class GetUserUseCase {
-  constructor(private userRepository: IUserRepository) {}
+  constructor(private userRepository: IUserRepository) { }
 
   async execute(id: string): Promise<any> {
-    const user = await this.userRepository.findById(id);
+    const user = await this.userRepository.findById(id, true);
 
     if (!user) {
       throw new NotFoundError('User');

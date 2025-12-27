@@ -11,7 +11,9 @@
     "seed:admin": "tsx scripts/seedSuperAdmin.ts",
     "seed:businesses": "tsx scripts/seedBusinesses.ts",
     "seed:customers": "tsx scripts/seedCustomers.ts",
-    "seed:categories": "tsx scripts/seedCategories.ts"
+    "seed:customers": "tsx scripts/seedCustomers.ts",
+    "seed:categories": "tsx scripts/seedCategories.ts",
+    "seed:items": "tsx scripts/seedItems.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

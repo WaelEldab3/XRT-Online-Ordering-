@@ -4,14 +4,18 @@ import { useTranslation } from 'next-i18next';
 import { useAppLoading } from '@/contexts/app-loading.context';
 
 const AppLoader = () => {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { loadingMessage, isLoading } = useAppLoading();
-  
+
+  if (!i18n.isInitialized) {
+    return null;
+  }
+
   // Only render loader when loading is true
   if (!isLoading) {
     return null;
   }
-  
+
   return (
     <div
       className={cn(
@@ -21,7 +25,7 @@ const AppLoader = () => {
       <div className="flex flex-col items-center space-y-8">
         {/* Main loader animation */}
         <div className={styles.app_loader}></div>
-        
+
         {/* Loading text */}
         <div className="text-center space-y-2">
           <h3 className="text-lg font-semibold text-body">
@@ -31,7 +35,7 @@ const AppLoader = () => {
             {loadingMessage}
           </p>
         </div>
-        
+
         {/* Progress dots */}
         <div className="flex space-x-2">
           <div className={styles.progress_dot}></div>

@@ -25,6 +25,7 @@
   "table-item-payment-gateway": "Payment gateway",
   "table-item-payment-status": "Payment Status",
   "table-item-taxable-amount": "Taxable amount",
+  "table-item-base-price": "Base Price",
   "table-item-unit": "Price/Unit",
   "table-item-quantity": "Quantity",
   "table-item-sold-quantity": "Sold Quantity",
@@ -101,5 +102,6 @@
   "table-item-phone": "Phone",
   "table-item-last-order": "Last Order",
   "table-item-rewards": "Rewards",
-  "table-item-kitchen-section": "Kitchen Section"
+  "table-item-kitchen-section": "Kitchen Section",
+  "table-item-role": "Role"
 }

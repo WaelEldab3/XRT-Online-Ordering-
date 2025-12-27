@@ -77,6 +77,9 @@ export const Routes = {
   product: {
     ...routesFactory('/products'),
   },
+  item: {
+    ...routesFactory('/items'),
+  },
   shop: {
     ...routesFactory('/shops'),
   },

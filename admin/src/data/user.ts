@@ -22,6 +22,7 @@ import {
   setAuthCredentials,
   getAuthCredentials,
 } from '@/utils/auth-utils';
+import { getErrorMessage } from '@/utils/form-error';
 import { type } from 'os';
 
 export const useMeQuery = () => {
@@ -269,6 +270,21 @@ export const useAddWalletPointsMutation = () => {
     // Always refetch after error or success:
     onSettled: () => {
       queryClient.invalidateQueries(API_ENDPOINTS.USERS);
+    },
+  });
+};
+
+export const useDeleteUserMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation((id: string) => userClient.delete(id), {
+    onSuccess: () => {
+      toast.success(t('common:successfully-deleted'));
+      queryClient.invalidateQueries([API_ENDPOINTS.USERS]);
+    },
+    onError: (error: any) => {
+      toast.error(getErrorMessage(error)?.message as string);
     },
   });
 };

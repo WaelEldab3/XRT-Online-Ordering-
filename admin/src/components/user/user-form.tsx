@@ -8,7 +8,9 @@ import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
 import Label from '@/components/ui/label';
 import { useRolesQuery } from '@/data/role';
 import { useRegisterMutation, useUpdateUserMutation } from '@/data/user';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { CheckMarkCircle } from '@/components/icons/checkmark-circle';
+import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -44,6 +46,7 @@ type FormValues = {
   name: string;
   email: string;
   password?: string;
+  passwordConfirmation?: string;
   role?: any;
   profile?: {
     socials: {
@@ -68,11 +71,12 @@ type UserFormProps = {
 };
 
 const UserForm = ({ initialValues }: UserFormProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['form', 'common']);
   const router = useRouter();
   const { mutate: registerUser, isLoading: creating } = useRegisterMutation();
   const { mutate: updateUser, isLoading: updating } = useUpdateUserMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
+  const [showOldPassword, setShowOldPassword] = useState(false);
 
   const isNew = !initialValues;
   const isLoading = creating || updating;
@@ -93,13 +97,13 @@ const UserForm = ({ initialValues }: UserFormProps) => {
           ? {
             label:
               initialValues.role === 'super_admin'
-                ? 'Super Admin'
+                ? t('common:text-super-admin')
                 : initialValues.role === 'client'
-                  ? 'Client'
+                  ? t('common:text-client')
                   : initialValues.role, // Display role string if custom
             value: initialValues.role,
           }
-          : { label: 'Client', value: 'client' },
+          : { label: t('common:text-client'), value: 'client' },
         profile: {
           socials: initialValues?.profile?.socials
             ? initialValues?.profile?.socials.map((social: any) => ({
@@ -109,11 +113,35 @@ const UserForm = ({ initialValues }: UserFormProps) => {
             : [],
         },
       }
-      : { ...defaultValues, role: { label: 'Client', value: 'client' } },
+      : { ...defaultValues, role: { label: t('common:text-client'), value: 'client' } },
     resolver: yupResolver(
       isNew ? customerValidationSchema : customerUpdateValidationSchema,
     ),
   });
+
+  const passwordValue = useWatch({
+    control,
+    name: 'password',
+  });
+
+  const rules = [
+    {
+      label: t('input-label-password-rule-length'),
+      valid: (passwordValue?.length || 0) >= 8,
+    },
+    {
+      label: t('input-label-password-rule-uppercase'),
+      valid: /[A-Z]/.test(passwordValue || ''),
+    },
+    {
+      label: t('input-label-password-rule-lowercase'),
+      valid: /[a-z]/.test(passwordValue || ''),
+    },
+    {
+      label: t('input-label-password-rule-number'),
+      valid: /[0-9]/.test(passwordValue || ''),
+    },
+  ];
 
   const {
     fields: socialFields,
@@ -125,8 +153,8 @@ const UserForm = ({ initialValues }: UserFormProps) => {
   });
 
   const roleOptions = [
-    { label: 'Super Admin', value: 'super_admin' },
-    { label: 'Client', value: 'client' },
+    { label: t('common:text-super-admin'), value: 'super_admin' },
+    { label: t('common:text-client'), value: 'client' },
     ...(roles?.map((role: Role) => ({
       label: role.displayName,
       value: role.id,
@@ -189,7 +217,7 @@ const UserForm = ({ initialValues }: UserFormProps) => {
             // Handle Errors
           },
           onSuccess: (data) => {
-            router.push(Routes.user.list);
+            router.push(Routes.adminList);
           },
         },
       );
@@ -200,7 +228,7 @@ const UserForm = ({ initialValues }: UserFormProps) => {
     <form onSubmit={handleSubmit(onSubmit as any)} noValidate>
       <div className="my-5 flex flex-wrap sm:my-8">
         <Description
-          title={t('form:form-title-information')}
+          title={t('form-title-information')}
           details={t('form:customer-form-info-help-text')}
           className="w-full px-0 pb-5 sm:w-4/12 sm:py-8 sm:pe-4 md:w-1/3 md:pe-5"
         />
@@ -224,8 +252,29 @@ const UserForm = ({ initialValues }: UserFormProps) => {
             error={t(errors.email?.message!)}
             required
           />
+          {!isNew && (
+            <div className="mb-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowOldPassword(!showOldPassword)}
+                className="mb-2"
+              >
+                {t('input-label-show-old-password')}
+              </Button>
+              {showOldPassword && (
+                <Input
+                  {...register('oldPassword' as any)}
+                  label={t('input-label-password-hash')}
+                  defaultValue={(initialValues as any)?.password}
+                  disabled
+                  variant="outline"
+                />
+              )}
+            </div>
+          )}
           <PasswordInput
-            label={t('form:input-label-password')}
+            label={isNew ? t('input-label-password') : t('input-label-update-password')}
             {...register('password')}
             error={t(errors.password?.message!)}
             variant="outline"
@@ -233,8 +282,33 @@ const UserForm = ({ initialValues }: UserFormProps) => {
             required={isNew}
           />
 
+          <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {rules.map((rule, idx) => (
+              <div key={idx} className="flex items-center text-xs">
+                {rule.valid ? (
+                  <CheckMarkCircle className="w-4 h-4 text-accent me-2 flex-shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center me-2 flex-shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                  </div>
+                )}
+                <span className={rule.valid ? 'text-accent font-medium' : 'text-body-dark'}>
+                  {rule.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <PasswordInput
+            label={t('input-label-confirm-password')}
+            {...register('passwordConfirmation')}
+            error={t(errors.passwordConfirmation?.message!)}
+            variant="outline"
+            className="mb-4"
+          />
+
           <div className="mb-4">
-            <Label>{t('form:input-label-role')}</Label>
+            <Label>{t('input-label-role')}</Label>
             <Controller
               name="role"
               control={control}
@@ -306,6 +380,14 @@ const UserForm = ({ initialValues }: UserFormProps) => {
 
       <StickyFooterPanel className="z-0">
         <div className="mb-4 text-end">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="me-4"
+            type="button"
+          >
+            {t('form:button-label-back')}
+          </Button>
           <Button loading={isLoading} disabled={isLoading}>
             {initialValues
               ? t('form:button-label-update-user')

@@ -1,7 +1,7 @@
 import { GoogleMapLocation } from '@/types';
 import { useJsApiLoader } from '@react-google-maps/api';
 import { useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'next-i18next';
 import { atom } from 'jotai';
 
 export const locationAtom = atom<GoogleMapLocation | null>(null);

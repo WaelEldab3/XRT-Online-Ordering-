@@ -178,6 +178,14 @@ export interface QueryOptions {
   sortedBy?: SortOrder;
 }
 
+export interface ItemQueryOptions extends QueryOptions {
+  category_id?: string;
+  is_active?: boolean;
+  is_available?: boolean;
+  is_signature?: boolean;
+  name?: string;
+}
+
 export interface ShopSocialInput {
   icon?: string;
   url?: string;
@@ -2429,3 +2437,43 @@ export interface OrderStickerCardProps extends StickerCardProps {
   | 'admin_commission_rate'
   | 'withdrawn_amount';
 }
+
+export interface Item {
+  id: string;
+  business_id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  is_active: boolean;
+  base_price: number;
+  category_id: string;
+  category?: Category;
+  image?: string;
+  is_available: boolean;
+  is_signature: boolean;
+  max_per_order?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateItemInput {
+  name: string;
+  description?: string;
+  sort_order?: number;
+  is_active?: boolean;
+  base_price: number;
+  category_id: string;
+  image?: AttachmentInput;
+  is_available?: boolean;
+  is_signature?: boolean;
+  max_per_order?: number;
+  business_id?: string;
+}
+
+export interface UpdateItemInput extends Partial<CreateItemInput> {
+  id: string;
+}
+
+export interface ItemPaginator extends PaginatorInfo<Item> { }
+
+

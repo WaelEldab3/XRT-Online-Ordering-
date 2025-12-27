@@ -33,5 +33,7 @@ export interface IUserRepository {
   resetLoginAttempts(id: string): Promise<void>;
   lockAccount(id: string, lockUntil: Date): Promise<void>;
   unlockAccount(id: string): Promise<void>;
+  assignRole(userId: string, roleId: string): Promise<User>;
+  removeRole(userId: string): Promise<User>;
 }
 

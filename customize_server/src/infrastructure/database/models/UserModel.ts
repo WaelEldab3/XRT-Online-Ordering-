@@ -91,6 +91,10 @@ const UserSchema = new Schema<UserDocument>(
       type: Boolean,
       default: false,
     },
+    customRole: {
+      type: Schema.Types.ObjectId,
+      ref: 'Role',
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
@@ -263,6 +267,10 @@ UserSchema.methods.getAllPermissions = async function (): Promise<string[]> {
       'roles:create',
       'roles:update',
       'roles:delete',
+      'items:read',
+      'items:create',
+      'items:update',
+      'items:delete',
     ];
   }
   return [...(this.permissions || [])];
@@ -302,6 +310,10 @@ UserSchema.methods.setDefaultPermissions = function (): void {
       'roles:create',
       'roles:update',
       'roles:delete',
+      'items:read',
+      'items:create',
+      'items:update',
+      'items:delete',
     ];
   } else if (this.role === 'client') {
     this.permissions = ['profile:read', 'profile:update', 'content:read'];

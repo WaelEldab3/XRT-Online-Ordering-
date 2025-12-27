@@ -3,7 +3,7 @@ import { useModalState } from '@/components/ui/modal/modal.context';
 import UserForm from '@/components/user/user-form';
 
 export default function UserUpdateView() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['form', 'common']);
   const { data } = useModalState();
   // We can fetch user here if data only contains ID, but presumably data contains full user object for editing?
   // Or UserForm fetches it? UserForm takes `initialValues`?
@@ -29,7 +29,7 @@ export default function UserUpdateView() {
   return (
     <div className="m-auto w-full max-w-lg rounded bg-light p-5 sm:w-[46rem] sm:p-8">
       <h1 className="mb-4 text-lg font-semibold text-heading">
-        {t('form:form-title-update-profile')}
+        {t('form-title-update-profile')}
       </h1>
       <UserUpdateResolver id={data} />
     </div>

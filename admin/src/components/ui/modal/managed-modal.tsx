@@ -47,6 +47,9 @@ const CouponDeleteView = dynamic(
 const RoleDeleteView = dynamic(
   () => import('@/components/role/role-delete-view'),
 );
+const UserDeleteView = dynamic(
+  () => import('@/components/user/user-delete-view'),
+);
 
 const ProductDeleteView = dynamic(
   () => import('@/components/product/product-delete-view'),
@@ -56,6 +59,14 @@ const TypeDeleteView = dynamic(
 );
 const AttributeDeleteView = dynamic(
   () => import('@/components/attribute/attribute-delete-view'),
+);
+
+const ItemDeleteView = dynamic(
+  () => import('@/components/item/item-delete-view'),
+);
+
+const ItemToggleView = dynamic(
+  () => import('@/components/item/item-toggle-view'),
 );
 
 const ApproveShopView = dynamic(
@@ -202,6 +213,12 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <TaxDeleteView />;
     case 'DELETE_ROLE':
       return <RoleDeleteView />;
+    case 'DELETE_ITEM':
+      return <ItemDeleteView />;
+    case 'TOGGLE_ITEM_STATUS':
+      return <ItemToggleView />;
+    case 'DELETE_USER':
+      return <UserDeleteView />;
     case 'DELETE_STORE_NOTICE':
       return <StoreNoticeDeleteView />;
     case 'DELETE_SHIPPING':

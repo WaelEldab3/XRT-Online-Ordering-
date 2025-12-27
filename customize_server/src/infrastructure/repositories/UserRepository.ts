@@ -11,7 +11,10 @@ export class UserRepository implements IUserRepository {
       email: document.email,
       password: document.password,
       role: document.role as any,
-      permissions: document.permissions || [],
+      permissions: [
+        ...(document.permissions || []),
+        ...((document.customRole as any)?.permissions || []),
+      ],
       isApproved: document.isApproved,
       isBanned: document.isBanned,
       banReason: document.banReason,
@@ -26,6 +29,7 @@ export class UserRepository implements IUserRepository {
       lastLogin: document.lastLogin,
       twoFactorSecret: document.twoFactorSecret,
       twoFactorEnabled: document.twoFactorEnabled,
+      customRole: document.customRole,
       created_at: document.created_at,
       updated_at: document.updated_at,
     };
@@ -42,7 +46,7 @@ export class UserRepository implements IUserRepository {
     if (includePassword) {
       query.select('+password +isActive +isApproved +isBanned +banReason');
     }
-    const userDoc = await query;
+    const userDoc = await query.populate('customRole');
     return userDoc ? this.toDomain(userDoc) : null;
   }
 
@@ -61,7 +65,7 @@ export class UserRepository implements IUserRepository {
     // Role filter
     if (filters.role) {
       if (filters.role === 'admin') {
-        query.role = { $nin: ['client', 'super_admin'] };
+        query.role = { $in: ['admin', 'manager', 'super_admin'] };
       } else {
         query.role = filters.role;
       }
@@ -88,7 +92,7 @@ export class UserRepository implements IUserRepository {
             query.email = { $regex: value, $options: 'i' };
           } else if (key === 'role') {
             if (value === 'admin') {
-              query.role = { $nin: ['client', 'super_admin'] };
+              query.role = { $in: ['admin', 'manager', 'super_admin'] };
             } else {
               query.role = value;
             }
@@ -113,7 +117,8 @@ export class UserRepository implements IUserRepository {
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .select('-password -refreshToken -passwordResetToken -passwordResetExpires +isActive');
+      .select('-password -refreshToken -passwordResetToken -passwordResetExpires +isActive')
+      .populate('customRole');
 
     return {
       users: userDocs.map((doc) => this.toDomain(doc)),
@@ -193,6 +198,34 @@ export class UserRepository implements IUserRepository {
       $set: { loginAttempts: 0 },
       $unset: { lockUntil: 1 },
     });
+  }
+
+  async assignRole(userId: string, roleId: string): Promise<User> {
+    const userDoc = await UserModel.findByIdAndUpdate(
+      userId,
+      { customRole: roleId },
+      { new: true }
+    ).populate('customRole');
+
+    if (!userDoc) {
+      throw new NotFoundError('User');
+    }
+
+    return this.toDomain(userDoc);
+  }
+
+  async removeRole(userId: string): Promise<User> {
+    const userDoc = await UserModel.findByIdAndUpdate(
+      userId,
+      { $unset: { customRole: 1 } },
+      { new: true }
+    );
+
+    if (!userDoc) {
+      throw new NotFoundError('User');
+    }
+
+    return this.toDomain(userDoc);
   }
 }
 

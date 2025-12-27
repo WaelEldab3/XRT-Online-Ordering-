@@ -45,15 +45,18 @@ const UserRoleAssignmentView = () => {
         });
       } else if (user.role) {
         setValue('role', {
-          label: user.role === 'super_admin' ? 'Super Admin' : 'Client',
+          label:
+            user.role === 'super_admin'
+              ? t('common:text-super-admin')
+              : t('common:text-client'),
           value: user.role,
         });
       }
     }
-  }, [user, setValue]);
+  }, [user, setValue, t]);
 
   const roleOptions = [
-    { label: 'Client', value: 'client' },
+    { label: t('common:text-client'), value: 'client' },
     ...(roles?.map((role: any) => ({
       label: role.displayName,
       value: role.id,
@@ -94,7 +97,7 @@ const UserRoleAssignmentView = () => {
   return (
     <div className="p-5 bg-light sm:p-8">
       <h1 className="mb-4 text-center font-semibold text-heading">
-        {t('common:text-assign-role')}
+        {t('common:text-update-role')}
       </h1>
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="mb-5">
@@ -119,10 +122,10 @@ const UserRoleAssignmentView = () => {
 
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={closeModal} type="button">
-            {t('form:button-label-cancel')}
+            {t('common:button-cancel')}
           </Button>
           <Button loading={updating} disabled={updating}>
-            {t('form:button-label-assign')}
+            {t('form:button-label-update-role')}
           </Button>
         </div>
       </form>

@@ -17,6 +17,8 @@ import settingsRoutes from './application/routes/settings.routes';
 import roleRoutes from './application/routes/role.routes';
 import withdrawRoutes from './application/routes/withdraw.routes';
 import attachmentRoutes from './application/routes/attachment.routes';
+import itemRoutes from './application/routes/item.routes';
+import mockRoutes from './application/routes/mock.routes';
 import { env } from './shared/config/env';
 import { logger } from './shared/utils/logger';
 // Import swagger config - using relative path from src to config directory
@@ -85,6 +87,8 @@ app.use(`${env.API_BASE_URL}/settings`, settingsRoutes);
 app.use(`${env.API_BASE_URL}/roles`, roleRoutes);
 app.use(`${env.API_BASE_URL}/withdraws`, withdrawRoutes);
 app.use(`${env.API_BASE_URL}/attachments`, attachmentRoutes);
+app.use(`${env.API_BASE_URL}/items`, itemRoutes);
+app.use(`${env.API_BASE_URL}`, mockRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -34,9 +34,9 @@ const AppSettings: React.FC<{ children?: React.ReactNode }> = (props) => {
   const { query, locale, pathname } = useRouter();
   const { token } = getAuthCredentials();
   const { settings, loading, error } = useSettingsQuery({ language: locale! });
-  
+
   // Check if we're on an auth page
-  const isAuthPage = 
+  const isAuthPage =
     pathname === Routes.login ||
     pathname === Routes.register ||
     pathname === Routes.forgotPassword ||
@@ -45,19 +45,19 @@ const AppSettings: React.FC<{ children?: React.ReactNode }> = (props) => {
     pathname?.includes('/register') ||
     pathname?.includes('/forgot-password') ||
     pathname?.includes('/reset-password');
-  
+
   // On auth pages, don't wait for settings or show errors
   if (isAuthPage) {
     // @ts-ignore
     return <SettingsProvider initialValue={null} {...props} />;
   }
-  
+
   // If not authenticated and not on auth page, settings will be disabled anyway
   if (!token) {
     // @ts-ignore
     return <SettingsProvider initialValue={null} {...props} />;
   }
-  
+
   // Only show loading/error for authenticated users on non-auth pages
   // Don't show errors for 400/401 on auth pages - they're expected
   if (loading) return <PageLoader />;
@@ -67,7 +67,7 @@ const AppSettings: React.FC<{ children?: React.ReactNode }> = (props) => {
       return <ErrorMessage message={error.message} />;
     }
   }
-  
+
   // TODO: fix it
   // @ts-ignore
   return <SettingsProvider initialValue={settings?.options} {...props} />;
@@ -78,7 +78,27 @@ type AppPropsWithLayout = AppProps & {
 const CustomApp = ({ Component, pageProps }: AppPropsWithLayout) => {
   const Layout = (Component as any).Layout || Noop;
   const authProps = (Component as any).authenticate;
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: (failureCount, error: any) => {
+              if (
+                error?.response?.status === 404 ||
+                error?.response?.status === 401 ||
+                error?.response?.status === 403
+              ) {
+                return false;
+              }
+              if (failureCount > 2) return false;
+              return true;
+            },
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
   const getLayout = Component.getLayout ?? ((page) => page);
 
   const { locale } = useRouter();
