@@ -34,7 +34,7 @@ type ItemFormProps = {
 type FormValues = {
     name: string;
     description?: string;
-    base_price?: number | null;
+    base_price?: number;
     category: any;
     image?: any;
     sort_order?: number | null;
@@ -88,7 +88,7 @@ export default function CreateOrUpdateItemForm({
                 category: initialValues.category,
                 sizes: initialValues.sizes || [],
                 // If item has sizes, automatically set is_sizeable to true
-                is_sizeable: initialValues.is_sizeable || (initialValues.sizes?.length > 0) || false,
+                is_sizeable: initialValues.is_sizeable || (initialValues.sizes && initialValues.sizes.length > 0) || false,
                 is_customizable: initialValues.is_customizable || false,
             }
             : defaultValues,
@@ -102,7 +102,7 @@ export default function CreateOrUpdateItemForm({
                 category: initialValues.category,
                 sizes: initialValues.sizes || [],
                 // If item has sizes, automatically set is_sizeable to true
-                is_sizeable: initialValues.is_sizeable || (initialValues.sizes?.length > 0) || false,
+                is_sizeable: initialValues.is_sizeable || (initialValues.sizes && initialValues.sizes.length > 0) || false,
                 is_customizable: initialValues.is_customizable || false,
             };
             // Reset the form with new values

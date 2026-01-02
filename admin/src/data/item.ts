@@ -89,10 +89,10 @@ export const useDeleteItemMutation = () => {
     });
 };
 
-export const useItemQuery = ({ slug, id, language }: GetParams & { id?: string }, options: any = {}) => {
+export const useItemQuery = ({ slug, id, language }: { slug?: string; id?: string; language: string }, options: any = {}) => {
     const { data, error, isLoading, refetch } = useQuery<Item, Error>(
         [API_ENDPOINTS.ITEMS, { slug, id, language }],
-        () => itemClient.get({ slug, id, language }),
+        () => itemClient.get({ slug: slug || '', id, language }),
         {
             refetchOnWindowFocus: false,
             refetchOnMount: true,

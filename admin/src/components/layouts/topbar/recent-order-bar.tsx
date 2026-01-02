@@ -112,7 +112,9 @@ const RecentOrderBar = ({ user }: IProps) => {
     });
   };
 
-  const activeStatus = notifyLogs?.filter((item) => {
+  // Ensure notifyLogs is always an array before filtering
+  const notifyLogsArray = Array.isArray(notifyLogs) ? notifyLogs : [];
+  const activeStatus = notifyLogsArray.filter((item) => {
     return Boolean(item?.is_read) === false;
   });
 
@@ -186,8 +188,8 @@ const RecentOrderBar = ({ user }: IProps) => {
                   )}
                 </div>
                 <div>
-                  {notifyLogs?.length ? (
-                    notifyLogs?.map((item: any) => {
+                  {notifyLogsArray?.length ? (
+                    notifyLogsArray.map((item: any) => {
                       return (
                         <div
                           className="group cursor-pointer border-b border-dashed border-gray-200 last:border-b-0"

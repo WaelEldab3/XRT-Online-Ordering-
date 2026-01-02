@@ -12,8 +12,8 @@ import { HttpClient } from './http-client';
 
 export const itemClient = {
     ...crudFactory<Item, ItemQueryOptions, CreateItemInput>(API_ENDPOINTS.ITEMS),
-    get: async ({ slug, id, language }: GetParams & { id?: string }) => {
-        const itemId = id || slug;
+    get: async ({ slug, id, language }: { slug?: string; id?: string; language: string }) => {
+        const itemId = id || slug || '';
         const response = await HttpClient.get<any>(`${API_ENDPOINTS.ITEMS}/${itemId}`, {
             language,
         });
@@ -25,7 +25,6 @@ export const itemClient = {
         category_id,
         is_active,
         is_available,
-        business_id,
         ...params
     }: Partial<ItemQueryOptions>) => {
         const response = await HttpClient.get<any>(API_ENDPOINTS.ITEMS, {
@@ -34,7 +33,6 @@ export const itemClient = {
             category_id,
             is_active: is_active !== undefined ? String(is_active) : undefined,
             is_available: is_available !== undefined ? String(is_available) : undefined,
-            business_id,
         });
         // Handle backend response format: { success: true, data: { items: [...], paginatorInfo: {...} } }
         return response?.data || response;

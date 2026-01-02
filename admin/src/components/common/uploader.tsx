@@ -310,7 +310,7 @@ export default function Uploader({
             <div className="flex flex-col items-center">
               <div className="flex items-center justify-center min-w-0 overflow-hidden h-14 w-14">
                 <img
-                  src={zipPlaceholder}
+                  src={typeof zipPlaceholder === 'string' ? zipPlaceholder : zipPlaceholder.src}
                   width={56}
                   height={56}
                   alt="upload placeholder"
