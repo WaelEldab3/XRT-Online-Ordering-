@@ -30,6 +30,13 @@ import { useModifierGroupsQuery } from '@/data/modifier-group';
 import { useModifiersQuery } from '@/data/modifier';
 import { getModifiersByGroupId } from '@/data/mock/modifiers';
 
+// Default quantity levels for all modifiers
+const DEFAULT_QUANTITY_LEVELS = [
+    { quantity: 1, name: 'Light' },
+    { quantity: 2, name: 'Normal' },
+    { quantity: 3, name: 'Extra' },
+];
+
 type ItemFormProps = {
     initialValues?: Item | null;
 };
@@ -471,7 +478,7 @@ export default function CreateOrUpdateItemForm({
                                                 className="p-4 border border-border-200 rounded-lg"
                                             >
                                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                                                    <div className="sm:col-span-4">
+                                                    <div className="sm:col-span-3">
                                                         <Input
                                                             label={t('form:input-label-size-name')}
                                                             {...register(`sizes.${index}.name` as const)}
@@ -479,7 +486,16 @@ export default function CreateOrUpdateItemForm({
                                                             variant="outline"
                                                         />
                                                     </div>
-                                                    <div className="sm:col-span-4">
+                                                    <div className="sm:col-span-2">
+                                                        <Input
+                                                            label={t('form:input-label-size-code')}
+                                                            {...register(`sizes.${index}.code` as const)}
+                                                            error={t(errors.sizes?.[index]?.code?.message!)}
+                                                            variant="outline"
+                                                            placeholder={t('form:input-placeholder-size-code') || 'e.g., L, M, S'}
+                                                        />
+                                                    </div>
+                                                    <div className="sm:col-span-3">
                                                         <Input
                                                             label={t('form:input-label-size-price')}
                                                             {...register(`sizes.${index}.price` as const, {
@@ -530,6 +546,7 @@ export default function CreateOrUpdateItemForm({
                                                 const isFirstSize = sizeFields.length === 0;
                                                 appendSize({ 
                                                     name: '', 
+                                                    code: '',
                                                     price: 0, 
                                                     is_default: isFirstSize // First size is default by default
                                                 });
@@ -690,8 +707,8 @@ export default function CreateOrUpdateItemForm({
                                             }
 
                                             return allModifiers.map((modifier: any, modifierIndex: number) => {
-                                                const quantityLevels = modifier.quantity_levels || [];
-                                                const hasQuantityLevels = quantityLevels.length > 0;
+                                                // Always use default quantity levels (Light, Normal, Extra) for all modifiers
+                                                const quantityLevelsToShow = DEFAULT_QUANTITY_LEVELS;
 
                                                 return (
                                                     <div key={modifier.id || modifierIndex} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -705,10 +722,7 @@ export default function CreateOrUpdateItemForm({
                                                                 <thead className="bg-gray-50">
                                                                     <tr>
                                                                         <th className="px-4 py-2 text-left text-xs font-semibold text-heading border-b border-gray-200">
-                                                                            {hasQuantityLevels 
-                                                                                ? (t('form:input-label-quantity-level') || 'Quantity Level')
-                                                                                : (t('form:input-label-price') || 'Price')
-                                                                            }
+                                                                            {t('form:input-label-quantity-level') || 'Quantity Level'}
                                                                         </th>
                                                                         {sizes.map((size: any, sizeIndex: number) => (
                                                                             <th
@@ -721,40 +735,16 @@ export default function CreateOrUpdateItemForm({
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {hasQuantityLevels ? (
-                                                                        // Show quantity levels as rows
-                                                                        quantityLevels.map((qtyLevel: any, qtyIndex: number) => (
-                                                                            <tr key={qtyIndex} className="border-b border-gray-200 hover:bg-gray-50">
-                                                                                <td className="px-4 py-3 text-sm text-heading font-medium">
-                                                                                    Qty: {qtyLevel.quantity}
-                                                                                </td>
-                                                                                {sizes.map((size: any, sizeIndex: number) => (
-                                                                                    <td key={sizeIndex} className="px-4 py-3">
-                                                                                        <Input
-                                                                                            {...register(`modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.name}.${qtyLevel.quantity}` as any, {
-                                                                                                valueAsNumber: true,
-                                                                                            })}
-                                                                                            type="number"
-                                                                                            step="0.01"
-                                                                                            min="0"
-                                                                                            placeholder="0.00"
-                                                                                            className="w-full text-center"
-                                                                                            variant="outline"
-                                                                                        />
-                                                                                    </td>
-                                                                                ))}
-                                                                            </tr>
-                                                                        ))
-                                                                    ) : (
-                                                                        // Show single row for modifiers without quantity levels
-                                                                        <tr className="border-b border-gray-200 hover:bg-gray-50">
-                                                                            <td className="px-4 py-3 text-sm text-gray-500">
-                                                                                {t('form:single-price') || 'Price'}
+                                                                    {/* Always show default quantity levels (Light, Normal, Extra) */}
+                                                                    {quantityLevelsToShow.map((qtyLevel: any, qtyIndex: number) => (
+                                                                        <tr key={qtyIndex} className="border-b border-gray-200 hover:bg-gray-50">
+                                                                            <td className="px-4 py-3 text-sm text-heading font-medium">
+                                                                                {qtyLevel.name} ({t('form:input-label-quantity') || 'Qty'}: {qtyLevel.quantity})
                                                                             </td>
                                                                             {sizes.map((size: any, sizeIndex: number) => (
                                                                                 <td key={sizeIndex} className="px-4 py-3">
                                                                                     <Input
-                                                                                        {...register(`modifier_assignment.modifier_prices_by_size.${modifier.id}.${size.name}` as any, {
+                                                                                        {...register(`modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.name}.${qtyLevel.quantity}` as any, {
                                                                                             valueAsNumber: true,
                                                                                         })}
                                                                                         type="number"
@@ -767,7 +757,7 @@ export default function CreateOrUpdateItemForm({
                                                                                 </td>
                                                                             ))}
                                                                         </tr>
-                                                                    )}
+                                                                    ))}
                                                                 </tbody>
                                                             </table>
                                                         </div>

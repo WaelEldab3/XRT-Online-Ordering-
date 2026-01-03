@@ -35,6 +35,7 @@ export const itemValidationSchema = yup.object().shape({
                 .of(
                     yup.object().shape({
                         name: yup.string().required('form:error-size-name-required'),
+                        code: yup.string().nullable(),
                         price: yup
                             .number()
                             .typeError('form:error-price-must-number')

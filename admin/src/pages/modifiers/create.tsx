@@ -12,7 +12,7 @@ import Link from '@/components/ui/link';
 import { Routes } from '@/config/routes';
 import SelectInput from '@/components/ui/select-input';
 import { useState, useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Label from '@/components/ui/label';
 
 export default function CreateModifierPage() {
@@ -76,30 +76,15 @@ export default function CreateModifierPage() {
 
         <Card className="mb-8">
           <div className="mb-5">
-            <Label>{t('form:input-label-modifier-group') || 'Modifier Group'} *</Label>
-            <Controller
+            <SelectInput
               name="modifier_group"
               control={control}
-              render={({ field }) => (
-                <SelectInput
-                  {...field}
-                  getOptionLabel={(option: any) => option.name}
-                  getOptionValue={(option: any) => option.id}
-                  options={modifierGroups || []}
-                  isClearable
-                  isLoading={loadingGroups}
-                  placeholder={t('form:input-placeholder-select-modifier-group') || 'Select a modifier group...'}
-                  onChange={(value: any) => {
-                    field.onChange(value);
-                    if (value) {
-                      const groupId = typeof value === 'object' ? value.id : value;
-                      setSelectedGroupId(groupId);
-                    } else {
-                      setSelectedGroupId(null);
-                    }
-                  }}
-                />
-              )}
+              getOptionLabel={(option: any) => option.name}
+              getOptionValue={(option: any) => option.id}
+              options={modifierGroups || []}
+              isClearable
+              isLoading={loadingGroups}
+              placeholder={t('form:input-placeholder-select-modifier-group') || 'Select a modifier group...'}
             />
             <p className="mt-2 text-xs text-gray-500">
               {t('form:select-modifier-group-first') || 'Please select a modifier group to continue'}

@@ -2439,6 +2439,7 @@ export interface OrderStickerCardProps extends StickerCardProps {
 
 export interface ItemSize {
   name: string;
+  code?: string;
   price: number;
   is_default: boolean;
 }

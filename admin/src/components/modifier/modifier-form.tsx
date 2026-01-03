@@ -324,7 +324,7 @@ export default function CreateOrUpdateModifierForm({
                         type="text"
                         error={t(errors.quantity_levels?.[index]?.name?.message!)}
                         variant="outline"
-                        placeholder={t('form:input-placeholder-quantity-level-name') || 'e.g., Small, Medium, Large'}
+                        placeholder={t('form:input-placeholder-quantity-level-name') || 'e.g., Light, Normal, Extra'}
                       />
                     </div>
                     <div className="sm:col-span-4">
