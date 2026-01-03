@@ -1,6 +1,14 @@
 import Chart from '@/components/ui/chart';
 
 const DonutChart = ({ series, icon, labels, prefix, colors }: any) => {
+  // Ensure series is a valid array with numbers
+  const safeSeries = Array.isArray(series) 
+    ? series.map((val: any) => {
+        const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
+        return isNaN(num) || !isFinite(num) ? 0 : Math.max(0, num);
+      })
+    : [0, 0];
+  
   const options = {
     options: {
       colors: colors,
@@ -29,7 +37,7 @@ const DonutChart = ({ series, icon, labels, prefix, colors }: any) => {
         },
       },
     },
-    series: series,
+    series: safeSeries,
   };
 
   const numberWithCommas = (num: number) => {
@@ -45,10 +53,10 @@ const DonutChart = ({ series, icon, labels, prefix, colors }: any) => {
           <div className="flex flex-col">
             <span
               className="text-lg font-semibold text-heading"
-              style={{ color: colors[0] }}
+              style={{ color: colors?.[0] }}
             >
               {prefix}
-              {numberWithCommas(series[0])}
+              {numberWithCommas(safeSeries[0] || 0)}
             </span>
             <span className="mt-1 text-xs text-body">{labels[0]}</span>
           </div>
@@ -71,10 +79,10 @@ const DonutChart = ({ series, icon, labels, prefix, colors }: any) => {
           <div className="flex flex-col items-end">
             <span
               className="text-lg font-semibold text-heading"
-              style={{ color: colors[1] }}
+              style={{ color: colors?.[1] }}
             >
               {prefix}
-              {numberWithCommas(series[1])}
+              {numberWithCommas(safeSeries[1] || 0)}
             </span>
             <span className="mt-1 text-xs text-body">{labels[1]}</span>
           </div>

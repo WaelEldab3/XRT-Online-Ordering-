@@ -154,65 +154,31 @@ export const siteSettings = {
         childMenu: [
           {
             href: Routes.category.list,
-            label: 'Categories',
+            label: 'sidebar-nav-item-categories',
             icon: 'CategoriesIcon',
           },
           {
             href: Routes.item.list,
-            label: 'All Items',
+            label: 'sidebar-nav-item-items',
             icon: 'ProductsIcon',
           },
-          // {
-          //   href: '',
-          //   label: 'sidebar-nav-item-products',
-          //   icon: 'ProductsIcon',
-          //   childMenu: [
-          //     {
-          //       href: Routes.product.list,
-          //       label: 'text-all-products',
-          //       icon: 'ProductsIcon',
-          //     },
-          //     // {
-          //     //   href: Routes.product.create,
-          //     //   label: 'Add new product',
-          //     //   icon: 'ProductsIcon',
-          //     // },
-          //     {
-          //       href: Routes.draftProducts,
-          //       label: 'text-my-draft-products',
-          //       icon: 'ProductsIcon',
-          //     },
-          //     {
-          //       href: Routes.outOfStockOrLowProducts,
-          //       label: 'text-all-out-of-stock',
-          //       icon: 'ProductsIcon',
-          //     },
-          //   ],
-          // },
+        ],
+      },
+
+      modifier: {
+        href: '',
+        label: 'form:input-label-modifiers',
+        icon: 'AttributeIcon',
+        childMenu: [
           {
-            href: Routes.productInventory,
-            label: 'text-inventory',
-            icon: 'InventoryIcon',
-          },
-          {
-            href: Routes.tag.list,
-            label: 'sidebar-nav-item-tags',
-            icon: 'TagIcon',
-          },
-          {
-            href: Routes.attribute.list,
-            label: 'sidebar-nav-item-attributes',
+            href: Routes.modifierGroup.list,
+            label: 'form:input-label-modifier-groups',
             icon: 'AttributeIcon',
           },
           {
-            href: Routes.manufacturer.list,
-            label: 'sidebar-nav-item-manufacturers',
-            icon: 'ManufacturersIcon',
-          },
-          {
-            href: Routes.author.list,
-            label: 'sidebar-nav-item-authors',
-            icon: 'AuthorIcon',
+            href: Routes.modifier.list,
+            label: 'sidebar-nav-item-all-modifiers',
+            icon: 'AttributeIcon',
           },
         ],
       },

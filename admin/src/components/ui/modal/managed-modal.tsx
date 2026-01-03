@@ -69,6 +69,10 @@ const ItemToggleView = dynamic(
   () => import('@/components/item/item-toggle-view'),
 );
 
+const ItemPreviewView = dynamic(
+  () => import('@/components/item/item-preview-view'),
+);
+
 const ApproveShopView = dynamic(
   () => import('@/components/shop/approve-shop-view'),
 );
@@ -197,6 +201,22 @@ const CategoryToggleView = dynamic(
   () => import('@/components/category/category-toggle-view'),
 );
 
+const ModifierGroupDeleteView = dynamic(
+  () => import('@/components/modifier-group/modifier-group-delete-view'),
+);
+
+const ModifierGroupToggleView = dynamic(
+  () => import('@/components/modifier-group/modifier-group-toggle-view'),
+);
+
+const ModifierDeleteView = dynamic(
+  () => import('@/components/modifier/modifier-delete-view'),
+);
+
+const ModifierToggleView = dynamic(
+  () => import('@/components/modifier/modifier-toggle-view'),
+);
+
 function renderModal(view: MODAL_VIEWS | undefined, data: any) {
   switch (view) {
     case 'DELETE_PRODUCT':
@@ -209,6 +229,14 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <CategoryDeleteView />;
     case 'TOGGLE_CATEGORY_STATUS':
       return <CategoryToggleView />;
+    case 'DELETE_MODIFIER_GROUP':
+      return <ModifierGroupDeleteView />;
+    case 'TOGGLE_MODIFIER_GROUP_STATUS':
+      return <ModifierGroupToggleView />;
+    case 'DELETE_MODIFIER':
+      return <ModifierDeleteView />;
+    case 'TOGGLE_MODIFIER_STATUS':
+      return <ModifierToggleView />;
     case 'DELETE_TAX':
       return <TaxDeleteView />;
     case 'DELETE_ROLE':
@@ -217,6 +245,8 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <ItemDeleteView />;
     case 'TOGGLE_ITEM_STATUS':
       return <ItemToggleView />;
+    case 'ITEM_PREVIEW':
+      return <ItemPreviewView />;
     case 'DELETE_USER':
       return <UserDeleteView />;
     case 'DELETE_STORE_NOTICE':

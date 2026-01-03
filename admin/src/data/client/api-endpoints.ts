@@ -73,6 +73,8 @@ export const API_ENDPOINTS = {
   TYPES: 'types',
   ANALYTICS: 'analytics',
   ITEMS: 'items',
+  MODIFIER_GROUPS: 'modifier-groups',
+  MODIFIERS: 'modifiers',
 
   // Product endpoints
   POPULAR_PRODUCTS: 'products/popular',

@@ -12,11 +12,11 @@ import {
     SortOrder,
 } from '@/types';
 import { useIsRTL } from '@/utils/locals';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TitleWithSort from '@/components/ui/title-with-sort';
 import { Routes } from '@/config/routes';
 import LanguageSwitcher from '@/components/ui/lang-action/action';
-import { useModalAction } from '@/components/ui/modal/modal.context';
+import { useModalAction, useModalState } from '@/components/ui/modal/modal.context';
 import { useUpdateItemMutation } from '@/data/item';
 import { StarIcon } from '@/components/icons/star-icon';
 import { EditIcon } from '@/components/icons/edit';
@@ -24,6 +24,7 @@ import { CheckMark } from '@/components/icons/checkmark';
 import { CloseIcon } from '@/components/icons/close-icon';
 import { TrashIcon } from '@/components/icons/trash';
 import Link from '@/components/ui/link';
+import Loader from '@/components/ui/loader/loader';
 
 export type IProps = {
     items: Item[] | undefined;
@@ -63,12 +64,23 @@ const ItemList = ({
     const { t } = useTranslation();
     const { alignLeft, alignRight } = useIsRTL();
     const { openModal } = useModalAction();
-    const { mutate: updateItem } = useUpdateItemMutation();
+    const { isOpen, view } = useModalState();
+    const { mutate: updateItem, isLoading: isUpdating } = useUpdateItemMutation();
 
     const [sortingObj, setSortingObj] = useState<SortingObjType>({
         sort: SortOrder.Desc,
         column: null,
     });
+
+    const [togglingSignatureId, setTogglingSignatureId] = useState<string | null>(null);
+    const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+
+    // Clear loading state when modal closes
+    useEffect(() => {
+        if (!isOpen && view !== 'TOGGLE_ITEM_STATUS') {
+            setTogglingActiveId(null);
+        }
+    }, [isOpen, view]);
 
     const onHeaderClick = (column: string | null) => ({
         onClick: () => {
@@ -93,17 +105,22 @@ const ItemList = ({
             align: alignLeft,
             width: 250,
             ellipsis: true,
-            render: (name: string, { image }: { image: string }) => (
+            render: (name: string, record: Item) => (
                 <div className="flex items-center">
                     <div className="relative aspect-square h-10 w-10 shrink-0 overflow-hidden rounded border border-border-200/80 bg-gray-100 me-2.5">
                         <img
-                            src={image ?? siteSettings.product.placeholder}
+                            src={record.image ?? siteSettings.product.placeholder}
                             alt={name}
                             className="h-full w-full object-cover"
                         />
                     </div>
                     <div className="flex flex-col">
-                        <span className="truncate font-medium">{name}</span>
+                        <button
+                            onClick={() => openModal('ITEM_PREVIEW', { id: record.id })}
+                            className="truncate text-left font-medium text-heading hover:text-accent transition-colors"
+                        >
+                            {name}
+                        </button>
                     </div>
                 </div>
             ),
@@ -177,23 +194,68 @@ const ItemList = ({
                 <div className="flex items-center justify-end gap-3">
                     {/* Is Signature Toggle */}
                     <button
-                        onClick={() => updateItem({ id: record.id, is_signature: !record.is_signature })}
-                        className="text-lg transition duration-200 hover:scale-110 focus:outline-none"
+                        onClick={() => {
+                            setTogglingSignatureId(record.id);
+                            updateItem(
+                                { id: record.id, is_signature: !record.is_signature },
+                                {
+                                    onSuccess: () => {
+                                        setTogglingSignatureId(null);
+                                    },
+                                    onError: () => {
+                                        setTogglingSignatureId(null);
+                                    },
+                                }
+                            );
+                        }}
+                        disabled={togglingSignatureId === record.id && isUpdating}
+                        className="text-lg transition duration-200 hover:scale-110 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         title={t('form:input-label-signature-dish')}
                     >
-                        <StarIcon
-                            className={record.is_signature ? 'text-orange-400' : 'text-gray-300'}
+                        {togglingSignatureId === record.id && isUpdating ? (
+                            <Loader simple={true} className="h-5 w-5" />
+                        ) : (
+                            <StarIcon
+                                className={record.is_signature ? 'text-orange-400' : 'text-gray-300'}
+                                width={20}
+                            />
+                        )}
+                    </button>
+
+                    {/* View Item Preview */}
+                    <button
+                        onClick={() => openModal('ITEM_PREVIEW', { id: record.id })}
+                        className="text-base transition duration-200 hover:text-heading"
+                        title={t('common:text-view')}
+                    >
+                        <svg
                             width={20}
-                        />
+                            height={20}
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="text-body hover:text-accent"
+                        >
+                            <path
+                                d="M10 4C4 4 1 10 1 10s3 6 9 6 9-6 9-6-3-6-9-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+                                fill="currentColor"
+                            />
+                        </svg>
                     </button>
 
                     {/* Is Active Toggle with Confirm */}
                     <button
-                        onClick={() => openModal('TOGGLE_ITEM_STATUS', record)}
-                        className="text-lg transition duration-200 hover:scale-110 focus:outline-none"
+                        onClick={() => {
+                            setTogglingActiveId(record.id);
+                            openModal('TOGGLE_ITEM_STATUS', { ...record, onComplete: () => setTogglingActiveId(null) });
+                        }}
+                        disabled={togglingActiveId === record.id && isUpdating}
+                        className="text-lg transition duration-200 hover:scale-110 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                         title={t('form:input-label-active')}
                     >
-                        {record.is_active ? (
+                        {togglingActiveId === record.id && isUpdating ? (
+                            <Loader simple={true} className="h-5 w-5" />
+                        ) : record.is_active ? (
                             <CheckMark className="text-accent" width={20} />
                         ) : (
                             <CloseIcon className="text-red-500" width={20} />

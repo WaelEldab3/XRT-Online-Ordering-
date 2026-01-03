@@ -96,7 +96,12 @@ const GraphChart = ({ widgetTitle, series, labels, colors }: any) => {
     series: [
       {
         name: '',
-        data: series,
+        data: Array.isArray(series) 
+          ? series.map((val: any) => {
+              const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
+              return isNaN(num) || !isFinite(num) ? 0 : num;
+            })
+          : [],
       },
     ],
   };

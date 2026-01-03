@@ -8,11 +8,28 @@ const ItemToggleView = () => {
     const { mutate: updateItem, isLoading: loading } = useUpdateItemMutation();
 
     function handleToggle() {
-        updateItem({
-            id: data.id,
-            is_active: !data.is_active,
-        });
-        closeModal();
+        updateItem(
+            {
+                id: data.id,
+                is_active: !data.is_active,
+            },
+            {
+                onSuccess: () => {
+                    // Call onComplete callback if provided (to clear loading state in parent)
+                    if (data?.onComplete) {
+                        data.onComplete();
+                    }
+                    closeModal();
+                },
+                onError: () => {
+                    // Call onComplete callback even on error to clear loading state
+                    if (data?.onComplete) {
+                        data.onComplete();
+                    }
+                    // Keep modal open on error so user can retry
+                },
+            }
+        );
     }
 
     return (

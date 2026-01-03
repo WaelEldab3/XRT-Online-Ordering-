@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Pagination from '@/components/ui/pagination';
 import { Table } from '@/components/ui/table';
-import { getIcon } from '@/utils/get-icon';
-import * as categoriesIcon from '@/components/icons/category';
 import { SortOrder } from '@/types';
 import { useTranslation } from 'next-i18next';
 import { useIsRTL } from '@/utils/locals';
 import TitleWithSort from '@/components/ui/title-with-sort';
-import { Category, MappedPaginatorInfo } from '@/types';
+import { ModifierGroup, MappedPaginatorInfo } from '@/types';
 import { Routes } from '@/config/routes';
 import { NoDataFound } from '@/components/icons/no-data-found';
-import { siteSettings } from '@/settings/site.settings';
 import { getAuthCredentials, hasPermission } from '@/utils/auth-utils';
 import { Switch } from '@headlessui/react';
 import { EditIcon } from '@/components/icons/edit';
@@ -19,58 +16,16 @@ import Link from '@/components/ui/link';
 import { useModalAction, useModalState } from '@/components/ui/modal/modal.context';
 import { useRouter } from 'next/router';
 
-// Component to handle icon rendering with error state
-const CategoryIcon = ({ icon }: { icon: string }) => {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  // Pre-check: if URL contains known broken patterns, don't render
-  const isLikelyBroken = icon.includes('v1703515000') && icon.includes('dessert.svg');
-
-  if (isLikelyBroken || imageError) {
-    return null; // Don't render broken images
-  }
-
-  return (
-    <div className="relative h-5 w-5 mx-auto">
-      <img
-        src={icon}
-        alt="category-icon"
-        className="h-full w-full object-contain"
-        style={{ display: imageLoaded ? '' : 'none' }}
-        onError={(e) => {
-          // Silently handle broken images - hide the element
-          e.preventDefault();
-          e.stopPropagation();
-          setImageError(true);
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          // Remove the src to prevent retry attempts
-          target.src = '';
-          // Also hide parent container if image fails
-          if (target.parentElement) {
-            target.parentElement.style.display = 'none';
-          }
-        }}
-        onLoad={() => {
-          // Ensure image is visible on successful load
-          setImageLoaded(true);
-        }}
-      />
-    </div>
-  );
-};
-
-
 export type IProps = {
-  categories: Category[] | undefined;
+  groups: ModifierGroup[] | undefined;
   paginatorInfo: MappedPaginatorInfo | null;
   onPagination: (key: number) => void;
   onSort: (current: any) => void;
   onOrder: (current: string) => void;
 };
-const CategoryList = ({
-  categories,
+
+const ModifierGroupList = ({
+  groups,
   paginatorInfo,
   onPagination,
   onSort,
@@ -81,7 +36,6 @@ const CategoryList = ({
   const { isOpen } = useModalState();
   const router = useRouter();
   const { locale } = router;
-  const rowExpandable = (record: any) => record.children?.length;
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -91,6 +45,7 @@ const CategoryList = ({
       setTogglingId(null);
     }
   }, [isOpen]);
+
   const { alignLeft, alignRight } = useIsRTL();
   const [sortingObj, setSortingObj] = useState<{
     sort: SortOrder;
@@ -130,11 +85,11 @@ const CategoryList = ({
       dataIndex: 'name',
       key: 'name',
       align: alignLeft,
-      width: 150,
+      width: 200,
       onHeaderCell: () => onHeaderClick('name'),
-      render: (name: string, record: Category) => (
+      render: (name: string, record: ModifierGroup) => (
         <Link
-          href={`/categories/${record.id}/items`}
+          href={`/modifiers/groups/${record.id}`}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
           }}
@@ -145,93 +100,66 @@ const CategoryList = ({
       ),
     },
     {
-      title: t('table:table-item-image'),
-      dataIndex: 'image',
-      key: 'image',
+      title: t('form:input-label-display-type') || 'Display Type',
+      dataIndex: 'display_type',
+      key: 'display_type',
       align: alignLeft,
-      width: 80,
-      render: (image: any, record: Category) => (
-        <button
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            router.push(`/categories/${record.id}/items`);
-          }}
-          className="relative aspect-square h-10 w-10 shrink-0 overflow-hidden rounded border border-border-200/80 bg-gray-100 cursor-pointer"
-        >
-          <img
-            src={typeof image === 'string' ? image : image?.thumbnail ?? siteSettings.product.placeholder}
-            alt={record.name}
-            className="h-full w-full object-cover"
-          />
-        </button>
-      ),
-    },
-    {
-      title: t('table:table-item-icon'),
-      dataIndex: 'icon',
-      key: 'icon',
-      align: 'center',
-      width: 80,
-      render: (icon: string) => {
-        if (!icon) return null;
-        if (icon.startsWith('http') || icon.startsWith('/') || icon.includes('cloudinary')) {
-          return <CategoryIcon icon={icon} />;
-        }
+      width: 120,
+      render: (type: string) => {
+        const displayTypeLabel = type === 'RADIO' 
+          ? t('common:text-radio') 
+          : type === 'CHECKBOX' 
+            ? t('common:text-checkbox') 
+            : type;
         return (
-          <span className="flex items-center justify-center">
-            {getIcon({
-              iconList: categoriesIcon,
-              iconName: icon,
-              className: 'w-5 h-5 max-h-full max-w-full',
-            })}
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
+            {displayTypeLabel}
           </span>
         );
       },
     },
     {
-      title: t('form:input-label-kitchen-section') === 'input-label-kitchen-section' ? 'Kitchen Section' : t('form:input-label-kitchen-section'),
-      dataIndex: 'kitchen_section_id',
-      key: 'kitchen_section_id',
+      title: t('form:input-label-min-select') || 'Min Select',
+      dataIndex: 'min_select',
+      key: 'min_select',
       align: 'center',
-      width: 120,
-      render: (id: string, record: Category) => {
-        if (!id) return null;
-        // Hard fallbacks to ensure text is always displayed even if translation fails
-        const getFallback = (key: string, accessKey: string, fallback: string) => {
-          const val = t(accessKey);
-          return val === key || val === accessKey ? fallback : val;
-        };
-
-        const sections: any = {
-          'KS_001': getFallback('kitchen-section-appetizers', 'common:kitchen-section-appetizers', 'Appetizers'),
-          'KS_002': getFallback('kitchen-section-main-course', 'common:kitchen-section-main-course', 'Main Course'),
-          'KS_003': getFallback('kitchen-section-desserts', 'common:kitchen-section-desserts', 'Desserts'),
-          'KS_004': getFallback('kitchen-section-beverages', 'common:kitchen-section-beverages', 'Beverages')
-        };
-        // If it's one of our predefined IDs, use the map
-        const sectionName = sections[id] || 
-          (t(`common:${id}`) !== `common:${id}` && t(`common:${id}`) !== id ? t(`common:${id}`) : 
-          id.replace('kitchen-section-', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
-
-        return (
-          <button
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              router.push(`/categories/${record.id}/items`);
-            }}
-            className="cursor-pointer hover:text-accent transition-colors"
-          >
-            {sectionName}
-          </button>
-        );
-      }
+      width: 100,
+      render: (min: number) => min,
+    },
+    {
+      title: t('form:input-label-max-select') || 'Max Select',
+      dataIndex: 'max_select',
+      key: 'max_select',
+      align: 'center',
+      width: 100,
+      render: (max: number) => max,
+    },
+    {
+      title: t('form:input-label-applies-per-quantity') || 'Applies Per Quantity',
+      dataIndex: 'applies_per_quantity',
+      key: 'applies_per_quantity',
+      align: 'center',
+      width: 150,
+      render: (applies: boolean) => (
+        <span className={applies ? 'text-green-600' : 'text-gray-400'}>
+          {applies ? t('common:text-yes') : t('common:text-no')}
+        </span>
+      ),
+    },
+    {
+      title: t('form:input-label-modifiers-count') || 'Modifiers',
+      dataIndex: 'modifiers',
+      key: 'modifiers_count',
+      align: 'center',
+      width: 100,
+      render: (modifiers: Modifier[]) => modifiers?.length || 0,
     },
     {
       title: t('table:table-item-actions'),
       key: 'actions',
       align: alignRight,
       width: 150,
-      render: (record: Category) => {
+      render: (record: ModifierGroup) => {
         const { permissions, role } = getAuthCredentials();
         const canUpdate = role === 'super_admin' || hasPermission(['categories:update'], permissions);
         const canDelete = role === 'super_admin' || hasPermission(['categories:delete'], permissions);
@@ -251,7 +179,7 @@ const CategoryList = ({
                   checked={record?.is_active}
                   onChange={(checked: boolean) => {
                     setTogglingId(record.id);
-                    openModal('TOGGLE_CATEGORY_STATUS', record);
+                    openModal('TOGGLE_MODIFIER_GROUP_STATUS', record);
                   }}
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
@@ -270,7 +198,7 @@ const CategoryList = ({
 
             {canUpdate && (
               <Link
-                href={Routes.category.edit(record.id, locale!)}
+                href={Routes.modifierGroup.edit(record.id, locale!)}
                 className="text-base transition duration-200 hover:text-heading"
                 title={t('common:text-edit')}
                 onClick={(e: React.MouseEvent) => {
@@ -285,7 +213,7 @@ const CategoryList = ({
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   setDeletingId(record.id);
-                  openModal('DELETE_CATEGORY', record.id);
+                  openModal('DELETE_MODIFIER_GROUP', record.id);
                 }}
                 className="text-red-500 transition duration-200 hover:text-red-600 focus:outline-none"
                 title={t('common:text-delete')}
@@ -314,14 +242,10 @@ const CategoryList = ({
               <p className="text-[13px]">{t('table:empty-table-sorry-text')}</p>
             </div>
           )}
-          data={categories}
+          data={groups}
           rowKey="id"
           scroll={{ x: 1000 }}
-          expandable={{
-            expandedRowRender: () => ' ',
-            rowExpandable: rowExpandable,
-          }}
-          onRow={(record: Category) => {
+          onRow={(record: ModifierGroup) => {
             const baseClassName = 'cursor-pointer hover:bg-gray-50 transition-colors';
             const statusClassName = 
               record.id === deletingId
@@ -332,27 +256,21 @@ const CategoryList = ({
             
             return {
               onClick: (e: React.MouseEvent) => {
-                // Only navigate if clicking directly on the row, not on action buttons
                 const target = e.target as HTMLElement;
-                // Check if click is on an action button, link, switch, or expand icon
                 const isActionElement = 
                   target.closest('button') ||
                   target.closest('a') ||
                   target.closest('[role="switch"]') ||
-                  target.closest('.rc-table-row-expand-icon') ||
                   target.closest('[data-action]');
                 
                 if (isActionElement) {
                   e.stopPropagation();
-                  return; // Don't navigate if clicking on action elements
+                  return;
                 }
                 
-                // Navigate to category items page when clicking anywhere on the row
-                e.preventDefault();
-                router.push(`/categories/${record.id}/items`).catch((err) => {
+                router.push(Routes.modifierGroup.details(record.id)).catch((err) => {
                   console.error('Navigation error:', err);
-                  // Fallback to window.location if router.push fails
-                  window.location.href = `/categories/${record.id}/items`;
+                  window.location.href = Routes.modifierGroup.details(record.id);
                 });
               },
               className: `${baseClassName} ${statusClassName}`.trim(),
@@ -376,4 +294,5 @@ const CategoryList = ({
   );
 };
 
-export default CategoryList;
+export default ModifierGroupList;
+

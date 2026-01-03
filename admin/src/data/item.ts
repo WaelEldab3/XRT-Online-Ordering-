@@ -49,23 +49,82 @@ export const useUpdateItemMutation = () => {
     const queryClient = useQueryClient();
     const router = useRouter();
     return useMutation(itemClient.updateItem, {
-        onSuccess: async (data, variables) => {
+        // Optimistic update for faster UI response
+        onMutate: async (variables) => {
+            // Cancel any outgoing refetches to avoid overwriting optimistic update
+            await queryClient.cancelQueries([API_ENDPOINTS.ITEMS]);
+            
+            // Snapshot the previous value for rollback
+            const previousQueries = queryClient.getQueriesData([API_ENDPOINTS.ITEMS]);
+            
+            // Optimistically update all items queries
+            queryClient.setQueriesData([API_ENDPOINTS.ITEMS], (old: any) => {
+                if (!old) return old;
+                // Handle paginated response (ItemPaginator with data array)
+                if (old.data && Array.isArray(old.data)) {
+                    return {
+                        ...old,
+                        data: old.data.map((item: any) =>
+                            item.id === variables.id
+                                ? { ...item, ...variables }
+                                : item
+                        ),
+                    };
+                }
+                // Handle direct array response
+                if (Array.isArray(old)) {
+                    return old.map((item: any) =>
+                        item.id === variables.id
+                            ? { ...item, ...variables }
+                            : item
+                    );
+                }
+                return old;
+            });
+            
+            return { previousQueries };
+        },
+        onSuccess: (data, variables) => {
             const updatedItem = (data as any)?.data?.item || (data as any)?.data || data;
-            // Update the query cache with the updated item
+            // Update the query cache with the actual response
             queryClient.setQueryData(
                 [API_ENDPOINTS.ITEMS, { id: variables.id, language: router.locale }],
                 updatedItem
             );
-            // Force refetch the item query to ensure we have the latest data
-            await queryClient.refetchQueries([API_ENDPOINTS.ITEMS, { id: variables.id }]);
+            // Update items list cache with actual response (non-blocking)
+            queryClient.setQueriesData([API_ENDPOINTS.ITEMS], (old: any) => {
+                if (!old) return old;
+                // Handle paginated response (ItemPaginator with data array)
+                if (old.data && Array.isArray(old.data)) {
+                    return {
+                        ...old,
+                        data: old.data.map((item: any) =>
+                            item.id === variables.id ? updatedItem : item
+                        ),
+                    };
+                }
+                // Handle direct array response
+                if (Array.isArray(old)) {
+                    return old.map((item: any) =>
+                        item.id === variables.id ? updatedItem : item
+                    );
+                }
+                return old;
+            });
             toast.success(t('common:successfully-updated'));
-            // Don't redirect on update - let user stay on the page
         },
-        // Always refetch after error or success:
+        // Invalidate queries in background (non-blocking)
         onSettled: () => {
-            queryClient.invalidateQueries(API_ENDPOINTS.ITEMS);
+            // Invalidate in background without blocking
+            queryClient.invalidateQueries(API_ENDPOINTS.ITEMS).catch(() => {});
         },
-        onError: (error: any) => {
+        onError: (error: any, variables, context) => {
+            // Rollback optimistic update on error
+            if (context?.previousQueries) {
+                context.previousQueries.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
             const errorMessage = error?.response?.data?.message || error?.message || 'An error occurred';
             toast.error(t(`common:${errorMessage}`) || errorMessage);
         },

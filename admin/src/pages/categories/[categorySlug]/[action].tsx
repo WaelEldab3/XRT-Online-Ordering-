@@ -11,6 +11,8 @@ import { Config } from '@/config';
 export default function UpdateCategoriesPage() {
   const { query, locale } = useRouter();
   const { t } = useTranslation();
+  const action = query.action?.toString();
+
   const {
     category,
     isLoading: loading,
@@ -19,7 +21,7 @@ export default function UpdateCategoriesPage() {
     id: query.categorySlug as string,
     slug: query.categorySlug as string,
     language:
-      query.action!.toString() === 'edit' ? locale! : Config.defaultLanguage,
+      action === 'edit' ? locale! : Config.defaultLanguage,
   });
 
   if (loading) return <Loader text={t('common:text-loading')} />;
@@ -40,8 +42,20 @@ export default function UpdateCategoriesPage() {
 
 UpdateCategoriesPage.Layout = Layout;
 
-export const getServerSideProps = async ({ locale }: any) => ({
-  props: {
-    ...(await serverSideTranslations(locale, ['form', 'common'])),
-  },
-});
+export const getServerSideProps = async ({ locale, params }: any) => {
+  const { action } = params;
+
+  // Only allow "edit" and "translate" actions
+  // "items" is handled by items.tsx in the same folder
+  if (action !== 'edit' && action !== 'translate') {
+    return {
+      notFound: true,
+    };
+  }
+
+  return {
+    props: {
+      ...(await serverSideTranslations(locale, ['form', 'common'])),
+    },
+  };
+};

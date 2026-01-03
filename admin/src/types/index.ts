@@ -2460,6 +2460,13 @@ export interface Item {
   is_sizeable?: boolean;
   is_customizable?: boolean;
   sizes?: ItemSize[];
+  modifier_assignment?: ItemModifierAssignment;
+  apply_sides?: boolean;
+  sides?: {
+    both?: boolean;
+    left?: boolean;
+    right?: boolean;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -2479,6 +2486,13 @@ export interface CreateItemInput {
   is_sizeable?: boolean;
   is_customizable?: boolean;
   sizes?: ItemSize[];
+  modifier_assignment?: ItemModifierAssignment;
+  apply_sides?: boolean;
+  sides?: {
+    both?: boolean;
+    left?: boolean;
+    right?: boolean;
+  };
 }
 
 export interface UpdateItemInput extends Partial<CreateItemInput> {
@@ -2487,4 +2501,112 @@ export interface UpdateItemInput extends Partial<CreateItemInput> {
 
 export interface ItemPaginator extends PaginatorInfo<Item> { }
 
+// Modifiers System Types
+export type ModifierDisplayType = 'RADIO' | 'CHECKBOX';
+
+export interface QuantityLevel {
+  quantity: number;
+  name?: string;
+  price: number;
+}
+
+export interface PricesBySize {
+  S?: number;
+  M?: number;
+  L?: number;
+}
+
+export interface Modifier {
+  id: string;
+  modifier_group_id: string;
+  name: string;
+  is_default: boolean;
+  price?: number;
+  max_quantity?: number;
+  quantity_levels?: QuantityLevel[];
+  prices_by_size?: PricesBySize;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModifierGroup {
+  id: string;
+  business_id: string;
+  name: string;
+  display_type: ModifierDisplayType;
+  min_select: number;
+  max_select: number;
+  applies_per_quantity: boolean;
+  is_active: boolean;
+  sort_order: number;
+  modifiers?: Modifier[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateModifierInput {
+  modifier_group_id: string;
+  name: string;
+  is_default?: boolean;
+  price?: number;
+  max_quantity?: number;
+  quantity_levels?: QuantityLevel[];
+  prices_by_size?: PricesBySize;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
+export interface UpdateModifierInput extends Partial<CreateModifierInput> {
+  id: string;
+}
+
+export interface CreateModifierGroupInput {
+  name: string;
+  display_type: ModifierDisplayType;
+  min_select: number;
+  max_select: number;
+  applies_per_quantity?: boolean;
+  is_active?: boolean;
+  sort_order?: number;
+  business_id?: string;
+}
+
+export interface UpdateModifierGroupInput extends Partial<CreateModifierGroupInput> {
+  id: string;
+}
+
+export interface ModifierGroupPaginator extends PaginatorInfo<ModifierGroup> {}
+export interface ModifierPaginator extends PaginatorInfo<Modifier> {}
+
+export interface ModifierGroupQueryOptions extends QueryOptions {
+  name?: string;
+  is_active?: boolean;
+  business_id?: string;
+}
+
+export interface ModifierQueryOptions extends QueryOptions {
+  modifier_group_id?: string;
+  name?: string;
+  is_active?: boolean;
+}
+
+// Item Modifier Assignment Types
+export interface ItemModifierGroupAssignment {
+  modifier_group_id: string;
+  display_order: number;
+  sides_config?: {
+    enabled: boolean;
+    allowed_sides?: number;
+  };
+}
+
+export interface ItemModifierAssignment {
+  default_modifiers?: string[]; // Modifier IDs
+  modifier_groups?: ItemModifierGroupAssignment[];
+  assignment_scope?: 'ITEM' | 'CATEGORY';
+  modifier_prices_by_size?: { [modifierId: string]: { [sizeName: string]: number } }; // Modifier prices by size (for modifiers without quantity levels)
+  modifier_prices_by_size_and_quantity?: { [modifierId: string]: { [sizeName: string]: { [quantity: string]: number } } }; // Modifier prices by size and quantity level
+}
 

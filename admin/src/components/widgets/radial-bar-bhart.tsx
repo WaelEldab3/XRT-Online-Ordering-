@@ -7,6 +7,14 @@ const RadialBarChart = ({
   label,
   helperText,
 }: any) => {
+  // Ensure series is a valid array with numbers
+  const safeSeries = Array.isArray(series) 
+    ? series.map((val: any) => {
+        const num = typeof val === 'number' ? val : parseFloat(String(val || '0'));
+        return isNaN(num) || !isFinite(num) ? 0 : Math.max(0, Math.min(100, num)); // Clamp to 0-100 for radial
+      })
+    : [0];
+  
   const options = {
     options: {
       colors: colors,
@@ -51,7 +59,7 @@ const RadialBarChart = ({
       },
       labels: label,
     },
-    series: series,
+    series: safeSeries,
   };
 
   return (

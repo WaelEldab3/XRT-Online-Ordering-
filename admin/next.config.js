@@ -16,6 +16,7 @@ const nextConfig = {
   images: {
     domains: [
       'via.placeholder.com',
+      'placehold.co',
       'res.cloudinary.com',
       's3.amazonaws.com',
       '18.141.64.26',
@@ -27,6 +28,8 @@ const nextConfig = {
       'lh3.googleusercontent.com',
       '127.0.0.1:8000',
     ],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   webpack: (config, { webpack, isServer }) => {
     // Fix for react/jsx-runtime resolution in ESM modules like @react-google-maps/api
