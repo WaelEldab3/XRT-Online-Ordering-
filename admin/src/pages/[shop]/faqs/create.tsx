@@ -24,7 +24,7 @@ export default function CreateFAQsPage() {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   if (
     !hasAccess(adminOnly, permissions) &&
     !me?.shops?.map((shop: any) => shop.id).includes(shopId) &&

@@ -17,6 +17,16 @@ import { useModalAction, useModalState } from '@/components/ui/modal/modal.conte
 import { useRouter } from 'next/router';
 import usePrice from '@/utils/use-price';
 import { mockModifierGroups } from '@/data/mock/modifiers';
+import {
+  ResponsiveCard,
+  CardHeader,
+  CardTitle,
+  CardBadge,
+  CardContent,
+  CardRow,
+  CardActions,
+} from '@/components/ui/responsive-card';
+import { SkeletonCard } from '@/components/ui/loading-skeleton';
 
 export type IProps = {
   modifiers: Modifier[] | undefined;
@@ -24,6 +34,7 @@ export type IProps = {
   onPagination: (key: number) => void;
   onSort: (current: any) => void;
   onOrder: (current: string) => void;
+  isLoading?: boolean;
 };
 
 const PriceDisplay = ({ amount }: { amount: number }) => {
@@ -37,6 +48,7 @@ const ModifierList = ({
   onPagination,
   onSort,
   onOrder,
+  isLoading = false,
 }: IProps) => {
   const { t } = useTranslation(['common', 'form', 'table']);
   const { openModal } = useModalAction();
@@ -81,6 +93,50 @@ const ModifierList = ({
   const getGroupName = (groupId: string) => {
     const group = mockModifierGroups.find(g => g.id === groupId);
     return group?.name || groupId;
+  };
+
+  const { permissions, role } = getAuthCredentials();
+  const canUpdate = role === 'super_admin' || hasPermission(['modifiers:update'], permissions);
+  const canDelete = role === 'super_admin' || hasPermission(['modifiers:delete'], permissions);
+
+  // Show skeleton when loading
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  // Show empty state
+  if (!modifiers || modifiers.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-12 bg-white rounded-lg shadow">
+        <NoDataFound className="w-52" />
+        <div className="mb-1 pt-6 text-base font-semibold text-heading">
+          {t('table:empty-table-data')}
+        </div>
+        <p className="text-[13px] text-body">{t('table:empty-table-sorry-text')}</p>
+      </div>
+    );
+  }
+
+  const getModifierPrice = (modifier: Modifier): number | null => {
+    if (modifier.prices_by_size) {
+      const prices = modifier.prices_by_size?.filter((p: any) => p !== undefined) || [];
+      if (prices.length > 0 && prices[0].priceDelta !== undefined) {
+        return prices[0].priceDelta;
+      }
+    }
+    if (modifier.quantity_levels && modifier.quantity_levels.length > 0) {
+      const price = modifier.quantity_levels[0].price;
+      if (price !== undefined) {
+        return price;
+      }
+    }
+    return null;
   };
 
   const columns = [
@@ -132,15 +188,10 @@ const ModifierList = ({
       key: 'price',
       align: alignRight,
       width: 120,
-      render: (pricesBySize: any, record: Modifier) => {
-        if (pricesBySize) {
-          const prices = Object.values(pricesBySize).filter((p: any) => p !== undefined);
-          if (prices.length > 0) {
-            return <PriceDisplay amount={prices[0] as number} />;
-          }
-        }
-        if (record.quantity_levels && record.quantity_levels.length > 0) {
-          return <PriceDisplay amount={record.quantity_levels[0].price} />;
+      render: (_: any, record: Modifier) => {
+        const price = getModifierPrice(record);
+        if (price !== null) {
+          return <PriceDisplay amount={price} />;
         }
         return <span className="text-gray-400">—</span>;
       },
@@ -159,16 +210,12 @@ const ModifierList = ({
       align: alignRight,
       width: 150,
       render: (record: Modifier) => {
-        const { permissions, role } = getAuthCredentials();
-        const canUpdate = role === 'super_admin' || hasPermission(['categories:update'], permissions);
-        const canDelete = role === 'super_admin' || hasPermission(['categories:delete'], permissions);
-
         if (!canUpdate && !canDelete) return null;
 
         return (
           <div className="inline-flex items-center gap-3">
             {canUpdate && (
-              <div 
+              <div
                 title={t('common:text-status')}
                 onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
@@ -184,7 +231,7 @@ const ModifierList = ({
                     e.stopPropagation();
                   }}
                   className={`${record?.is_active ? 'bg-accent' : 'bg-gray-300'
-                    } relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none`}
+                    } relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2`}
                 >
                   <span className="sr-only">Toggle Status</span>
                   <span
@@ -201,7 +248,7 @@ const ModifierList = ({
                   e.stopPropagation();
                   router.push(`/modifiers/groups/${record.modifier_group_id}?editModifier=${record.id}`);
                 }}
-                className="text-base transition duration-200 hover:text-heading"
+                className="text-base transition duration-200 hover:text-heading p-1"
                 title={t('common:text-edit')}
               >
                 <EditIcon width={16} />
@@ -214,7 +261,7 @@ const ModifierList = ({
                   setDeletingId(record.id);
                   openModal('DELETE_MODIFIER', record.id);
                 }}
-                className="text-red-500 transition duration-200 hover:text-red-600 focus:outline-none"
+                className="text-red-500 transition duration-200 hover:text-red-600 focus:outline-none p-1"
                 title={t('common:text-delete')}
               >
                 <TrashIcon width={16} />
@@ -228,7 +275,107 @@ const ModifierList = ({
 
   return (
     <>
-      <div className="mb-6 overflow-hidden rounded shadow">
+      {/* Mobile Cards View */}
+      <div className="md:hidden space-y-3">
+        {modifiers.map((modifier) => {
+          const price = getModifierPrice(modifier);
+          return (
+            <ResponsiveCard
+              key={modifier.id}
+              isActive={modifier.is_active}
+              isDeleting={deletingId === modifier.id}
+              isToggling={togglingId === modifier.id}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CardTitle>{modifier.name}</CardTitle>
+                  {modifier.is_default && (
+                    <CardBadge variant="info">
+                      {t('form:input-label-default') || 'Default'}
+                    </CardBadge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardRow
+                  label={t('form:input-label-modifier-group') || 'Group'}
+                  value={
+                    <Link
+                      href={`/modifiers/groups/${modifier.modifier_group_id}`}
+                      className="text-accent hover:underline"
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    >
+                      {getGroupName(modifier.modifier_group_id)}
+                    </Link>
+                  }
+                />
+                {price !== null && (
+                  <CardRow
+                    label={t('form:input-label-price') || 'Price'}
+                    value={<PriceDisplay amount={price} />}
+                  />
+                )}
+                {modifier.max_quantity && (
+                  <CardRow
+                    label={t('form:input-label-max-quantity') || 'Max Qty'}
+                    value={modifier.max_quantity}
+                  />
+                )}
+              </CardContent>
+
+              {(canUpdate || canDelete) && (
+                <CardActions>
+                  {canUpdate && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        checked={modifier.is_active}
+                        onChange={() => {
+                          setTogglingId(modifier.id);
+                          openModal('TOGGLE_MODIFIER_STATUS', modifier);
+                        }}
+                        className={`${modifier.is_active ? 'bg-accent' : 'bg-gray-300'
+                          } relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none`}
+                      >
+                        <span className="sr-only">Toggle Status</span>
+                        <span
+                          className={`${modifier.is_active ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-light transition-transform`}
+                        />
+                      </Switch>
+                    </div>
+                  )}
+                  {canUpdate && (
+                    <button
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        router.push(`/modifiers/groups/${modifier.modifier_group_id}?editModifier=${modifier.id}`);
+                      }}
+                      className="text-body hover:text-heading p-2"
+                    >
+                      <EditIcon width={18} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setDeletingId(modifier.id);
+                        openModal('DELETE_MODIFIER', modifier.id);
+                      }}
+                      className="text-red-500 hover:text-red-600 p-2"
+                    >
+                      <TrashIcon width={18} />
+                    </button>
+                  )}
+                </CardActions>
+              )}
+            </ResponsiveCard>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block mb-6 overflow-hidden rounded-lg shadow">
         <Table
           //@ts-ignore
           columns={columns}
@@ -248,7 +395,7 @@ const ModifierList = ({
       </div>
 
       {!!paginatorInfo?.total && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end mt-6">
           <Pagination
             total={paginatorInfo.total}
             current={paginatorInfo.currentPage}
@@ -262,4 +409,3 @@ const ModifierList = ({
 };
 
 export default ModifierList;
-

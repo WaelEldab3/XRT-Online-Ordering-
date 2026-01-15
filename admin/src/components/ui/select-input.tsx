@@ -57,9 +57,11 @@ const SelectInput = ({
         name={name}
         rules={rules}
         {...rest}
-        render={({ field }) => (
+        render={({ field: { onChange, value, ...field } }) => (
           <Select
             {...field}
+            value={options?.find((c: any) => c.value === value)}
+            onChange={(val: any) => onChange(val?.value)}
             getOptionLabel={getOptionLabel}
             getOptionValue={getOptionValue}
             placeholder={placeholder}

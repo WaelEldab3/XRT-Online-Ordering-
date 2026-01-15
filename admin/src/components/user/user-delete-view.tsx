@@ -8,7 +8,7 @@ import { useTranslation } from 'next-i18next';
 
 const UserDeleteView = () => {
     const { t } = useTranslation(['form', 'common']);
-    const { mutate: deleteUser, isLoading: loading } = useDeleteUserMutation();
+    const { mutate: deleteUser, isPending: loading } = useDeleteUserMutation();
 
     const { data: id } = useModalState();
     const { closeModal } = useModalAction();

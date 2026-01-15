@@ -4,12 +4,12 @@ import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
-} from 'react-query';
+} from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { mapPaginatorData } from '@/utils/data-mappers';
 import { storeNoticeClient } from './client/store-notice';
-import type { UseInfiniteQueryOptions, UseQueryOptions } from 'react-query';
+import type { UseInfiniteQueryOptions, UseQueryOptions } from '@tanstack/react-query';
 
 import {
   StoreNotice,
@@ -25,7 +25,8 @@ export const useCreateStoreNoticeMutation = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  return useMutation(storeNoticeClient.create, {
+  return useMutation({
+    mutationFn: storeNoticeClient.create,
     onSuccess: async () => {
       const generateRedirectUrl = router.query.shop
         ? `/${router.query.shop}${Routes.storeNotice.list}`
@@ -37,7 +38,7 @@ export const useCreateStoreNoticeMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STORE_NOTICES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STORE_NOTICES] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -49,13 +50,14 @@ export const useDeleteStoreNoticeMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(storeNoticeClient.delete, {
+  return useMutation({
+    mutationFn: storeNoticeClient.delete,
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STORE_NOTICES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STORE_NOTICES] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -67,7 +69,8 @@ export const useUpdateStoreNoticeMutation = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const router = useRouter();
-  return useMutation(storeNoticeClient.update, {
+  return useMutation({
+    mutationFn: storeNoticeClient.update,
     onSuccess: async (data) => {
       const generateRedirectUrl = router.query.shop
         ? `/${router.query.shop}${Routes.storeNotice.list}`
@@ -79,7 +82,7 @@ export const useUpdateStoreNoticeMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STORE_NOTICES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STORE_NOTICES] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -89,7 +92,7 @@ export const useUpdateStoreNoticeMutation = () => {
 
 export const useListMutation = () => {
   const { t } = useTranslation();
-  return useMutation(storeNoticeClient.getUserOrShopList);
+  return useMutation({ mutationFn: storeNoticeClient.getUserOrShopList });
 };
 
 export const useStoreNoticeQuery = ({
@@ -99,10 +102,10 @@ export const useStoreNoticeQuery = ({
   id: string;
   language: string;
 }) => {
-  const { data, error, isLoading } = useQuery<StoreNotice, Error>(
-    [API_ENDPOINTS.STORE_NOTICES, { id, language }],
-    () => storeNoticeClient.get({ id, language })
-  );
+  const { data, error, isPending: isLoading } = useQuery<StoreNotice, Error>({
+    queryKey: [API_ENDPOINTS.STORE_NOTICES, { id, language }],
+    queryFn: () => storeNoticeClient.get({ id, language })
+  });
 
   return {
     storeNotice: data,
@@ -113,17 +116,15 @@ export const useStoreNoticeQuery = ({
 
 export const useStoreNoticesQuery = (
   options: Partial<StoreNoticeQueryOptions>,
-  config: UseQueryOptions<StoreNoticePaginator, Error> = {}
+  config: Partial<Omit<UseQueryOptions<StoreNoticePaginator, Error>, 'queryKey'>> = {}
 ) => {
-  const { data, error, isLoading } = useQuery<StoreNoticePaginator, Error>(
-    [API_ENDPOINTS.STORE_NOTICES, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<StoreNoticePaginator, Error>({
+    queryKey: [API_ENDPOINTS.STORE_NOTICES, options],
+    queryFn: ({ queryKey, pageParam }) =>
       storeNoticeClient.paginated(Object.assign({}, queryKey[1], pageParam)),
-    {
-      ...config,
-      keepPreviousData: true,
-    }
-  );
+    ...config,
+    placeholderData: (previousData) => previousData,
+  });
 
   return {
     storeNotices: data?.data ?? [],
@@ -135,32 +136,31 @@ export const useStoreNoticesQuery = (
 
 export const useStoreNoticesLoadMoreQuery = (
   options: Partial<StoreNoticeQueryOptions>,
-  config?: UseInfiniteQueryOptions<StoreNoticePaginator, Error>
+  config?: Partial<Omit<UseInfiniteQueryOptions<StoreNoticePaginator, Error>, 'queryKey' | 'initialPageParam'>>
 ) => {
   const {
     data,
     error,
-    isLoading,
+    isPending: isLoading,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
-  } = useInfiniteQuery<StoreNoticePaginator, Error>(
-    [API_ENDPOINTS.STORE_NOTICES, options],
-    ({ queryKey, pageParam }) =>
+  } = useInfiniteQuery<StoreNoticePaginator, Error>({
+    queryKey: [API_ENDPOINTS.STORE_NOTICES, options],
+    initialPageParam: 1,
+    queryFn: ({ queryKey, pageParam }) =>
       storeNoticeClient.all(Object.assign({}, queryKey[1], pageParam)),
-    {
-      ...config,
-      getNextPageParam: ({ current_page, last_page }) =>
-        last_page > current_page && { page: current_page + 1 },
-    }
-  );
+    ...(config as any),
+    getNextPageParam: ({ current_page, last_page }) =>
+      last_page > current_page && { page: current_page + 1 },
+  });
 
   function handleLoadMore() {
     fetchNextPage();
   }
 
   return {
-    storeNotices: data?.pages.flatMap((page) => page?.data) ?? [],
+    storeNotices: data?.pages.flatMap((page: any) => page?.data) ?? [],
     paginatorInfo: Array.isArray(data?.pages)
       ? data?.pages[data.pages.length - 1]
       : null,
@@ -173,16 +173,18 @@ export const useStoreNoticesLoadMoreQuery = (
 };
 
 export const useStoreNoticeTypeQuery = (
-  options: Partial<{ type: string }> = {}
+  options: Partial<{ type: string }> = {},
+  config: Partial<Omit<UseQueryOptions<any[], Error>, 'queryKey'>> = {}
 ) => {
-  const { data, error, isLoading } = useQuery<any, Error>(
-    [API_ENDPOINTS.STORE_NOTICE_GET_STORE_NOTICE_TYPE, options],
-    ({ queryKey, pageParam }) =>
-      storeNoticeClient.getTypeList(Object.assign({}, queryKey[1], pageParam)),
-    {
-      keepPreviousData: true,
-    }
-  );
+  const { data, error, isPending: isLoading } = useQuery<any[], Error>({
+    queryKey: [API_ENDPOINTS.STORE_NOTICE_GET_STORE_NOTICE_TYPE, options],
+    queryFn: ({ queryKey, pageParam }) =>
+      storeNoticeClient.getTypeList(
+        Object.assign({}, queryKey[1], pageParam) as { type: string }
+      ),
+    ...config,
+    placeholderData: (previousData: any[] | undefined) => previousData,
+  });
 
   return {
     noticeTypes: data ?? [],
@@ -193,16 +195,14 @@ export const useStoreNoticeTypeQuery = (
 export const useUsersOrShopsQuery = (
   options: Partial<{ type: string }> = {}
 ) => {
-  const { data, error, isLoading } = useQuery<any, Error>(
-    [API_ENDPOINTS.STORE_NOTICES_USER_OR_SHOP_LIST, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<any, Error>({
+    queryKey: [API_ENDPOINTS.STORE_NOTICES_USER_OR_SHOP_LIST, options],
+    queryFn: ({ queryKey, pageParam }) =>
       storeNoticeClient.getUserOrShopList(
-        Object.assign({}, queryKey[1], pageParam)
+        Object.assign({}, queryKey[1], pageParam) as { type: string }
       ),
-    {
-      keepPreviousData: true,
-    }
-  );
+    placeholderData: (previousData: any) => previousData,
+  });
 
   return {
     usersOrShops: data ?? [],
@@ -216,13 +216,14 @@ export function useStoreNoticeRead() {
   const { t } = useTranslation('common');
   const {
     mutate: readStoreNotice,
-    isLoading,
+    isPending: isLoading,
     isSuccess,
-  } = useMutation(storeNoticeClient.toggle, {
-    onSuccess: () => {},
+  } = useMutation({
+    mutationFn: storeNoticeClient.toggle,
+    onSuccess: () => { },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STORE_NOTICES_IS_READ);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STORE_NOTICES_IS_READ] });
     },
   });
 

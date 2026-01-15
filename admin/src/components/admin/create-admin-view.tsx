@@ -16,7 +16,7 @@ import { CheckMarkCircle } from '@/components/icons/checkmark-circle';
 const CreateAdminView = () => {
   const { t } = useTranslation(['form', 'common']);
   const { closeModal } = useModalAction();
-  const { mutate: createUser, isLoading } = useCreateUserMutation();
+  const { mutateAsync: createUser, isPending: isLoading } = useCreateUserMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
 
   const {
@@ -77,11 +77,9 @@ const CreateAdminView = () => {
       permissions,
     };
 
-    createUser(userData, {
-      onSuccess: () => {
-        closeModal();
-      },
-    });
+    createUser(userData).then(() => {
+      closeModal();
+    })
   }
 
   return (

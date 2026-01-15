@@ -67,7 +67,7 @@ export default function CreateOrUpdateRefundPolicyForm({
     },
     { enabled: !!router.query.shop },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const {
     register,
     handleSubmit,
@@ -116,9 +116,9 @@ export default function CreateOrUpdateRefundPolicyForm({
     });
   }, [generateName]);
 
-  const { mutate: createRefundPolicy, isLoading: creating } =
+  const { mutate: createRefundPolicy, isPending: creating } =
     useCreateRefundPolicyMutation();
-  const { mutate: updateRefundPolicy, isLoading: updating } =
+  const { mutate: updateRefundPolicy, isPending: updating } =
     useUpdateRefundPolicyMutation();
 
   const onSubmit = async (values: any) => {

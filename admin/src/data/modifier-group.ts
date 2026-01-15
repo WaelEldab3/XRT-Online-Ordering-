@@ -1,5 +1,5 @@
 import Router, { useRouter } from 'next/router';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { Routes } from '@/config/routes';
@@ -13,27 +13,28 @@ import {
 import { mapPaginatorData } from '@/utils/data-mappers';
 import { modifierGroupClient } from './client/modifier-group';
 import { Config } from '@/config';
-import { 
-  mockModifierGroups, 
+import {
+  mockModifierGroups,
   getModifierGroupWithModifiers,
   mockModifiers,
-  getModifiersByGroupId 
+  getModifiersByGroupId
 } from './mock/modifiers';
 
 export const useCreateModifierGroupMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(async (input: any) => {
-    // Mock: Just return the input with generated ID
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      ...input,
-      id: `mg_${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }, {
+  return useMutation({
+    mutationFn: async (input: any) => {
+      // Mock: Just return the input with generated ID
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        ...input,
+        id: `mg_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    },
     onSuccess: () => {
       Router.push(Routes.modifierGroup.list, undefined, {
         locale: Config.defaultLanguage,
@@ -45,7 +46,7 @@ export const useCreateModifierGroupMutation = () => {
       toast.error(error?.response?.data?.message || t('common:create-failed'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
   });
 };
@@ -54,16 +55,17 @@ export const useDeleteModifierGroupMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(async ({ id }: { id: string }) => {
-    // Mock: Just simulate deletion
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { id };
-  }, {
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      // Mock: Just simulate deletion
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return { id };
+    },
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
   });
 };
@@ -72,23 +74,23 @@ export const useUpdateModifierGroupMutation = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  return useMutation(async ({ id, ...input }: any) => {
-    // Mock: Just return the updated data
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      ...input,
-      id,
-      updated_at: new Date().toISOString(),
-    };
-  }, {
+  return useMutation({
+    mutationFn: async ({ id, ...input }: any) => {
+      // Mock: Just return the updated data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        ...input,
+        id,
+        updated_at: new Date().toISOString(),
+      };
+    },
     onSuccess: async (data, variables) => {
       const updatedGroup = (data as any)?.data || data;
       queryClient.setQueryData(
         [API_ENDPOINTS.MODIFIER_GROUPS, { id: variables.id, language: router.locale }],
         (old: any) => {
           return { data: updatedGroup };
-        }
-      );
+        });
       toast.success(t('common:successfully-updated'));
       router.push(Routes.modifierGroup.list, undefined, {
         locale: Config.defaultLanguage,
@@ -98,32 +100,35 @@ export const useUpdateModifierGroupMutation = () => {
       toast.error(error?.response?.data?.message || t('common:update-failed'));
     },
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
   });
 };
 
 export const useModifierGroupQuery = ({ slug, id, language }: GetParams & { id?: string }) => {
   // Use mock data instead of API call
-  const { data, error, isLoading } = useQuery<ModifierGroup, Error>(
-    [API_ENDPOINTS.MODIFIER_GROUPS, { slug, id, language }],
-    async () => {
+  const { data, error, isPending: isLoading } = useQuery<ModifierGroup, Error>({
+    queryKey: [API_ENDPOINTS.MODIFIER_GROUPS, { slug, id, language }],
+    queryFn: async () => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 200));
-      
+
       const groupId = id || slug;
       const group = getModifierGroupWithModifiers(groupId || '');
-      
+
       if (!group) {
         throw new Error('Modifier group not found');
       }
-      
+
       return group;
     },
-    {
-      enabled: Boolean(id || slug),
-    }
-  );
+    enabled: Boolean(id || slug),
+    // Detail pages: shorter stale time for fresher data
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
 
   const group = (data as any)?.data || data;
 
@@ -136,38 +141,38 @@ export const useModifierGroupQuery = ({ slug, id, language }: GetParams & { id?:
 
 export const useModifierGroupsQuery = (options: Partial<ModifierGroupQueryOptions>) => {
   // Use mock data instead of API call
-  const { data, error, isLoading } = useQuery<ModifierGroupPaginator, Error>(
-    [API_ENDPOINTS.MODIFIER_GROUPS, options],
-    async () => {
+  const { data, error, isPending: isLoading } = useQuery<ModifierGroupPaginator, Error>({
+    queryKey: [API_ENDPOINTS.MODIFIER_GROUPS, options],
+    queryFn: async () => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       let filteredGroups = [...mockModifierGroups];
-      
+
       // Apply filters
       if (options.name) {
-        filteredGroups = filteredGroups.filter(g => 
+        filteredGroups = filteredGroups.filter(g =>
           g.name.toLowerCase().includes(options.name!.toLowerCase())
         );
       }
-      
+
       if (options.is_active !== undefined) {
         filteredGroups = filteredGroups.filter(g => g.is_active === options.is_active);
       }
-      
+
       // Add modifiers to each group
       filteredGroups = filteredGroups.map(group => ({
         ...group,
         modifiers: getModifiersByGroupId(group.id),
       }));
-      
+
       // Pagination
       const page = options.page || 1;
       const limit = options.limit || 20;
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       const paginatedGroups = filteredGroups.slice(startIndex, endIndex);
-      
+
       return {
         data: paginatedGroups,
         current_page: page,
@@ -184,10 +189,12 @@ export const useModifierGroupsQuery = (options: Partial<ModifierGroupQueryOption
         links: [],
       };
     },
-    {
-      keepPreviousData: true,
-    }
-  );
+    placeholderData: (previousData) => previousData,
+    // List pages: ISR-like caching with longer stale time
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    refetchOnWindowFocus: false,
+  });
 
   const groups = (data as any)?.data ?? [];
   const paginatorInfo = (data as any)?.paginatorInfo ?? mapPaginatorData(data);

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { API_ENDPOINTS } from './client/api-endpoints';
@@ -19,7 +19,8 @@ export const useUpdateSettingsMutation = () => {
   const queryClient = useQueryClient();
   const { updateSettings } = useSettings();
 
-  return useMutation((data: any) => settingsClient.update(data), {
+  return useMutation({
+    mutationFn: (data: any) => settingsClient.update(data),
     onError: (error) => {
       console.log(error);
     },
@@ -33,7 +34,7 @@ export const useUpdateSettingsMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.SETTINGS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.SETTINGS] });
     },
   });
 };
@@ -42,27 +43,15 @@ export const useSettingsQuery = ({ language }: { language: string }) => {
   const { query } = useRouter();
   const { token } = getAuthCredentials();
 
-  const { data, error, isLoading } = useQuery<Settings, Error>(
-    [API_ENDPOINTS.SETTINGS, { language }],
-    () => settingsClient.all({ language, businessId: (query as any)?.shop }),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      enabled: !!token, // Only fetch settings when authenticated
-      // Return mock settings if query fails or is disabled
-      placeholderData: mockSettings as any,
-      // Don't show error for 401/400 on auth pages - they're expected
-      onError: (err: any) => {
-        // Silently handle auth-related errors - they're expected on auth pages
-        const status = err?.response?.status;
-        if (status !== 401 && status !== 400 && status !== 403) {
-          console.error('Settings query error:', err);
-        }
-      },
-    }
-  );
-
-  // Return mock settings if no data and not loading (for unauthenticated users)
+  const { data, error, isPending: isLoading } = useQuery<Settings, Error>({
+    queryKey: [API_ENDPOINTS.SETTINGS, { language }],
+    queryFn: () => settingsClient.all({ language, businessId: (query as any)?.shop }),
+    retry: false,
+    refetchOnWindowFocus: false,
+    enabled: !!token, // Only fetch settings when authenticated
+    // Return mock settings if query fails or is disabled
+    placeholderData: mockSettings as any,
+  });
   const settings = data || (!isLoading && !token ? mockSettings : null);
 
   return {

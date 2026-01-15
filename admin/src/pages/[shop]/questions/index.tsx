@@ -32,7 +32,7 @@ export default function Questions() {
     query: { shop },
   } = useRouter();
   const { data: shopData } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { questions, paginatorInfo, loading, error } = useQuestionsQuery({
     limit: 15,
     shop_id: shopId,

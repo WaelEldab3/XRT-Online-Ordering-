@@ -1,7 +1,7 @@
 import Router, { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/data/client/api-endpoints';
 import { itemClient } from './client/item';
 import {
@@ -18,7 +18,8 @@ export const useCreateItemMutation = () => {
     const queryClient = useQueryClient();
     const router = useRouter();
     const { t } = useTranslation();
-    return useMutation(itemClient.create, {
+    return useMutation({
+        mutationFn: itemClient.create,
         onSuccess: async () => {
             const generateRedirectUrl = router.query.shop
                 ? `/${router.query.shop}${Routes.item.list}`
@@ -30,7 +31,7 @@ export const useCreateItemMutation = () => {
         },
         // Always refetch after error or success:
         onSettled: () => {
-            queryClient.invalidateQueries(API_ENDPOINTS.ITEMS);
+            queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ITEMS] });
         },
         onError: (error: any) => {
             const { data, status } = error?.response;
@@ -48,17 +49,18 @@ export const useUpdateItemMutation = () => {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const router = useRouter();
-    return useMutation(itemClient.updateItem, {
+    return useMutation({
+        mutationFn: itemClient.updateItem,
         // Optimistic update for faster UI response
         onMutate: async (variables) => {
             // Cancel any outgoing refetches to avoid overwriting optimistic update
-            await queryClient.cancelQueries([API_ENDPOINTS.ITEMS]);
-            
+            await queryClient.cancelQueries({ queryKey: [API_ENDPOINTS.ITEMS] });
+
             // Snapshot the previous value for rollback
-            const previousQueries = queryClient.getQueriesData([API_ENDPOINTS.ITEMS]);
-            
+            const previousQueries = queryClient.getQueriesData({ queryKey: [API_ENDPOINTS.ITEMS] });
+
             // Optimistically update all items queries
-            queryClient.setQueriesData([API_ENDPOINTS.ITEMS], (old: any) => {
+            queryClient.setQueriesData({ queryKey: [API_ENDPOINTS.ITEMS] }, (old: any) => {
                 if (!old) return old;
                 // Handle paginated response (ItemPaginator with data array)
                 if (old.data && Array.isArray(old.data)) {
@@ -81,7 +83,7 @@ export const useUpdateItemMutation = () => {
                 }
                 return old;
             });
-            
+
             return { previousQueries };
         },
         onSuccess: (data, variables) => {
@@ -92,7 +94,7 @@ export const useUpdateItemMutation = () => {
                 updatedItem
             );
             // Update items list cache with actual response (non-blocking)
-            queryClient.setQueriesData([API_ENDPOINTS.ITEMS], (old: any) => {
+            queryClient.setQueriesData({ queryKey: [API_ENDPOINTS.ITEMS] }, (old: any) => {
                 if (!old) return old;
                 // Handle paginated response (ItemPaginator with data array)
                 if (old.data && Array.isArray(old.data)) {
@@ -116,7 +118,7 @@ export const useUpdateItemMutation = () => {
         // Invalidate queries in background (non-blocking)
         onSettled: () => {
             // Invalidate in background without blocking
-            queryClient.invalidateQueries(API_ENDPOINTS.ITEMS).catch(() => {});
+            queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ITEMS] }).catch(() => { });
         },
         onError: (error: any, variables, context) => {
             // Rollback optimistic update on error
@@ -134,13 +136,14 @@ export const useUpdateItemMutation = () => {
 export const useDeleteItemMutation = () => {
     const queryClient = useQueryClient();
     const { t } = useTranslation();
-    return useMutation(itemClient.delete, {
+    return useMutation({
+        mutationFn: itemClient.delete,
         onSuccess: () => {
             toast.success(t('common:successfully-deleted'));
         },
         // Always refetch after error or success:
         onSettled: () => {
-            queryClient.invalidateQueries(API_ENDPOINTS.ITEMS);
+            queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ITEMS] });
         },
         onError: (error: any) => {
             toast.error(t(`common:${error?.response?.data.message}`));
@@ -149,15 +152,13 @@ export const useDeleteItemMutation = () => {
 };
 
 export const useItemQuery = ({ slug, id, language }: { slug?: string; id?: string; language: string }, options: any = {}) => {
-    const { data, error, isLoading, refetch } = useQuery<Item, Error>(
-        [API_ENDPOINTS.ITEMS, { slug, id, language }],
-        () => itemClient.get({ slug: slug || '', id, language }),
-        {
-            refetchOnWindowFocus: false,
-            refetchOnMount: true,
-            ...options,
-        }
-    );
+    const { data, error, isLoading, refetch } = useQuery<Item, Error>({
+        queryKey: [API_ENDPOINTS.ITEMS, { slug, id, language }],
+        queryFn: () => itemClient.get({ slug: slug || '', id, language }),
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        ...options,
+    });
 
     return {
         item: data,
@@ -171,15 +172,13 @@ export const useItemsQuery = (
     params: Partial<ItemQueryOptions>,
     options: any = {},
 ) => {
-    const { data, error, isLoading } = useQuery<ItemPaginator, Error>(
-        [API_ENDPOINTS.ITEMS, params],
-        ({ queryKey, pageParam }) =>
+    const { data, error, isPending: isLoading } = useQuery<ItemPaginator, Error>({
+        queryKey: [API_ENDPOINTS.ITEMS, params],
+        queryFn: ({ queryKey, pageParam }) =>
             itemClient.paginated(Object.assign({}, queryKey[1], pageParam)),
-        {
-            keepPreviousData: true,
-            ...options,
-        },
-    );
+        placeholderData: (previousData) => previousData,
+        ...options,
+    });
 
     // Handle backend response format: { success: true, data: { items: [...], paginatorInfo: {...} } }
     const responseData = (data as any)?.data || data;

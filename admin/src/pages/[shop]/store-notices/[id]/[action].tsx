@@ -27,7 +27,7 @@ export default function UpdateStoreNoticePage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { storeNotice, loading, error } = useStoreNoticeQuery({
     id: query.id as string,
     language:

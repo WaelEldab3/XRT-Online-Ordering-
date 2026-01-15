@@ -9,7 +9,7 @@ import { isEmpty } from 'lodash';
 
 const ShopList = () => {
   const { t } = useTranslation();
-  const { data, isLoading: loading, error } = useMeQuery();
+  const { data, isPending: loading, error } = useMeQuery();
   const { permissions } = getAuthCredentials();
   let permission = hasAccess(adminOnly, permissions);
 
@@ -26,25 +26,25 @@ const ShopList = () => {
       ) : (
         ''
       )}
-      {!isEmpty(data?.shops) ? (
+      {!isEmpty((data as any)?.shops) ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4">
-          {data?.shops?.map((myShop: any, idx: number) => (
+          {(data as any)?.shops?.map((myShop: any, idx: number) => (
             <ShopCard shop={myShop} key={idx} />
           ))}
         </div>
       ) : (
         ''
       )}
-      {!data?.managed_shop && !data?.shops?.length ? (
+      {!(data as any)?.managed_shop && !(data as any)?.shops?.length ? (
         <NotFound
           image="/no-shop-found.svg"
           text="text-no-shop-found"
           className="mx-auto w-7/12"
         />
       ) : null}
-      {!!data?.managed_shop ? (
+      {!!(data as any)?.managed_shop ? (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4">
-          <ShopCard shop={data?.managed_shop} />
+          <ShopCard shop={(data as any)?.managed_shop} />
         </div>
       ) : null}
     </>

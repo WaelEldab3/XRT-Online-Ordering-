@@ -5,7 +5,7 @@ import { CheckMarkCircle } from '@/components/icons/checkmark-circle';
 import { CloseFillIcon } from '@/components/icons/close-fill';
 
 const CategoryToggleView = () => {
-    const { mutate: updateCategory, isLoading: loading } = useUpdateCategoryMutation();
+    const { mutate: updateCategory, isPending: loading } = useUpdateCategoryMutation();
     const { data } = useModalState();
     const { closeModal } = useModalAction();
 

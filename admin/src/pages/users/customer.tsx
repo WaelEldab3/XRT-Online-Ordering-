@@ -339,7 +339,7 @@ export default function CustomersPage() {
         }}
         onConfirm={handleConfirmImport}
         data={previewData as any}
-        isLoading={importMutation.isLoading}
+        isLoading={importMutation.isPending}
       />
     </>
   );

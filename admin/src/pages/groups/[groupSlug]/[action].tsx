@@ -13,7 +13,7 @@ export default function UpdateTypePage() {
   const { t } = useTranslation();
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useTypeQuery({
     slug: query.groupSlug as string,

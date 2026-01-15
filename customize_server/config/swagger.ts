@@ -20,6 +20,8 @@ This API follows Clean Architecture principles with strict separation of concern
 - 👥 Complete User Management with RBAC
 - 🏢 Multi-Business Support
 - 📦 Category Management
+- 🍕 Item Management with Modifier Groups
+- 🎛️ Modifier Group & Modifier Management
 - 🎭 Role-Based Access Control (RBAC)
 - 🔒 Enterprise Security Features
 - 📚 Comprehensive API Documentation
@@ -102,6 +104,20 @@ All responses follow a consistent format:
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
+      Permission: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          key: { type: 'string', example: 'users:read' },
+          module: { type: 'string', example: 'users' },
+          action: { type: 'string', example: 'read' },
+          description: { type: 'string', example: 'View users' },
+          isSystem: { type: 'boolean', example: true },
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
       AuthResponse: {
         type: 'object',
         properties: {
@@ -162,52 +178,128 @@ All responses follow a consistent format:
         type: 'object',
         properties: {
           id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          business_id: { type: 'string', example: '507f1f77bcf86cd799439011' },
           name: { type: 'string', example: 'Pizza' },
           description: { type: 'string', example: 'Delicious pizza category' },
-          image: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              original: { type: 'string' },
-              thumbnail: { type: 'string' },
-            },
+          kitchen_section_id: { type: 'string', example: '507f1f77bcf86cd799439012' },
+          sort_order: { type: 'integer', example: 1 },
+          is_active: { type: 'boolean', example: true },
+          image: { type: 'string', example: 'https://cloudinary.com/category.jpg' },
+          image_public_id: { type: 'string', example: 'xrttech/categories/image_id' },
+          icon: { type: 'string', example: 'https://cloudinary.com/icon.jpg' },
+          icon_public_id: { type: 'string', example: 'xrttech/categories/icons/icon_id' },
+          translated_languages: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['en', 'ar'],
           },
-          business_id: { type: 'string', example: '507f1f77bcf86cd799439011' },
-          isActive: { type: 'boolean', example: true },
           created_at: { type: 'string', format: 'date-time' },
           updated_at: { type: 'string', format: 'date-time' },
         },
       },
       Item: {
         type: 'object',
+        required: ['name', 'base_price', 'category_id', 'business_id'],
         properties: {
-          id: { type: 'string', example: '507f1f77bcf86cd799439011' },
-          business_id: { type: 'string', example: '507f1f77bcf86cd799439011' },
-          name: { type: 'string', example: 'Margherita Pizza' },
-          description: { type: 'string', example: 'Classic cheese pizza' },
-          sort_order: { type: 'integer', example: 1 },
-          is_active: { type: 'boolean', example: true },
-          base_price: { type: 'number', example: 12.99 },
-          category_id: { type: 'string', example: '507f1f77bcf86cd799439012' },
-          image: { type: 'string', example: 'https://cloudinary.com/item.jpg' },
-          is_available: { type: 'boolean', example: true },
-          is_signature: { type: 'boolean', example: false },
-          max_per_order: { type: 'integer', example: 10 },
-          is_sizeable: { type: 'boolean', example: false },
-          is_customizable: { type: 'boolean', example: false },
-          sizes: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                name: { type: 'string', example: 'Large' },
-                price: { type: 'number', example: 2.50 },
-                is_default: { type: 'boolean', example: false },
-              },
-            },
+          id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Unique identifier for the item',
           },
-          created_at: { type: 'string', format: 'date-time' },
-          updated_at: { type: 'string', format: 'date-time' },
+          business_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Business ID that owns this item',
+          },
+          name: {
+            type: 'string',
+            example: 'Margherita Pizza',
+            description: 'Name of the item',
+          },
+          description: {
+            type: 'string',
+            example: 'Classic cheese pizza with fresh basil and mozzarella',
+            description: 'Detailed description of the item',
+          },
+          sort_order: {
+            type: 'integer',
+            example: 1,
+            description: 'Display order for sorting items',
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this item is active and visible',
+          },
+          base_price: {
+            type: 'number',
+            minimum: 0,
+            example: 12.99,
+            description: 'Base price of the item. Used ONLY when is_sizeable is false. Ignored when is_sizeable is true (use ItemSize prices instead).',
+          },
+          category_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439012',
+            description: 'ID of the category this item belongs to',
+          },
+          image: {
+            type: 'string',
+            example: 'https://cloudinary.com/item.jpg',
+            description: 'URL of the item image',
+          },
+          image_public_id: {
+            type: 'string',
+            example: 'xrttech/items/item123',
+            description: 'Cloudinary public ID for image management and deletion',
+          },
+          is_available: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this item is currently available for ordering',
+          },
+          is_signature: {
+            type: 'boolean',
+            example: false,
+            description: 'Whether this is a signature/highlighted item',
+          },
+          max_per_order: {
+            type: 'integer',
+            minimum: 1,
+            example: 10,
+            description: 'Maximum quantity that can be ordered in a single order',
+          },
+          is_sizeable: {
+            type: 'boolean',
+            example: false,
+            description: 'Whether this item supports multiple sizes. If true: base_price is ignored, sizes are managed via /items/:itemId/sizes endpoint, at least one size must exist, default_size_id must reference a size of this item.',
+          },
+          is_customizable: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this item can be customized with modifiers',
+          },
+          default_size_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439013',
+            description: 'ID of the default ItemSize (only used when is_sizeable is true). Must reference an ItemSize that belongs to this item.',
+          },
+          modifier_groups: {
+            type: 'array',
+            description: 'Modifier groups assigned to this item. Each assignment can include item-specific configuration and per-modifier overrides that apply ONLY to this item (never affecting other items or global modifier/group settings).',
+            items: { $ref: '#/components/schemas/ItemModifierGroupAssignment' },
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+            description: 'Timestamp when the item was created',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+            description: 'Timestamp when the item was last updated',
+          },
         },
       },
       Customer: {
@@ -1243,9 +1335,700 @@ All responses follow a consistent format:
           notes: { type: 'string', example: 'Processed successfully' },
         },
       },
+      QuantityLevel: {
+        type: 'object',
+        required: ['quantity'],
+        properties: {
+          quantity: {
+            type: 'integer',
+            minimum: 1,
+            example: 2,
+            description: 'Quantity value (e.g., 1, 2, 3)',
+          },
+          name: {
+            type: 'string',
+            example: 'Normal',
+            description: 'Display name for this quantity level (e.g., Light, Normal, Extra)',
+          },
+          price: {
+            type: 'number',
+            example: 0,
+            description: 'Additional price for this quantity level',
+          },
+          is_default: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this is the default quantity level (only one can be default)',
+          },
+          display_order: {
+            type: 'integer',
+            minimum: 0,
+            example: 1,
+            description: 'Order for displaying this quantity level',
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this quantity level is active',
+          },
+        },
+      },
+      PriceDelta: {
+        type: 'object',
+        required: ['sizeCode', 'priceDelta'],
+        properties: {
+          sizeCode: {
+            type: 'string',
+            enum: ['S', 'M', 'L', 'XL', 'XXL'],
+            example: 'M',
+            description: 'Size code for pricing',
+          },
+          priceDelta: {
+            type: 'number',
+            example: 1.50,
+            description: 'Price delta (additional cost) for this size',
+          },
+        },
+      },
+      ModifierGroup: {
+        type: 'object',
+        required: ['name', 'display_type', 'min_select', 'max_select', 'business_id'],
+        properties: {
+          id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+          business_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Business ID that owns this modifier group',
+          },
+          name: {
+            type: 'string',
+            example: 'Pizza Toppings',
+            description: 'Name of the modifier group',
+          },
+          display_type: {
+            type: 'string',
+            enum: ['RADIO', 'CHECKBOX'],
+            example: 'CHECKBOX',
+            description: 'How modifiers are displayed: RADIO (single selection) or CHECKBOX (multiple selection)',
+          },
+          min_select: {
+            type: 'integer',
+            minimum: 0,
+            example: 0,
+            description: 'Minimum number of modifiers that must be selected',
+          },
+          max_select: {
+            type: 'integer',
+            minimum: 1,
+            example: 5,
+            description: 'Maximum number of modifiers that can be selected',
+          },
+          applies_per_quantity: {
+            type: 'boolean',
+            example: false,
+            description: 'Whether selection rules apply per quantity/item',
+          },
+          quantity_levels: {
+            type: 'array',
+            description: 'Group-level default quantity levels (e.g., Light, Normal, Extra). These are inherited by all modifiers in the group unless overridden.',
+            items: { $ref: '#/components/schemas/QuantityLevel' },
+          },
+          prices_by_size: {
+            type: 'array',
+            description: 'Group-level default pricing by size. These are inherited by all modifiers in the group unless overridden at modifier or item level.',
+            items: { $ref: '#/components/schemas/PriceDelta' },
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this modifier group is active',
+          },
+          sort_order: {
+            type: 'integer',
+            example: 1,
+            description: 'Display order for this modifier group',
+          },
+          created_at: { type: 'string', format: 'date-time', example: '2023-12-01T10:30:00Z' },
+          updated_at: { type: 'string', format: 'date-time', example: '2023-12-01T10:30:00Z' },
+        },
+      },
+      Modifier: {
+        type: 'object',
+        required: ['name', 'modifier_group_id'],
+        properties: {
+          id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Unique identifier for the modifier',
+          },
+          modifier_group_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'ID of the modifier group this modifier belongs to',
+          },
+          name: {
+            type: 'string',
+            example: 'Pepperoni',
+            description: 'Name of the modifier',
+          },
+          is_default: {
+            type: 'boolean',
+            example: false,
+            description: 'Whether this modifier is selected by default',
+          },
+          max_quantity: {
+            type: 'integer',
+            minimum: 1,
+            example: 3,
+            description: 'Maximum quantity allowed for this modifier',
+          },
+          display_order: {
+            type: 'integer',
+            minimum: 0,
+            example: 1,
+            description: 'Order for displaying this modifier within the group',
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this modifier is active',
+          },
+          sides_config: {
+            type: 'object',
+            description: 'Sides configuration for this modifier. Controls whether this modifier supports sides selection (LEFT, RIGHT, WHOLE)',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                example: true,
+                description: 'Whether sides are enabled for this modifier',
+              },
+              allowed_sides: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['LEFT', 'RIGHT', 'WHOLE'],
+                },
+                example: ['LEFT', 'RIGHT', 'WHOLE'],
+                description: 'Array of allowed sides for this modifier. Valid values: LEFT, RIGHT, WHOLE',
+              },
+            },
+          },
+          created_at: { type: 'string', format: 'date-time', example: '2023-12-01T10:30:00Z' },
+          updated_at: { type: 'string', format: 'date-time', example: '2023-12-01T10:30:00Z' },
+        },
+      },
+      ItemSize: {
+        type: 'object',
+        required: ['item_id', 'restaurant_id', 'name', 'code', 'price'],
+        properties: {
+          id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439013',
+            description: 'Unique identifier for the item size',
+          },
+          item_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'ID of the item this size belongs to',
+          },
+          restaurant_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Business/Restaurant ID that owns this item size',
+          },
+          name: {
+            type: 'string',
+            example: 'Large',
+            description: 'Display name of the size (e.g., Small, Medium, Large, Extra Large)',
+          },
+          code: {
+            type: 'string',
+            example: 'L',
+            description: 'Unique code for this size within the item (e.g., S, M, L, XL, XXL or custom codes). Used for modifier pricing mapping.',
+          },
+          price: {
+            type: 'number',
+            minimum: 0,
+            example: 15.99,
+            description: 'Price for this size (replaces base_price when is_sizeable is true)',
+          },
+          display_order: {
+            type: 'integer',
+            minimum: 0,
+            example: 2,
+            description: 'Display order for sorting sizes',
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this size is active and available',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+            description: 'Timestamp when the size was created',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+            description: 'Timestamp when the size was last updated',
+          },
+        },
+      },
+      ItemModifierPriceOverride: {
+        type: 'object',
+        required: ['sizeCode', 'priceDelta'],
+        properties: {
+          sizeCode: {
+            type: 'string',
+            enum: ['S', 'M', 'L', 'XL', 'XXL'],
+            example: 'L',
+            description: 'Size code that should match ItemSize.code for the item. Used to map modifier pricing to specific item sizes.',
+          },
+          priceDelta: {
+            type: 'number',
+            example: 2.50,
+            description: 'Item-level price delta for this size (overrides group and modifier defaults)',
+          },
+        },
+      },
+      ItemModifierQuantityLevelOverride: {
+        type: 'object',
+        required: ['quantity'],
+        properties: {
+          quantity: {
+            type: 'integer',
+            minimum: 1,
+            example: 2,
+            description: 'Quantity value for this level',
+          },
+          name: {
+            type: 'string',
+            example: 'Extra',
+            description: 'Display name for this quantity level',
+          },
+          price: {
+            type: 'number',
+            example: 1.00,
+            description: 'Additional price for this quantity level',
+          },
+          is_default: {
+            type: 'boolean',
+            example: false,
+            description: 'Whether this is the default quantity level (only one can be default)',
+          },
+          display_order: {
+            type: 'integer',
+            minimum: 0,
+            example: 1,
+            description: 'Display order for this quantity level',
+          },
+          is_active: {
+            type: 'boolean',
+            example: true,
+            description: 'Whether this quantity level is active',
+          },
+        },
+      },
+      ItemModifierOverride: {
+        type: 'object',
+        required: ['modifier_id'],
+        description: 'Item-level override for a specific modifier. These overrides apply ONLY to the item and do not affect the modifier or modifier group globally.',
+        properties: {
+          modifier_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439012',
+            description: 'ID of the modifier to override (must belong to the modifier group)',
+          },
+          max_quantity: {
+            type: 'integer',
+            minimum: 1,
+            example: 5,
+            description: 'Override max_quantity for this modifier (item-level only, optional)',
+          },
+          is_default: {
+            type: 'boolean',
+            example: true,
+            description: 'Override is_default flag for this modifier (item-level only, optional)',
+          },
+          prices_by_size: {
+            type: 'array',
+            description: 'Item-level price deltas per size for this modifier (overrides group and modifier defaults, optional)',
+            items: { $ref: '#/components/schemas/ItemModifierPriceOverride' },
+          },
+          quantity_levels: {
+            type: 'array',
+            description: 'Item-level quantity levels for this modifier (overrides group and modifier defaults, optional)',
+            items: { $ref: '#/components/schemas/ItemModifierQuantityLevelOverride' },
+          },
+        },
+      },
+      ItemModifierGroupAssignment: {
+        type: 'object',
+        required: ['modifier_group_id', 'display_order'],
+        description: 'Assignment of a modifier group to an item, with optional per-modifier overrides',
+        properties: {
+          modifier_group_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'ID of the modifier group to assign to this item',
+          },
+          display_order: {
+            type: 'integer',
+            minimum: 0,
+            example: 1,
+            description: 'Display order of this modifier group within the item',
+          },
+          modifier_overrides: {
+            type: 'array',
+            description: 'Item-level overrides for individual modifiers within this group. These overrides apply ONLY to this item and never affect the modifier or modifier group globally.',
+            items: { $ref: '#/components/schemas/ItemModifierOverride' },
+          },
+        },
+      },
+      ImportValidationError: {
+        type: 'object',
+        properties: {
+          file: {
+            type: 'string',
+            example: 'items.csv',
+            description: 'Source file name',
+          },
+          row: {
+            type: 'integer',
+            example: 5,
+            description: 'Row number in the file (1-indexed, excluding header)',
+          },
+          entity: {
+            type: 'string',
+            example: 'Item',
+            description: 'Entity type (Item, ItemSize, ModifierGroup, Modifier, ItemModifierOverride)',
+          },
+          field: {
+            type: 'string',
+            example: 'item_key',
+            description: 'Field name with the error',
+          },
+          message: {
+            type: 'string',
+            example: 'item_key is required',
+            description: 'Error message',
+          },
+          value: {
+            type: 'string',
+            example: '',
+            description: 'Invalid value (if any)',
+          },
+        },
+      },
+      ImportValidationWarning: {
+        type: 'object',
+        properties: {
+          file: {
+            type: 'string',
+            example: 'items.csv',
+            description: 'Source file name',
+          },
+          row: {
+            type: 'integer',
+            example: 3,
+            description: 'Row number in the file',
+          },
+          entity: {
+            type: 'string',
+            example: 'Item',
+            description: 'Entity type',
+          },
+          field: {
+            type: 'string',
+            example: 'business_id',
+            description: 'Field name with the warning',
+          },
+          message: {
+            type: 'string',
+            example: 'business_id mismatch. Using session business_id',
+            description: 'Warning message',
+          },
+          value: {
+            type: 'string',
+            example: 'old_business_id',
+            description: 'Value that triggered the warning',
+          },
+        },
+      },
+      ImportSession: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Unique identifier for the import session',
+          },
+          user_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'User ID who created the session',
+          },
+          business_id: {
+            type: 'string',
+            example: '507f1f77bcf86cd799439011',
+            description: 'Business ID for the import',
+          },
+          status: {
+            type: 'string',
+            enum: ['draft', 'validated', 'confirmed', 'discarded'],
+            example: 'validated',
+            description: 'Session status: draft (has errors), validated (no errors), confirmed (saved to DB), discarded',
+          },
+          parsedData: {
+            type: 'object',
+            description: 'Parsed import data (Items, ItemSizes, ModifierGroups, Modifiers, ItemModifierOverrides)',
+            properties: {
+              items: { type: 'array', items: { type: 'object' } },
+              itemSizes: { type: 'array', items: { type: 'object' } },
+              modifierGroups: { type: 'array', items: { type: 'object' } },
+              modifiers: { type: 'array', items: { type: 'object' } },
+              itemModifierOverrides: { type: 'array', items: { type: 'object' } },
+            },
+          },
+          validationErrors: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ImportValidationError' },
+            description: 'Blocking validation errors (must be fixed before saving)',
+          },
+          validationWarnings: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ImportValidationWarning' },
+            description: 'Non-blocking validation warnings',
+          },
+          originalFiles: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['items.csv', 'sizes.csv'],
+            description: 'Original file names uploaded',
+          },
+          expires_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-08T10:30:00Z',
+            description: 'Session expiration date (7 days from creation, auto-deleted after)',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+            example: '2023-12-01T10:30:00Z',
+          },
+        },
+      },
+      CreateModifierGroupRequest: {
+        type: 'object',
+        required: ['name', 'display_type', 'min_select', 'max_select'],
+        properties: {
+          name: { type: 'string', example: 'Pizza Toppings' },
+          display_type: { type: 'string', enum: ['RADIO', 'CHECKBOX'], example: 'CHECKBOX' },
+          min_select: { type: 'integer', minimum: 0, example: 0 },
+          max_select: { type: 'integer', minimum: 1, example: 5 },
+          applies_per_quantity: { type: 'boolean', example: false },
+          quantity_levels: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                quantity: { type: 'integer', minimum: 1, example: 2 },
+                name: { type: 'string', example: 'Normal' },
+                price: { type: 'number', example: 0 },
+                is_default: { type: 'boolean', example: true },
+                display_order: { type: 'integer', minimum: 0, example: 1 },
+                is_active: { type: 'boolean', example: true },
+              },
+            },
+          },
+          prices_by_size: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                sizeCode: { type: 'string', enum: ['S', 'M', 'L', 'XL', 'XXL'], example: 'M' },
+                priceDelta: { type: 'number', example: 1.50 },
+              },
+            },
+          },
+          is_active: { type: 'boolean', example: true },
+          sort_order: { type: 'integer', example: 1 },
+          business_id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+        },
+      },
+      UpdateModifierGroupRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', example: 'Pizza Toppings' },
+          display_type: { type: 'string', enum: ['RADIO', 'CHECKBOX'], example: 'CHECKBOX' },
+          min_select: { type: 'integer', minimum: 0, example: 0 },
+          max_select: { type: 'integer', minimum: 1, example: 5 },
+          applies_per_quantity: { type: 'boolean', example: false },
+          quantity_levels: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                quantity: { type: 'integer', minimum: 1, example: 2 },
+                name: { type: 'string', example: 'Normal' },
+                price: { type: 'number', example: 0 },
+                is_default: { type: 'boolean', example: true },
+                display_order: { type: 'integer', minimum: 0, example: 1 },
+                is_active: { type: 'boolean', example: true },
+              },
+            },
+          },
+          prices_by_size: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                sizeCode: { type: 'string', enum: ['S', 'M', 'L', 'XL', 'XXL'], example: 'M' },
+                priceDelta: { type: 'number', example: 1.50 },
+              },
+            },
+          },
+          is_active: { type: 'boolean', example: true },
+          sort_order: { type: 'integer', example: 1 },
+        },
+      },
+      CreateModifierRequest: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', example: 'Pepperoni' },
+          is_default: { type: 'boolean', example: false },
+          max_quantity: { type: 'integer', minimum: 1, example: 3 },
+          display_order: { type: 'integer', minimum: 0, example: 1 },
+          is_active: { type: 'boolean', example: true },
+        },
+      },
+      UpdateModifierRequest: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', example: 'Pepperoni' },
+          is_default: { type: 'boolean', example: false },
+          max_quantity: { type: 'integer', minimum: 1, example: 3 },
+          display_order: { type: 'integer', minimum: 0, example: 1 },
+          is_active: { type: 'boolean', example: true },
+        },
+      },
     },
   },
   paths: {
+    '/permissions': {
+      get: {
+        summary: 'List all permissions',
+        tags: ['Permissions'],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Permissions list',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/SuccessResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/roles': {
+      get: {
+        summary: 'List all roles',
+        tags: ['Roles'],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Roles list',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PaginatedResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create a role',
+        tags: ['Roles'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'permissions'],
+                properties: {
+                  name: { type: 'string' },
+                  displayName: { type: 'string' },
+                  description: { type: 'string' },
+                  permissions: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Role created',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } },
+          },
+        },
+      },
+    },
+    '/roles/{id}': {
+      get: {
+        summary: 'Get role details',
+        tags: ['Roles'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Role details', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } } },
+      },
+      put: {
+        summary: 'Update role',
+        tags: ['Roles'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  displayName: { type: 'string' },
+                  description: { type: 'string' },
+                  permissions: { type: 'array', items: { type: 'string' } },
+                }
+              }
+            }
+          }
+        },
+        responses: { 200: { description: 'Role updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } } },
+      },
+      delete: {
+        summary: 'Delete role',
+        tags: ['Roles'],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Role deleted', content: { 'application/json': { schema: { $ref: '#/components/schemas/SuccessResponse' } } } } },
+      },
+    },
 
     '/api/v1/categories': {
       get: {
@@ -1258,7 +2041,15 @@ All responses follow a consistent format:
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/SuccessResponse',
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Categories retrieved successfully' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Category' },
+                    },
+                  },
                 },
               },
             },
@@ -1296,8 +2087,21 @@ All responses follow a consistent format:
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/SuccessResponse',
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Category created successfully' },
+                    data: { $ref: '#/components/schemas/Category' },
+                  },
                 },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },
@@ -1313,6 +2117,45 @@ All responses follow a consistent format:
       },
     },
     '/api/v1/categories/{id}': {
+      get: {
+        summary: 'Get category by ID',
+        tags: ['Categories'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Category ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Category retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Category retrieved successfully' },
+                    data: { $ref: '#/components/schemas/Category' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Category not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
       put: {
         summary: 'Update category',
         tags: ['Categories'],
@@ -1348,8 +2191,21 @@ All responses follow a consistent format:
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/SuccessResponse',
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Category updated successfully' },
+                    data: { $ref: '#/components/schemas/Category' },
+                  },
                 },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },
@@ -1389,7 +2245,11 @@ All responses follow a consistent format:
             content: {
               'application/json': {
                 schema: {
-                  $ref: '#/components/schemas/SuccessResponse',
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Category deleted successfully' },
+                  },
                 },
               },
             },
@@ -1447,7 +2307,26 @@ All responses follow a consistent format:
             description: 'Items retrieved successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SuccessResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Items retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        items: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/Item' },
+                        },
+                        total: { type: 'integer', example: 100 },
+                        page: { type: 'integer', example: 1 },
+                        limit: { type: 'integer', example: 10 },
+                        totalPages: { type: 'integer', example: 10 },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -1477,9 +2356,13 @@ All responses follow a consistent format:
                   max_per_order: { type: 'integer' },
                   is_sizeable: { type: 'boolean' },
                   is_customizable: { type: 'boolean' },
-                  sizes: {
+                  default_size_id: {
                     type: 'string',
-                    description: 'JSON array of size objects: [{"name": "string", "price": number, "is_default": boolean}]',
+                    description: 'ID of the default ItemSize (optional, can be set after creating sizes via POST /items/:itemId/sizes). Only used when is_sizeable is true.',
+                  },
+                  modifier_groups: {
+                    type: 'string',
+                    description: 'JSON array of modifier group assignments with optional per-modifier overrides: [{"modifier_group_id": "string", "display_order": number, "modifier_overrides": [{"modifier_id": "string", "max_quantity": number, "is_default": boolean, "prices_by_size": [{"sizeCode": "S|M|L|XL|XXL", "priceDelta": number}], "quantity_levels": [{"quantity": number, "name": string, "price": number, "is_default": boolean}]}]}]. Note: Sides configuration is now managed at the Modifier level, not at the Item-ModifierGroup level.',
                   },
                 },
               },
@@ -1491,7 +2374,22 @@ All responses follow a consistent format:
             description: 'Item created successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SuccessResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item created successfully' },
+                    data: { $ref: '#/components/schemas/Item' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },
@@ -1516,7 +2414,22 @@ All responses follow a consistent format:
             description: 'Item details',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SuccessResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item retrieved successfully' },
+                    data: { $ref: '#/components/schemas/Item' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Item not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },
@@ -1552,9 +2465,13 @@ All responses follow a consistent format:
                   max_per_order: { type: 'integer' },
                   is_sizeable: { type: 'boolean' },
                   is_customizable: { type: 'boolean' },
-                  sizes: {
+                  default_size_id: {
                     type: 'string',
-                    description: 'JSON array of size objects: [{"name": "string", "price": number, "is_default": boolean}]',
+                    description: 'ID of the default ItemSize (optional). Only used when is_sizeable is true. Must reference an ItemSize that belongs to this item.',
+                  },
+                  modifier_groups: {
+                    type: 'string',
+                    description: 'JSON array of modifier group assignments with optional per-modifier overrides: [{"modifier_group_id": "string", "display_order": number, "modifier_overrides": [{"modifier_id": "string", "max_quantity": number, "is_default": boolean, "prices_by_size": [{"sizeCode": "S|M|L|XL|XXL", "priceDelta": number}], "quantity_levels": [{"quantity": number, "name": string, "price": number, "is_default": boolean}]}]}]. Note: Sides configuration is now managed at the Modifier level, not at the Item-ModifierGroup level.',
                   },
                 },
               },
@@ -1566,7 +2483,30 @@ All responses follow a consistent format:
             description: 'Item updated successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SuccessResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item updated successfully' },
+                    data: { $ref: '#/components/schemas/Item' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Item not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },
@@ -1589,7 +2529,603 @@ All responses follow a consistent format:
             description: 'Item deleted successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/SuccessResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Item not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/items/{itemId}/sizes': {
+      get: {
+        summary: 'Get all sizes for an item',
+        tags: ['Item Sizes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'itemId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item',
+          },
+          {
+            in: 'query',
+            name: 'is_active',
+            schema: { type: 'boolean' },
+            description: 'Filter by active status',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item sizes retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item sizes retrieved successfully' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/ItemSize' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create item size',
+        tags: ['Item Sizes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'itemId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'code', 'price'],
+                properties: {
+                  name: {
+                    type: 'string',
+                    example: 'Large',
+                    description: 'Display name of the size',
+                  },
+                  code: {
+                    type: 'string',
+                    example: 'L',
+                    description: 'Unique code for this size within the item (e.g., S, M, L, XL, XXL). Used for modifier pricing mapping.',
+                  },
+                  price: {
+                    type: 'number',
+                    minimum: 0,
+                    example: 15.99,
+                    description: 'Price for this size',
+                  },
+                  display_order: {
+                    type: 'integer',
+                    minimum: 0,
+                    example: 2,
+                    description: 'Display order for sorting',
+                  },
+                  is_active: {
+                    type: 'boolean',
+                    example: true,
+                    description: 'Whether this size is active',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Item size created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item size created successfully' },
+                    data: { $ref: '#/components/schemas/ItemSize' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/items/{itemId}/sizes/{id}': {
+      get: {
+        summary: 'Get item size by ID',
+        tags: ['Item Sizes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'itemId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item',
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item size',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item size retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item size retrieved successfully' },
+                    data: { $ref: '#/components/schemas/ItemSize' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Item size not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        summary: 'Update item size',
+        tags: ['Item Sizes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'itemId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item',
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item size',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Large' },
+                  code: {
+                    type: 'string',
+                    example: 'L',
+                    description: 'Unique code for this size (must be unique per item)',
+                  },
+                  price: { type: 'number', minimum: 0, example: 16.99 },
+                  display_order: { type: 'integer', minimum: 0, example: 2 },
+                  is_active: { type: 'boolean', example: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Item size updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item size updated successfully' },
+                    data: { $ref: '#/components/schemas/ItemSize' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Item size not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        summary: 'Delete item size',
+        tags: ['Item Sizes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'itemId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item',
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ID of the item size',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item size deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Item size deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error (e.g., cannot delete default size or last size)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Item size not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/import/parse': {
+      post: {
+        summary: 'Parse and validate import file (CSV or ZIP)',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['file'],
+                properties: {
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'CSV file or ZIP containing CSV files',
+                  },
+                  business_id: {
+                    type: 'string',
+                    description: 'Business ID for the import',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Import parsed and validated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import parsed and validated' },
+                    data: { $ref: '#/components/schemas/ImportSession' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Forbidden - Super Admin only',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/import/sessions': {
+      get: {
+        summary: 'List import sessions',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'business_id',
+            schema: { type: 'string' },
+            description: 'Filter by business ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Import sessions retrieved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import sessions retrieved' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/ImportSession' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          403: {
+            description: 'Forbidden - Super Admin only',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/import/sessions/{id}': {
+      get: {
+        summary: 'Get import session by ID',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Import session ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Import session retrieved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import session retrieved' },
+                    data: { $ref: '#/components/schemas/ImportSession' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Import session not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        summary: 'Update import session (save draft)',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  parsedData: { type: 'object', description: 'Updated parsed data' },
+                  status: { type: 'string', enum: ['draft', 'validated'], example: 'draft' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Import session updated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import session updated' },
+                    data: { $ref: '#/components/schemas/ImportSession' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        summary: 'Discard import session',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Import session discarded',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import session discarded' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/import/sessions/{id}/save': {
+      post: {
+        summary: 'Final save to database (transactional)',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Import saved to database successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Import saved to database successfully' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error - cannot save with errors',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/import/sessions/{id}/errors': {
+      get: {
+        summary: 'Download validation errors as CSV',
+        tags: ['Import'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'CSV file with validation errors',
+            content: {
+              'text/csv': {
+                schema: {
+                  type: 'string',
+                },
               },
             },
           },
@@ -4092,6 +5628,493 @@ All responses follow a consistent format:
                     data: { $ref: '#/components/schemas/Withdraw' },
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/modifier-groups': {
+      get: {
+        summary: 'Get all modifier groups',
+        tags: ['Modifier Groups'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'business_id',
+            schema: { type: 'string' },
+            description: 'Filter by business ID',
+          },
+          {
+            in: 'query',
+            name: 'name',
+            schema: { type: 'string' },
+            description: 'Search by name',
+          },
+          {
+            in: 'query',
+            name: 'is_active',
+            schema: { type: 'boolean' },
+            description: 'Filter by active status',
+          },
+          {
+            in: 'query',
+            name: 'display_type',
+            schema: { type: 'string', enum: ['RADIO', 'CHECKBOX'] },
+            description: 'Filter by display type',
+          },
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+            description: 'Page number',
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 20 },
+            description: 'Items per page',
+          },
+          {
+            in: 'query',
+            name: 'orderBy',
+            schema: { type: 'string', default: 'sort_order' },
+            description: 'Field to order by',
+          },
+          {
+            in: 'query',
+            name: 'sortedBy',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
+            description: 'Sort order',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Modifier groups retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier groups retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        modifierGroups: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/ModifierGroup' },
+                        },
+                        total: { type: 'integer', example: 10 },
+                        page: { type: 'integer', example: 1 },
+                        limit: { type: 'integer', example: 20 },
+                        totalPages: { type: 'integer', example: 1 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create a new modifier group',
+        tags: ['Modifier Groups'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateModifierGroupRequest' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Modifier group created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier group created successfully' },
+                    data: { $ref: '#/components/schemas/ModifierGroup' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Insufficient permissions',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/modifier-groups/{id}': {
+      get: {
+        summary: 'Get modifier group by ID',
+        tags: ['Modifier Groups'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Modifier group retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier group retrieved successfully' },
+                    data: { $ref: '#/components/schemas/ModifierGroup' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier group not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      put: {
+        summary: 'Update modifier group',
+        tags: ['Modifier Groups'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateModifierGroupRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Modifier group updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier group updated successfully' },
+                    data: { $ref: '#/components/schemas/ModifierGroup' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier group not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        summary: 'Delete modifier group (soft delete)',
+        tags: ['Modifier Groups'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Modifier group deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier group deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Cannot delete modifier group that is assigned to items',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier group not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/modifier-groups/{groupId}/modifiers': {
+      get: {
+        summary: 'Get all modifiers in a modifier group',
+        tags: ['Modifiers'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'groupId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Modifiers retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifiers retrieved successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        modifiers: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/Modifier' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: 'Create a new modifier in a modifier group',
+        tags: ['Modifiers'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'groupId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/CreateModifierRequest' },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Modifier created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier created successfully' },
+                    data: { $ref: '#/components/schemas/Modifier' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Insufficient permissions',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier group not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/modifier-groups/{groupId}/modifiers/{id}': {
+      put: {
+        summary: 'Update a modifier',
+        tags: ['Modifiers'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'groupId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/UpdateModifierRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Modifier updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier updated successfully' },
+                    data: { $ref: '#/components/schemas/Modifier' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        summary: 'Delete a modifier (soft delete)',
+        tags: ['Modifiers'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'groupId',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier group ID',
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Modifier ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Modifier deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Modifier deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Modifier not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },

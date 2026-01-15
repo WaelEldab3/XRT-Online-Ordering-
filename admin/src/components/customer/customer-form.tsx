@@ -24,9 +24,9 @@ import { defaultValues } from './constants';
 const CustomerForm = ({ initialValues }: CustomerFormProps) => {
   const { t } = useTranslation(['form', 'common']);
   const router = useRouter();
-  const { mutate: createCustomer, isLoading: creating } =
+  const { mutate: createCustomer, isPending: creating } =
     useCreateCustomerMutation();
-  const { mutate: updateCustomer, isLoading: updating } =
+  const { mutate: updateCustomer, isPending: updating } =
     useUpdateCustomerMutation();
 
 

@@ -15,14 +15,14 @@ import {
   hasAccess,
   setAuthCredentials,
 } from '@/utils/auth-utils';
-import { Permission } from '@/types';
+import { UserRoleEnum } from '@/types';
 import { useRegisterMutation } from '@/data/user';
 
 type FormValues = {
   name: string;
   email: string;
   password: string;
-  permission: Permission;
+  permission: UserRoleEnum;
 };
 const registrationFormSchema = yup.object().shape({
   name: yup.string().required('form:error-name-required'),
@@ -35,7 +35,7 @@ const registrationFormSchema = yup.object().shape({
 });
 const RegistrationForm = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { mutate: registerUser, isLoading: loading } = useRegisterMutation();
+  const { mutate: registerUser, isPending: loading } = useRegisterMutation();
 
   const {
     register,
@@ -45,7 +45,7 @@ const RegistrationForm = () => {
   } = useForm({
     resolver: yupResolver(registrationFormSchema),
     defaultValues: {
-      permission: Permission.StoreOwner,
+      permission: UserRoleEnum.StoreOwner,
     },
   });
   const router = useRouter();
@@ -74,66 +74,75 @@ const RegistrationForm = () => {
   }
 
   return (
-    <>
+    <div className="space-y-5">
+      {errorMessage && (
+        <Alert
+          message={errorMessage}
+          variant="error"
+          closeable={true}
+          className="mb-4"
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
       <form
         onSubmit={handleSubmit(
           //@ts-ignore
           onSubmit,
         )}
         noValidate
+        className="space-y-4"
       >
         <Input
           label={t('form:input-label-name')}
           {...register('name')}
           variant="outline"
-          className="mb-4"
+          placeholder="Enter your full name"
           error={t(errors?.name?.message!)}
+          className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
         />
         <Input
           label={t('form:input-label-email')}
           {...register('email')}
           type="email"
           variant="outline"
-          className="mb-4"
+          placeholder="Enter your email address"
           error={t(errors?.email?.message!)}
+          className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
         />
         <PasswordInput
           label={t('form:input-label-password')}
           {...register('password')}
           error={t(errors?.password?.message!)}
           variant="outline"
-          className="mb-4"
+          placeholder="Create a password"
+          className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
         />
-        <Button className="w-full" loading={loading} disabled={loading}>
-          {t('form:text-register')}
+        <Button
+          className="mt-6 h-11 w-full text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+          loading={loading}
+          disabled={loading}
+        >
+          {t('form:text-register') || 'Create Account'}
         </Button>
-
-        {errorMessage ? (
-          <Alert
-            message={t(errorMessage)}
-            variant="error"
-            closeable={true}
-            className="mt-5"
-            onClose={() => setErrorMessage(null)}
-          />
-        ) : null}
       </form>
-      <div className="relative flex flex-col items-center justify-center mt-8 mb-6 text-sm text-heading sm:mt-11 sm:mb-8">
-        <hr className="w-full" />
-        <span className="start-2/4 -ms-4 absolute -top-2.5 bg-light px-2">
-          {t('common:text-or')}
-        </span>
+      <div className="relative flex flex-col items-center justify-center pt-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative bg-white px-4 text-sm text-gray-500">
+          {t('common:text-or') || 'or'}
+        </div>
       </div>
-      <div className="text-sm text-center text-body sm:text-base">
-        {t('form:text-already-account')}{' '}
+      <div className="text-center text-sm text-gray-600 sm:text-base">
+        {t('form:text-already-account') || 'Already have an account?'}{' '}
         <Link
           href={Routes.login}
-          className="font-semibold underline transition-colors duration-200 ms-1 text-accent hover:text-accent-hover hover:no-underline focus:text-accent-700 focus:no-underline focus:outline-none"
+          className="font-semibold text-accent transition-colors duration-200 hover:text-accent-hover focus:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 rounded"
         >
-          {t('form:button-label-login')}
+          {t('form:button-label-login') || 'Sign In'}
         </Link>
       </div>
-    </>
+    </div>
   );
 };
 

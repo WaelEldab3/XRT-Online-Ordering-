@@ -23,19 +23,26 @@ const Footer: React.FC<IFooterProp> = ({ className }) => {
               className="font-medium text-heading"
               href={siteLink ?? Routes?.dashboard}
             >
-              {siteTitle}
+              XRT
             </Link>
-            . {copyrightText}{' '}
+            . {copyrightText || 'All rights reserved.'}
             {externalText ? (
-              <Link
-                className="font-medium text-heading"
-                href={externalLink ?? Routes?.dashboard}
-              >
-                {externalText}
-              </Link>
+              <>
+                {' '}
+                <Link
+                  className="font-medium text-heading"
+                  href={externalLink ?? Routes?.dashboard}
+                >
+                  {externalText}
+                </Link>
+              </>
             ) : (
               ''
             )}
+            {' '}
+            <span className="text-gray-500">
+              Powered by <span className="font-semibold text-gray-700">XRT</span>
+            </span>
           </span>
           <div className="flex space-x-6 text-sm font-medium text-body sm:justify-center">
             {process.env.NEXT_PUBLIC_VERSION}

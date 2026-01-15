@@ -20,10 +20,10 @@ const UserRoleAssignmentView = () => {
   const { t } = useTranslation();
   const { data: userId } = useModalState();
   const { closeModal } = useModalAction();
-  const { mutate: assignRole, isLoading: assigning } = useAssignRoleMutation();
-  const { mutate: removeRole, isLoading: removing } = useRemoveRoleMutation();
+  const { mutate: assignRole, isPending: assigning } = useAssignRoleMutation();
+  const { mutate: removeRole, isPending: removing } = useRemoveRoleMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
-  const { data: user, isLoading: loadingUser } = useUserQuery({ id: userId });
+  const { data: user, isPending: loadingUser } = useUserQuery({ id: userId });
 
   const {
     control,

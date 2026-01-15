@@ -1,5 +1,5 @@
 import Router, { useRouter } from 'next/router';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { Routes } from '@/config/routes';
@@ -18,7 +18,8 @@ export const useCreateCategoryMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(categoryClient.create, {
+  return useMutation({
+    mutationFn: categoryClient.create,
     onSuccess: () => {
       Router.push(Routes.category.list, undefined, {
         locale: Config.defaultLanguage,
@@ -31,7 +32,7 @@ export const useCreateCategoryMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.CATEGORIES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CATEGORIES] });
     },
   });
 };
@@ -40,13 +41,14 @@ export const useDeleteCategoryMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(categoryClient.delete, {
+  return useMutation({
+    mutationFn: categoryClient.delete,
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.CATEGORIES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CATEGORIES] });
     },
   });
 };
@@ -55,7 +57,8 @@ export const useUpdateCategoryMutation = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  return useMutation(categoryClient.update, {
+  return useMutation({
+    mutationFn: categoryClient.update,
     onSuccess: async (data, variables) => {
       // Update the cache immediately with the returned data
       const updatedCategory = (data as any)?.data || data;
@@ -66,8 +69,7 @@ export const useUpdateCategoryMutation = () => {
           // Backend structure usually returns { data: Category } or just Category
           // We try to match what useCategoryQuery expects
           return { data: updatedCategory };
-        }
-      );
+        });
       toast.success(t('common:successfully-updated'));
       router.push(Routes.category.list, undefined, {
         locale: Config.defaultLanguage,
@@ -78,21 +80,17 @@ export const useUpdateCategoryMutation = () => {
     },
     // Always refetch after error or success to ensure data consistency
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.CATEGORIES);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CATEGORIES] });
     },
   });
 };
 
 export const useCategoryQuery = ({ slug, id, language }: GetParams & { id?: string }) => {
-  const { data, error, isLoading } = useQuery<Category, Error>(
-    [API_ENDPOINTS.CATEGORIES, { slug, id, language }],
-    () => categoryClient.get({ slug, id, language }),
-    {
-      enabled: Boolean(id),
-    }
-  );
-
-  // Handle backend response format
+  const { data, error, isPending: isLoading } = useQuery<Category, Error>({
+    queryKey: [API_ENDPOINTS.CATEGORIES, { slug, id, language }],
+    queryFn: () => categoryClient.get({ slug, id, language }),
+    enabled: Boolean(id || slug),
+  });
   let category = (data as any)?.data || data;
 
   if (category && category.description && !category.details) {
@@ -107,16 +105,12 @@ export const useCategoryQuery = ({ slug, id, language }: GetParams & { id?: stri
 };
 
 export const useCategoriesQuery = (options: Partial<CategoryQueryOptions>) => {
-  const { data, error, isLoading } = useQuery<CategoryPaginator, Error>(
-    [API_ENDPOINTS.CATEGORIES, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<CategoryPaginator, Error>({
+    queryKey: [API_ENDPOINTS.CATEGORIES, options],
+    queryFn: ({ queryKey, pageParam }) =>
       categoryClient.paginated(Object.assign({}, queryKey[1], pageParam)),
-    {
-      keepPreviousData: true,
-    }
-  );
-
-  // Handle backend response format
+    placeholderData: (previousData) => previousData,
+  });
   const categories = (data as any)?.data ?? [];
   const paginatorInfo = (data as any)?.paginatorInfo ?? mapPaginatorData(data);
 

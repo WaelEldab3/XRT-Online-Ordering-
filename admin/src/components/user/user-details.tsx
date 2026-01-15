@@ -19,7 +19,7 @@ import { RESPONSIVE_WIDTH } from '@/utils/constants';
 
 const UserDetails: React.FC = () => {
   const { t } = useTranslation('common');
-  const { data, isLoading: loading } = useMeQuery();
+  const { data, isPending: loading } = useMeQuery();
   const phoneNumber = useFormatPhoneNumber({
     customer_contact: data?.profile?.contact as string,
   });

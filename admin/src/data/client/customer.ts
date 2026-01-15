@@ -14,7 +14,6 @@ export const customerClient = {
     paginatorInfo: MappedPaginatorInfo;
   }> => {
     const response = await HttpClient.get<any>('/customers', { params });
-    // Handle backend response format: { success: true, data: { customers: [...], paginatorInfo: {...} } }
     return response?.data || response;
   },
 

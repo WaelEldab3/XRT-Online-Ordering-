@@ -141,6 +141,8 @@
   "text-disabled": "Disabled",
   "text-active": "Active",
   "text-inactive": "Inactive",
+  "is-default": "Default",
+  "is-active": "Active",
   "text-available": "Available",
   "text-products": "Products",
   "text-total-products": "Total Products",

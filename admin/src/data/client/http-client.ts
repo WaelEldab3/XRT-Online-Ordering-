@@ -16,8 +16,6 @@ const Axios = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-// Change request data/error
 Axios.interceptors.request.use((config) => {
   const { token } = getAuthCredentials();
 
@@ -40,8 +38,6 @@ Axios.interceptors.request.use((config) => {
 
   return config;
 });
-
-// Change response data/error here
 Axios.interceptors.response.use(
   (response) => response,
   async (error) => {

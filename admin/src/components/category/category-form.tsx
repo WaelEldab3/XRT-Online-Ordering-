@@ -7,7 +7,7 @@ import Card from '@/components/common/card';
 import Description from '@/components/ui/description';
 import { useRouter } from 'next/router';
 import ValidationError from '@/components/ui/form-validation-error';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Category, ItemProps } from '@/types';
 import { Routes } from '@/config/routes';
 import { Config } from '@/config';
@@ -81,6 +81,7 @@ export default function CreateOrUpdateCategoriesForm({
     control,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: initialValues
@@ -101,6 +102,26 @@ export default function CreateOrUpdateCategoriesForm({
       : defaultValues,
     resolver: yupResolver(categoryValidationSchema),
   });
+
+  // Reset form when initialValues changes (when data loads)
+  useEffect(() => {
+    if (initialValues) {
+      reset({
+        ...initialValues,
+        image: initialValues?.image
+          ? typeof initialValues.image === 'string'
+            ? [{ id: 1, thumbnail: initialValues.image, original: initialValues.image, file_name: (initialValues.image as any).split('/').pop() }]
+            : [initialValues.image]
+          : [],
+        icon: initialValues?.icon
+          ? typeof initialValues.icon === 'string'
+            ? [{ id: 1, thumbnail: initialValues.icon, original: initialValues.icon, file_name: initialValues.icon.split('/').pop() }]
+            : [initialValues.icon]
+          : [],
+        kitchen_section_id: kitchenSectionOptions.find((opt: any) => opt.value === initialValues.kitchen_section_id),
+      });
+    }
+  }, [initialValues, reset, kitchenSectionOptions]);
 
   const { openModal } = useModalAction();
   const { locale } = router;
@@ -126,9 +147,9 @@ export default function CreateOrUpdateCategoriesForm({
     });
   }, [generateName]);
 
-  const { mutate: createCategory, isLoading: creating } =
+  const { mutate: createCategory, isPending: creating } =
     useCreateCategoryMutation();
-  const { mutate: updateCategory, isLoading: updating } =
+  const { mutate: updateCategory, isPending: updating } =
     useUpdateCategoryMutation();
 
   const onSubmit = async (values: any) => {

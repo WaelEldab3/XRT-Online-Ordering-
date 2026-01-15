@@ -28,7 +28,7 @@ export default function TransferShopOwnershipPage() {
 
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useShopQuery({
     slug: shop as string,

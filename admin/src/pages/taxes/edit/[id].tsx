@@ -11,7 +11,7 @@ import { useTranslation } from 'next-i18next';
 export default function UpdateTaxPage() {
   const { t } = useTranslation();
   const { query } = useRouter();
-  const { data, isLoading: loading, error } = useTaxQuery(query.id as string);
+  const { data, isPending: loading, error } = useTaxQuery(query.id as string);
   if (loading) return <Loader text={t('common:text-loading')} />;
   if (error) return <ErrorMessage message={error.message} />;
 

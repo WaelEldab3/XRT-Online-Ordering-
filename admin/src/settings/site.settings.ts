@@ -7,26 +7,26 @@ import {
 import { Routes } from '@/config/routes';
 
 export const siteSettings = {
-  name: 'PickBazar',
-  description: '',
+  name: 'XRT Restaurant System',
+  description: 'Restaurant Management Platform',
   logo: {
     url: '/logo.svg',
-    alt: 'PickBazar',
+    alt: 'XRT Restaurant System',
     href: '/',
     width: 138,
     height: 34,
   },
   collapseLogo: {
     url: '/collapse-logo.svg',
-    alt: 'P',
+    alt: 'XRT',
     href: '/',
     width: 32,
     height: 32,
   },
   defaultLanguage: 'en',
   author: {
-    name: 'RedQ',
-    websiteUrl: 'https://redq.io',
+    name: 'XRT',
+    websiteUrl: '#',
     address: '',
   },
   headerLinks: [],

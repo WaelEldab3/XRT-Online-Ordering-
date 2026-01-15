@@ -5,7 +5,7 @@ import { useUpdateItemMutation } from '@/data/item';
 const ItemToggleView = () => {
     const { data } = useModalState();
     const { closeModal } = useModalAction();
-    const { mutate: updateItem, isLoading: loading } = useUpdateItemMutation();
+    const { mutate: updateItem, isPending: loading } = useUpdateItemMutation();
 
     function handleToggle() {
         updateItem(

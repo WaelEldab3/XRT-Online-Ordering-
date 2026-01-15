@@ -12,8 +12,8 @@ export default function ImportVariationOptions() {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
-  const { mutate: importVariationOptions, isLoading: loading } =
+  const shopId = (shopData as any)?.id!;
+  const { mutate: importVariationOptions, isPending: loading } =
     useImportVariationOptionsMutation();
 
   const handleDrop = async (acceptedFiles: any) => {

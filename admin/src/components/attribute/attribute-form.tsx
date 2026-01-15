@@ -42,7 +42,7 @@ export default function CreateOrUpdateAttributeForm({ initialValues }: IProps) {
     { enabled: !!shop },
   );
 
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const {
     register,
     handleSubmit,
@@ -57,9 +57,9 @@ export default function CreateOrUpdateAttributeForm({ initialValues }: IProps) {
     control,
     name: 'values',
   });
-  const { mutate: createAttribute, isLoading: creating } =
+  const { mutate: createAttribute, isPending: creating } =
     useCreateAttributeMutation();
-  const { mutate: updateAttribute, isLoading: updating } =
+  const { mutate: updateAttribute, isPending: updating } =
     useUpdateAttributeMutation();
   const onSubmit = (values: any) => {
     if (

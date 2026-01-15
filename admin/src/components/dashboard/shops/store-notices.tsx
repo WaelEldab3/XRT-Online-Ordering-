@@ -19,11 +19,11 @@ function StoreNotices() {
         limit: LIMIT,
         orderBy: 'effective_from',
         sortedBy: SortOrder.Asc,
-        'users.id': data?.id!,
+        'users.id': (data as any)?.id!,
       },
       {
-        enabled: Boolean(data?.id!),
-      }
+        enabled: Boolean((data as any)?.id!),
+      } as any
     );
   const sortedData = [...storeNotices].reverse();
 

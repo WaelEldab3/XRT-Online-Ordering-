@@ -8,10 +8,18 @@ import ErrorMessage from '@/components/ui/error-message';
 import PageLoader from '@/components/ui/page-loader/page-loader';
 import AppLoader from '@/components/ui/app-loader/app-loader';
 import { ToastContainer } from 'react-toastify';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { Hydrate } from 'react-query/hydration';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HydrationBoundary } from '@tanstack/react-query';
 import { useSettingsQuery } from '@/data/settings';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import dynamic from 'next/dynamic';
+
+const ReactQueryDevtools = dynamic(
+  () =>
+    import('@tanstack/react-query-devtools').then((d) => ({
+      default: d.ReactQueryDevtools,
+    })),
+  { ssr: false }
+);
 import { appWithTranslation } from 'next-i18next';
 import { ModalProvider } from '@/components/ui/modal/modal.context';
 import DefaultSeo from '@/components/ui/default-seo';
@@ -106,7 +114,7 @@ const CustomApp = ({ Component, pageProps }: AppPropsWithLayout) => {
   return (
     <div dir={dir}>
       <QueryClientProvider client={queryClient}>
-        <Hydrate state={pageProps?.dehydratedState}>
+        <HydrationBoundary state={pageProps?.dehydratedState}>
           <AppSettings>
             <UIProvider>
               <ModalProvider>
@@ -134,8 +142,8 @@ const CustomApp = ({ Component, pageProps }: AppPropsWithLayout) => {
               </ModalProvider>
             </UIProvider>
           </AppSettings>
-          <ReactQueryDevtools />
-        </Hydrate>
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
+        </HydrationBoundary>
       </QueryClientProvider>
     </div>
   );

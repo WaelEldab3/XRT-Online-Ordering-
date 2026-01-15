@@ -34,7 +34,7 @@ const VendorFlashSaleSinglePage = () => {
   } = useFlashSaleQuery({
     slug: query?.slug as string,
     language: locale as string,
-    shop_id: shopData?.id!,
+    shop_id: (shopData as any)?.id!,
   });
 
   if (loading) return <Loader text={t('common:text-loading')} />;

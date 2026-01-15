@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FileInput from '@/components/ui/file-input';
 import { itemValidationSchema } from './item-validation-schema';
-import { Item, CreateItemInput, UpdateItemInput, ItemSize, ItemModifierAssignment } from '@/types';
+import { Item, CreateItemInput, UpdateItemInput, ItemSize, ItemModifierAssignment, ItemModifierGroupAssignment } from '@/types';
 import { useTranslation } from 'next-i18next';
 import { useShopQuery } from '@/data/shop';
 import Alert from '@/components/ui/alert';
@@ -29,6 +29,8 @@ import { TrashIcon } from '@/components/icons/trash';
 import { useModifierGroupsQuery } from '@/data/modifier-group';
 import { useModifiersQuery } from '@/data/modifier';
 import { getModifiersByGroupId } from '@/data/mock/modifiers';
+import ItemSizesManager from './item-sizes-manager';
+import { useItemSizesQuery } from '@/data/item-size';
 
 // Default quantity levels for all modifiers
 const DEFAULT_QUANTITY_LEVELS = [
@@ -44,7 +46,7 @@ type ItemFormProps = {
 type FormValues = {
     name: string;
     description?: string;
-    base_price?: number;
+    base_price?: number; // Used ONLY if is_sizeable = false
     category: any;
     image?: any;
     sort_order?: number | null;
@@ -54,8 +56,10 @@ type FormValues = {
     is_signature?: boolean;
     is_sizeable?: boolean;
     is_customizable?: boolean;
-    sizes?: ItemSize[];
-    modifier_assignment?: ItemModifierAssignment;
+    default_size_id?: string | null; // FK to ItemSize.id, required if is_sizeable = true
+    sizes?: ItemSize[]; // Legacy - kept for backward compatibility
+    modifier_groups?: ItemModifierGroupAssignment[]; // Updated to match backend
+    modifier_assignment?: ItemModifierAssignment; // Legacy - kept for backward compatibility
     apply_sides?: boolean;
     sides?: {
         both?: boolean;
@@ -83,12 +87,6 @@ const defaultValues: FormValues = {
         default_modifiers: [],
         assignment_scope: 'ITEM' as const,
     },
-    apply_sides: false,
-    sides: {
-        both: false,
-        left: false,
-        right: false,
-    },
 };
 
 export default function CreateOrUpdateItemForm({
@@ -105,7 +103,7 @@ export default function CreateOrUpdateItemForm({
             enabled: !!router.query.shop,
         },
     );
-    const shopId = shopData?.id!;
+    const shopId = (shopData as any)?.id!;
 
     const methods = useForm<FormValues>({
         resolver: yupResolver(itemValidationSchema),
@@ -139,20 +137,16 @@ export default function CreateOrUpdateItemForm({
             const formValues: FormValues = {
                 ...initialValues,
                 category: initialValues.category,
-                sizes: initialValues.sizes || [],
-                // If item has sizes, automatically set is_sizeable to true
-                is_sizeable: initialValues.is_sizeable || (initialValues.sizes && initialValues.sizes.length > 0) || false,
+                sizes: initialValues.sizes || [], // Legacy - kept for backward compatibility
+                // If item has sizes or default_size_id, automatically set is_sizeable to true
+                is_sizeable: initialValues.is_sizeable || !!initialValues.default_size_id || false,
+                default_size_id: initialValues.default_size_id || null,
                 is_customizable: initialValues.is_customizable || false,
+                modifier_groups: initialValues.modifier_groups || [],
                 modifier_assignment: initialValues.modifier_assignment || {
                     modifier_groups: [],
                     default_modifiers: [],
                     assignment_scope: 'ITEM' as const,
-                },
-                apply_sides: initialValues.apply_sides || false,
-                sides: initialValues.sides || {
-                    both: false,
-                    left: false,
-                    right: false,
                 },
             };
             // Reset the form with new values
@@ -167,7 +161,7 @@ export default function CreateOrUpdateItemForm({
             });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialValues?.id, initialValues?.sizes?.length, initialValues?.is_sizeable, initialValues?.is_customizable, initialValues?.apply_sides, initialValues?.updated_at]);
+    }, [initialValues?.id, initialValues?.default_size_id, initialValues?.is_sizeable, initialValues?.is_customizable, initialValues?.updated_at]);
 
     const {
         register,
@@ -185,63 +179,29 @@ export default function CreateOrUpdateItemForm({
         defaultValue: false,
     });
 
-    const applySides = useWatch({
+    const defaultSizeId = useWatch({
         control,
-        name: 'apply_sides',
-        defaultValue: false,
+        name: 'default_size_id',
+        defaultValue: null,
     });
 
-    const sizes = useWatch({
-        control,
-        name: 'sizes',
-        defaultValue: [],
-    });
+    // Fetch item sizes if editing and item is sizeable
+    const { sizes: itemSizes } = useItemSizesQuery(
+        initialValues?.id || '',
+        shopId,
+        { enabled: !!initialValues?.id && isSizeable }
+    );
 
-    const { fields: sizeFields, append: appendSize, remove: removeSize } = useFieldArray({
-        control,
-        name: 'sizes',
-    });
-
-    // Update base_price when default size changes or when a default size's price changes
+    // Auto-set is_sizeable to true if item has default_size_id when editing
     useEffect(() => {
-        if (isSizeable && sizes && sizes.length > 0) {
-            const defaultSize = sizes.find((size: any) => size?.is_default === true);
-            if (defaultSize && defaultSize.price !== undefined) {
-                setValue('base_price', defaultSize.price, { shouldValidate: false });
-            }
-        }
-    }, [isSizeable, sizes, setValue]);
-
-    // Auto-set is_sizeable to true if item has sizes when editing
-    // Also ensure sizes are preserved in the form
-    useEffect(() => {
-        if (initialValues) {
-            // If item has sizes, ensure is_sizeable is true
-            if (initialValues.sizes && initialValues.sizes.length > 0 && !isSizeable) {
-                setValue('is_sizeable', true, { shouldValidate: false });
-            }
+        if (initialValues && initialValues.default_size_id && !isSizeable) {
+            setValue('is_sizeable', true, { shouldValidate: false });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialValues?.id, initialValues?.sizes?.length, isSizeable]);
+    }, [initialValues?.id, initialValues?.default_size_id, isSizeable]);
 
-    // Handler to set default size (only one can be default)
-    const handleDefaultSizeChange = (index: number) => {
-        const currentSizes = watch('sizes') || [];
-        
-        // Update all sizes - only the selected index is default
-        currentSizes.forEach((size: any, idx: number) => {
-            setValue(`sizes.${idx}.is_default`, idx === index, { shouldValidate: false });
-        });
-
-        // Update base_price from the new default size
-        const defaultSizePrice = currentSizes[index]?.price;
-        if (defaultSizePrice !== undefined) {
-            setValue('base_price', defaultSizePrice, { shouldValidate: false });
-        }
-    };
-
-    const { mutate: createItem, isLoading: creating } = useCreateItemMutation();
-    const { mutate: updateItem, isLoading: updating } = useUpdateItemMutation();
+    const { mutate: createItem, isPending: creating } = useCreateItemMutation();
+    const { mutate: updateItem, isPending: updating } = useUpdateItemMutation();
 
     const { categories, loading: loadingCategories } = useCategoriesQuery({
         limit: 1000,
@@ -257,18 +217,27 @@ export default function CreateOrUpdateItemForm({
     });
 
     const onSubmit = async (values: any) => {
-        let basePrice = values.base_price ?? undefined;
+        let basePrice: number | undefined = undefined;
         
-        // If sizeable, ensure base_price is set from default size
-        if (values.is_sizeable && values.sizes && values.sizes.length > 0) {
-            const defaultSize = values.sizes.find((size: any) => size?.is_default === true);
-            if (defaultSize && defaultSize.price) {
-                basePrice = defaultSize.price;
-            } else {
-                // Validation should catch this, but set error if no default size
-                setError('sizes', {
+        // Pricing logic:
+        // - If is_sizeable = false: base_price is required and used
+        // - If is_sizeable = true: base_price is ignored, default_size_id is required
+        if (!values.is_sizeable) {
+            basePrice = values.base_price ?? 0;
+            if (!basePrice || basePrice <= 0) {
+                setError('base_price', {
                     type: 'manual',
-                    message: 'form:error-default-size-required',
+                    message: t('form:error-base-price-required') || 'Base price is required for non-sizeable items',
+                });
+                return;
+            }
+        } else {
+            // For sizeable items, base_price is ignored
+            basePrice = 0; // Backend expects 0 when is_sizeable = true
+            if (!values.default_size_id) {
+                setError('default_size_id', {
+                    type: 'manual',
+                    message: t('form:error-default-size-required') || 'Default size is required for sizeable items',
                 });
                 return;
             }
@@ -303,7 +272,7 @@ export default function CreateOrUpdateItemForm({
                 const pricesBySize: any = {};
                 const pricesBySizeAndQuantity: any = {};
                 
-                if (values.is_sizeable && sizes && sizes.length > 0) {
+                if (values.is_sizeable && itemSizes && itemSizes.length > 0) {
                     // Handle modifiers with quantity levels: modifier_prices_by_size_and_quantity[modifierId][sizeName][quantity]
                     Object.keys(modifierPricesBySizeAndQuantity).forEach((modifierId) => {
                         const modifierPriceData = modifierPricesBySizeAndQuantity[modifierId];
@@ -380,11 +349,19 @@ export default function CreateOrUpdateItemForm({
             is_signature: values.is_signature,
             is_sizeable: values.is_sizeable ?? false,
             is_customizable: values.is_customizable ?? false,
-            // Always send sizes array when item is sizeable (validation ensures at least one size)
-            sizes: values.is_sizeable && values.sizes ? values.sizes : undefined,
+            default_size_id: values.is_sizeable ? values.default_size_id : null,
+            // Legacy sizes array - kept for backward compatibility but not used if using ItemSize API
+            sizes: undefined,
+            // Updated modifier_groups structure
+            modifier_groups: values.modifier_groups || modifierAssignment?.modifier_groups?.map((mg: any) => ({
+                modifier_group_id: typeof mg === 'string' ? mg : mg.modifier_group_id || mg.id,
+                display_order: mg.display_order || 1,
+                modifier_overrides: mg.modifier_overrides,
+            })),
+            // Legacy modifier_assignment - kept for backward compatibility
+            modifier_assignment: modifierAssignment,
             image: values.image,
             business_id: shopId,
-            modifier_assignment: modifierAssignment,
         };
 
         try {
@@ -436,6 +413,7 @@ export default function CreateOrUpdateItemForm({
                                 {...register('name')}
                                 error={t(errors.name?.message!)}
                                 variant="outline"
+                                placeholder={t('form:input-placeholder-item-name') || 'Enter item name'}
                                 className="mb-5"
                             />
 
@@ -468,102 +446,29 @@ export default function CreateOrUpdateItemForm({
 
                             {isSizeable && (
                                 <div className="mb-5">
-                                    <Label className="mb-3 block">
-                                        {t('form:input-label-sizes')}*
-                                    </Label>
-                                    <div className="space-y-4">
-                                        {sizeFields.map((field, index) => (
-                                            <div
-                                                key={field.id}
-                                                className="p-4 border border-border-200 rounded-lg"
-                                            >
-                                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                                                    <div className="sm:col-span-3">
-                                                        <Input
-                                                            label={t('form:input-label-size-name')}
-                                                            {...register(`sizes.${index}.name` as const)}
-                                                            error={t(errors.sizes?.[index]?.name?.message!)}
-                                                            variant="outline"
-                                                        />
-                                                    </div>
-                                                    <div className="sm:col-span-2">
-                                                        <Input
-                                                            label={t('form:input-label-size-code')}
-                                                            {...register(`sizes.${index}.code` as const)}
-                                                            error={t(errors.sizes?.[index]?.code?.message!)}
-                                                            variant="outline"
-                                                            placeholder={t('form:input-placeholder-size-code') || 'e.g., L, M, S'}
-                                                        />
-                                                    </div>
-                                                    <div className="sm:col-span-3">
-                                                        <Input
-                                                            label={t('form:input-label-size-price')}
-                                                            {...register(`sizes.${index}.price` as const, {
-                                                                valueAsNumber: true,
-                                                            })}
-                                                            type="number"
-                                                            step="0.01"
-                                                            error={t(errors.sizes?.[index]?.price?.message!)}
-                                                            variant="outline"
-                                                        />
-                                                    </div>
-                                                    <div className="sm:col-span-3 flex items-end">
-                                                        <div className="mb-5">
-                                                            <label className="flex items-center cursor-pointer">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="default-size"
-                                                                    checked={sizes?.[index]?.is_default === true}
-                                                                    onChange={() => handleDefaultSizeChange(index)}
-                                                                    className="mr-2"
-                                                                />
-                                                                <span className="text-sm text-body">
-                                                                    {t('form:input-label-default')}
-                                                                </span>
-                                                            </label>
-                                                            <input
-                                                                type="hidden"
-                                                                {...register(`sizes.${index}.is_default` as const)}
-                                                                value={sizes?.[index]?.is_default ? 'true' : 'false'}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="sm:col-span-1 flex items-end">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeSize(index)}
-                                                            className="text-red-500 hover:text-red-700 transition-colors duration-200 focus:outline-none"
-                                                        >
-                                                            <TrashIcon className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        <Button
-                                            type="button"
-                                            onClick={() => {
-                                                const isFirstSize = sizeFields.length === 0;
-                                                appendSize({ 
-                                                    name: '', 
-                                                    code: '',
-                                                    price: 0, 
-                                                    is_default: isFirstSize // First size is default by default
-                                                });
-                                                if (isFirstSize) {
-                                                    // Set base_price to 0 initially for first size
-                                                    setValue('base_price', 0, { shouldValidate: false });
-                                                }
+                                    <Description
+                                        title={t('form:input-label-sizes')}
+                                        details={t('form:item-sizes-help-text') || 'Manage item sizes. At least one size is required, and you must select a default size.'}
+                                        className="mb-4"
+                                    />
+                                    {initialValues?.id ? (
+                                        <ItemSizesManager
+                                            itemId={initialValues.id}
+                                            businessId={shopId}
+                                            defaultSizeId={defaultSizeId || undefined}
+                                            onDefaultSizeChange={(sizeId) => {
+                                                setValue('default_size_id', sizeId, { shouldValidate: true });
                                             }}
-                                            variant="outline"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            {t('form:button-label-add-size')}
-                                        </Button>
-                                    </div>
-                                    {errors.sizes && typeof errors.sizes.message === 'string' && (
+                                        />
+                                    ) : (
+                                        <Alert
+                                            message={t('form:save-item-first-to-manage-sizes') || 'Please save the item first to manage sizes.'}
+                                            variant="info"
+                                        />
+                                    )}
+                                    {errors.default_size_id && (
                                         <p className="mt-2 text-xs text-red-500">
-                                            {t(errors.sizes.message)}
+                                            {t(errors.default_size_id.message!)}
                                         </p>
                                     )}
                                 </div>
@@ -682,7 +587,7 @@ export default function CreateOrUpdateItemForm({
                             />
 
                             {/* Modifier Prices by Size and Quantity Levels - Only show if item is sizeable */}
-                            {isSizeable && sizes && sizes.length > 0 && (
+                            {isSizeable && itemSizes && itemSizes.length > 0 && (
                                 <div className="mb-5">
                                     <Label className="mb-3 block">
                                         {t('form:input-label-modifier-prices-by-size-quantity') || 'Modifier Prices by Size & Quantity Level'}
@@ -724,12 +629,12 @@ export default function CreateOrUpdateItemForm({
                                                                         <th className="px-4 py-2 text-left text-xs font-semibold text-heading border-b border-gray-200">
                                                                             {t('form:input-label-quantity-level') || 'Quantity Level'}
                                                                         </th>
-                                                                        {sizes.map((size: any, sizeIndex: number) => (
+                                                                        {itemSizes.map((size: any, sizeIndex: number) => (
                                                                             <th
                                                                                 key={sizeIndex}
                                                                                 className="px-4 py-2 text-center text-xs font-semibold text-heading border-b border-gray-200"
                                                                             >
-                                                                                {size.name || `Size ${sizeIndex + 1}`}
+                                                                                {size.name || size.code || `Size ${sizeIndex + 1}`}
                                                                             </th>
                                                                         ))}
                                                                     </tr>
@@ -741,10 +646,10 @@ export default function CreateOrUpdateItemForm({
                                                                             <td className="px-4 py-3 text-sm text-heading font-medium">
                                                                                 {qtyLevel.name} ({t('form:input-label-quantity') || 'Qty'}: {qtyLevel.quantity})
                                                                             </td>
-                                                                            {sizes.map((size: any, sizeIndex: number) => (
+                                                                            {itemSizes.map((size: any, sizeIndex: number) => (
                                                                                 <td key={sizeIndex} className="px-4 py-3">
                                                                                     <Input
-                                                                                        {...register(`modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.name}.${qtyLevel.quantity}` as any, {
+                                                                                        {...register(`modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.code || size.name}.${qtyLevel.quantity}` as any, {
                                                                                             valueAsNumber: true,
                                                                                         })}
                                                                                         type="number"
@@ -793,48 +698,6 @@ export default function CreateOrUpdateItemForm({
                             <div className="mb-5">
                                 <SwitchInput name="is_customizable" control={control} label={t('form:input-label-customizable')} />
                             </div>
-                            <div className="mb-5">
-                                <SwitchInput name="apply_sides" control={control} label={t('form:input-label-apply-sides')} />
-                            </div>
-                            {applySides && (
-                                <div className="mb-5 p-4 border border-border-200 rounded-lg bg-gray-50">
-                                    <Label className="mb-3 block text-sm font-medium">
-                                        {t('form:input-label-sides-configuration')}
-                                    </Label>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm text-body">
-                                                {t('form:input-label-side-both')}
-                                            </Label>
-                                            <SwitchInput 
-                                                name="sides.both" 
-                                                control={control} 
-                                                label="" 
-                                            />
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm text-body">
-                                                {t('form:input-label-side-left')}
-                                            </Label>
-                                            <SwitchInput 
-                                                name="sides.left" 
-                                                control={control} 
-                                                label="" 
-                                            />
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm text-body">
-                                                {t('form:input-label-side-right')}
-                                            </Label>
-                                            <SwitchInput 
-                                                name="sides.right" 
-                                                control={control} 
-                                                label="" 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </Card>
                     </div>
 

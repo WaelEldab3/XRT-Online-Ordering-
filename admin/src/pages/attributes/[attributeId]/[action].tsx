@@ -15,7 +15,7 @@ export default function UpdateAttributePage() {
 
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useAttributeQuery({
     slug: query.attributeId as string,

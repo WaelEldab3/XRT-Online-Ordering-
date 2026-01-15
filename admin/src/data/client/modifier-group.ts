@@ -18,7 +18,6 @@ export const modifierGroupClient = {
       ...params,
       business_id,
     });
-    // Handle backend response format: { success: true, data: [...] }
     const groups = response?.data || response || [];
     return {
       data: Array.isArray(groups) ? groups : [],

@@ -48,7 +48,7 @@ export default function Orders() {
       enabled: !!shop,
     }
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { orders, loading, paginatorInfo, error } = useOrdersQuery({
     language: locale,
     limit: 20,

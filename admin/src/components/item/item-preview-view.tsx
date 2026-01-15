@@ -30,9 +30,12 @@ const ItemPreviewView = () => {
         }
     );
 
+    // Type assertion for item
+    const itemDataTyped = item as any;
+
     // Call usePrice hook unconditionally (before early returns) to follow Rules of Hooks
     const { price } = usePrice({
-        amount: item?.base_price || 0,
+        amount: itemDataTyped?.base_price || 0,
     });
 
     if (isLoading) {
@@ -53,10 +56,10 @@ const ItemPreviewView = () => {
 
     // Get image source - prioritize original for better quality, especially for SVG
     const getImageSrc = () => {
-        if (!item.image) return siteSettings.product.placeholder;
-        if (typeof item.image === 'string') return item.image;
+        if (!itemDataTyped.image) return siteSettings.product.placeholder;
+        if (typeof itemDataTyped.image === 'string') return itemDataTyped.image;
         // For Cloudinary, prefer original over thumbnail, especially for SVG
-        const imageObj = item.image as any;
+        const imageObj = itemDataTyped.image as any;
         return imageObj?.original || imageObj?.thumbnail || siteSettings.product.placeholder;
     };
 
@@ -80,7 +83,7 @@ const ItemPreviewView = () => {
                     <div className="relative flex h-full w-full items-center justify-center">
                         <img
                             src={imageSrc}
-                            alt={item.name}
+                            alt={itemDataTyped.name}
                             className={`h-full w-full ${
                                 isSVG ? 'object-contain p-4' : 'object-cover'
                             }`}
@@ -100,10 +103,10 @@ const ItemPreviewView = () => {
                 <div className="flex flex-1 flex-col p-6 md:p-8 lg:w-3/5">
                     {/* Title and Price Header */}
                     <div className="mb-6 border-b border-gray-200 pb-4">
-                        <h2 className="mb-3 text-3xl font-bold text-heading">{item.name}</h2>
+                        <h2 className="mb-3 text-3xl font-bold text-heading">{itemDataTyped.name}</h2>
                         <div className="flex items-center gap-3">
                             <span className="text-3xl font-bold text-accent">{price}</span>
-                            {item.is_signature && (
+                            {itemDataTyped.is_signature && (
                                 <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
                                     {t('form:input-label-signature-dish')}
                                 </span>
@@ -112,14 +115,14 @@ const ItemPreviewView = () => {
                     </div>
 
                     {/* Description */}
-                    {item.description && (
+                    {itemDataTyped.description && (
                         <div className="mb-6">
                             <h3 className="mb-3 text-lg font-semibold text-heading">
                                 {t('form:input-label-description')}
                             </h3>
                             <div
                                 className="prose prose-sm max-w-none text-body"
-                                dangerouslySetInnerHTML={{ __html: item.description }}
+                                dangerouslySetInnerHTML={{ __html: itemDataTyped.description }}
                             />
                         </div>
                     )}
@@ -133,12 +136,12 @@ const ItemPreviewView = () => {
                             </span>
                             <span
                                 className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                                    item.is_active
+                                    itemDataTyped.is_active
                                         ? 'bg-green-100 text-green-800'
                                         : 'bg-red-100 text-red-800'
                                 }`}
                             >
-                                {item.is_active
+                                {itemDataTyped.is_active
                                     ? t('common:text-active')
                                     : t('common:text-inactive')}
                             </span>
@@ -151,31 +154,31 @@ const ItemPreviewView = () => {
                             </span>
                             <span
                                 className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                                    item.is_available
+                                    itemDataTyped.is_available
                                         ? 'bg-green-100 text-green-800'
                                         : 'bg-red-100 text-red-800'
                                 }`}
                             >
-                                {item.is_available
+                                {itemDataTyped.is_available
                                     ? t('common:text-available')
                                     : t('common:text-unavailable')}
                             </span>
                         </div>
 
                         {/* Sizeable */}
-                        {item.is_sizeable && (
+                        {itemDataTyped.is_sizeable && (
                             <div className="flex flex-col">
                                 <span className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                                     {t('form:input-label-sizeable')}
                                 </span>
                                 <span className="text-sm font-semibold text-heading">
-                                    {item.sizes?.length || 0} {t('common:text-sizes')}
+                                    {itemDataTyped.sizes?.length || 0} {t('common:text-sizes')}
                                 </span>
                             </div>
                         )}
 
                         {/* Customizable */}
-                        {item.is_customizable && (
+                        {itemDataTyped.is_customizable && (
                             <div className="flex flex-col">
                                 <span className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                                     {t('form:input-label-customizable')}
@@ -188,15 +191,15 @@ const ItemPreviewView = () => {
                     </div>
 
                     {/* Sizes */}
-                    {item.is_sizeable && item.sizes && item.sizes.length > 0 && (
+                    {itemDataTyped.is_sizeable && itemDataTyped.sizes && itemDataTyped.sizes.length > 0 && (
                         <div className="mt-4">
                             <h3 className="mb-4 text-lg font-semibold text-heading">
                                 {t('form:input-label-sizes')}
                             </h3>
                             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                                {item.sizes.map((size: any, index: number) => {
+                                {itemDataTyped.sizes.map((size: any, index: number) => {
                                     // Format price directly without using hook (hooks can't be in loops)
-                                    const sizeAmount = size.price || item.base_price || 0;
+                                    const sizeAmount = size.price || itemDataTyped.base_price || 0;
                                     const formattedPrice = formatPrice({
                                         amount: sizeAmount,
                                         currencyCode: currency || 'USD',

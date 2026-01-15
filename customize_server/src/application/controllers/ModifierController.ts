@@ -1,0 +1,137 @@
+import { Response } from 'express';
+import { AuthRequest } from '../middlewares/auth';
+import { CreateModifierUseCase } from '../../domain/usecases/modifiers/CreateModifierUseCase';
+import { UpdateModifierUseCase } from '../../domain/usecases/modifiers/UpdateModifierUseCase';
+import { DeleteModifierUseCase } from '../../domain/usecases/modifiers/DeleteModifierUseCase';
+import { ModifierRepository } from '../../infrastructure/repositories/ModifierRepository';
+import { ModifierGroupRepository } from '../../infrastructure/repositories/ModifierGroupRepository';
+import { sendSuccess } from '../../shared/utils/response';
+import { asyncHandler } from '../../shared/utils/asyncHandler';
+import { ValidationError } from '../../shared/errors/AppError';
+import { IModifierRepository } from '../../domain/repositories/IModifierRepository';
+
+export class ModifierController {
+  private createModifierUseCase: CreateModifierUseCase;
+  private updateModifierUseCase: UpdateModifierUseCase;
+  private deleteModifierUseCase: DeleteModifierUseCase;
+  private modifierRepository: IModifierRepository;
+
+  constructor() {
+    const modifierRepository = new ModifierRepository();
+    const modifierGroupRepository = new ModifierGroupRepository();
+
+    this.modifierRepository = modifierRepository;
+    this.createModifierUseCase = new CreateModifierUseCase(modifierRepository, modifierGroupRepository);
+    this.updateModifierUseCase = new UpdateModifierUseCase(modifierRepository);
+    this.deleteModifierUseCase = new DeleteModifierUseCase(modifierRepository);
+  }
+
+  create = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { groupId } = req.params;
+    const {
+      name,
+      is_default,
+      max_quantity,
+      display_order,
+      is_active,
+      sides_config,
+    } = req.body;
+
+    if (!groupId) {
+      throw new ValidationError('groupId is required');
+    }
+
+    // Parse sides_config if provided as string
+    let parsedSidesConfig = sides_config;
+    if (sides_config && typeof sides_config === 'string') {
+      try {
+        parsedSidesConfig = JSON.parse(sides_config);
+      } catch (error) {
+        throw new ValidationError('Invalid sides_config format. Expected JSON object.');
+      }
+    }
+
+    const modifier = await this.createModifierUseCase.execute({
+      modifier_group_id: groupId,
+      name,
+      is_default: is_default === true || is_default === 'true',
+      max_quantity: max_quantity ? Number(max_quantity) : undefined,
+      display_order: display_order ? Number(display_order) : 0,
+      is_active: is_active !== undefined ? (is_active === true || is_active === 'true') : true,
+      sides_config: parsedSidesConfig,
+    });
+
+    return sendSuccess(res, 'Modifier created successfully', modifier, 201);
+  });
+
+  getAll = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      throw new ValidationError('groupId is required');
+    }
+
+    const modifiers = await this.modifierRepository.findByGroupId(groupId);
+
+    return sendSuccess(res, 'Modifiers retrieved successfully', { modifiers });
+  });
+
+  update = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { groupId } = req.params;
+    const {
+      name,
+      is_default,
+      max_quantity,
+      display_order,
+      is_active,
+      sides_config,
+    } = req.body;
+
+    if (!groupId) {
+      throw new ValidationError('groupId is required');
+    }
+
+    // Parse sides_config if provided as string
+    let parsedSidesConfig = sides_config;
+    if (sides_config !== undefined) {
+      if (typeof sides_config === 'string') {
+        try {
+          parsedSidesConfig = JSON.parse(sides_config);
+        } catch (error) {
+          throw new ValidationError('Invalid sides_config format. Expected JSON object.');
+        }
+      }
+    }
+
+    const updateData: any = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (is_default !== undefined) updateData.is_default = is_default === true || is_default === 'true';
+    if (max_quantity !== undefined) updateData.max_quantity = max_quantity ? Number(max_quantity) : undefined;
+    if (display_order !== undefined) updateData.display_order = Number(display_order);
+    if (is_active !== undefined) updateData.is_active = is_active === true || is_active === 'true';
+    if (parsedSidesConfig !== undefined) updateData.sides_config = parsedSidesConfig;
+
+    const modifier = await this.updateModifierUseCase.execute(
+      id,
+      groupId,
+      updateData
+    );
+
+    return sendSuccess(res, 'Modifier updated successfully', modifier);
+  });
+
+  delete = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      throw new ValidationError('groupId is required');
+    }
+
+    await this.deleteModifierUseCase.execute(id, groupId);
+
+    return sendSuccess(res, 'Modifier deleted successfully');
+  });
+}

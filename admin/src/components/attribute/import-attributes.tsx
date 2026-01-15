@@ -12,8 +12,8 @@ export default function ImportAttributes() {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
-  const { mutate: importAttributes, isLoading: loading } =
+  const shopId = (shopData as any)?.id!;
+  const { mutate: importAttributes, isPending: loading } =
     useImportAttributesMutation();
 
   const handleDrop = async (acceptedFiles: any) => {

@@ -97,7 +97,6 @@ export const userClient = {
       ...params,
       search: name ? `name:${name}` : undefined,
     });
-    // Handle backend response format: { success: true, data: { users: [...], paginatorInfo: {...} } }
     return response?.data || response;
   },
   fetchAdmins: async ({ ...params }: Partial<UserQueryOptions>) => {

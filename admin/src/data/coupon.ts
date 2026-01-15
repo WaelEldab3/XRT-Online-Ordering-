@@ -1,5 +1,5 @@
 import Router, { useRouter } from 'next/router';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { mapPaginatorData } from '@/utils/data-mappers';
@@ -14,7 +14,8 @@ export const useCreateCouponMutation = () => {
   const { t } = useTranslation();
   const router = useRouter();
 
-  return useMutation(couponClient.create, {
+  return useMutation({
+    mutationFn: couponClient.create,
     onSuccess: async () => {
       const generateRedirectUrl = router.query.shop
         ? `/${router.query.shop}${Routes.coupon.list}`
@@ -29,7 +30,7 @@ export const useCreateCouponMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.COUPONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.COUPONS] });
     },
   });
 };
@@ -38,13 +39,14 @@ export const useDeleteCouponMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(couponClient.delete, {
+  return useMutation({
+    mutationFn: couponClient.delete,
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.COUPONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.COUPONS] });
     },
   });
 };
@@ -53,20 +55,20 @@ export const useUpdateCouponMutation = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const router = useRouter();
-  return useMutation(couponClient.update, {
+  return useMutation({
+    mutationFn: couponClient.update,
     onSuccess: async (data, variables) => {
       const updatedCoupon = (data as any)?.data || data;
       queryClient.setQueryData(
         [API_ENDPOINTS.COUPONS, { code: variables.code, language: router.locale }],
         (old: any) => {
           return { data: updatedCoupon };
-        }
-      );
+        });
       toast.success(t('common:successfully-updated'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.COUPONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.COUPONS] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -75,7 +77,9 @@ export const useUpdateCouponMutation = () => {
 };
 
 export const useVerifyCouponMutation = () => {
-  return useMutation(couponClient.verify);
+  return useMutation({
+    mutationFn: couponClient.verify,
+  });
 };
 
 export const useCouponQuery = ({
@@ -85,10 +89,10 @@ export const useCouponQuery = ({
   code: string;
   language: string;
 }) => {
-  const { data, error, isLoading } = useQuery<Coupon, Error>(
-    [API_ENDPOINTS.COUPONS, { code, language }],
-    () => couponClient.get({ code, language }),
-  );
+  const { data, error, isPending: isLoading } = useQuery<Coupon, Error>({
+    queryKey: [API_ENDPOINTS.COUPONS, { code, language }],
+    queryFn: () => couponClient.get({ code, language }),
+  });
 
   return {
     coupon: data,
@@ -98,14 +102,11 @@ export const useCouponQuery = ({
 };
 
 export const useCouponsQuery = (options: Partial<CouponQueryOptions>) => {
-  const { data, error, isLoading } = useQuery<CouponPaginator, Error>(
-    [API_ENDPOINTS.COUPONS, options],
-    ({ queryKey, pageParam }) =>
-      couponClient.paginated(Object.assign({}, queryKey[1], pageParam)),
-    {
-      keepPreviousData: true,
-    },
-  );
+  const { data, error, isPending: isLoading } = useQuery<CouponPaginator, Error>({
+    queryKey: [API_ENDPOINTS.COUPONS, options],
+    queryFn: () => couponClient.paginated(options),
+    placeholderData: (previousData) => previousData,
+  });
 
   return {
     coupons: data?.data ?? [],
@@ -118,26 +119,28 @@ export const useCouponsQuery = (options: Partial<CouponQueryOptions>) => {
 export const useApproveCouponMutation = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  return useMutation(couponClient.approve, {
+  return useMutation({
+    mutationFn: couponClient.approve,
     onSuccess: () => {
       toast.success(t('common:successfully-updated'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.COUPONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.COUPONS] });
     },
   });
 };
 export const useDisApproveCouponMutation = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  return useMutation(couponClient.disapprove, {
+  return useMutation({
+    mutationFn: couponClient.disapprove,
     onSuccess: () => {
       toast.success(t('common:successfully-updated'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.COUPONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.COUPONS] });
     },
   });
 };

@@ -26,7 +26,7 @@ export default function UpdateFlashSaleProductRequestsPage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { flashSaleRequest, loading, error } = useRequestedListForFlashSale({
     id: query.id as string,
     language:

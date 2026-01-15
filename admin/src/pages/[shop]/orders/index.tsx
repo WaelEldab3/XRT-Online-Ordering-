@@ -41,7 +41,7 @@ export default function Orders() {
   const { data: shopData, isLoading: fetchingShop } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const { orders, loading, paginatorInfo, error } = useOrdersQuery(

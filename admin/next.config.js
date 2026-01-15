@@ -12,6 +12,7 @@ const { i18n } = require('./next-i18next.config');
 const nextConfig = {
   reactStrictMode: false,
   transpilePackages: ['rc-table', 'rc-util', '@react-google-maps/api'],
+  // i18n config moved to next.config.js root level in Next.js 15
   i18n,
   images: {
     domains: [

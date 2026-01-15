@@ -41,6 +41,8 @@ exports.storage = new multer_storage_cloudinary_1.CloudinaryStorage({
         else if (fieldName === 'gallery') {
             folder += '/gallery';
         }
+        // Use 'auto' to let Cloudinary automatically detect the resource type
+        // This works correctly for SVG files and other image types
         return {
             folder: folder,
             resource_type: 'auto',

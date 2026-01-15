@@ -32,7 +32,7 @@ export default function Coupons() {
     query: { shop },
   } = useRouter();
   const { data: shopData } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { settings, loading: settingsLoading } = useSettingsQuery({
     language: locale!,
   });

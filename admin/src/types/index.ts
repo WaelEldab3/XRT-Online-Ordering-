@@ -158,11 +158,23 @@ export interface NameAndValueType {
   name: string;
   value: string;
 }
-export enum Permission {
+export enum UserRoleEnum {
   SuperAdmin = 'super_admin',
   StoreOwner = 'client', // Changed from 'store_owner' to 'client' to match backend
   Staff = 'staff',
   Customer = 'customer',
+}
+
+export interface Permission {
+  id: string;
+  key: string;
+  module: string;
+  action: string;
+  description: string;
+  isSystem: boolean;
+  isActive: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface GetParams {
@@ -2437,11 +2449,26 @@ export interface OrderStickerCardProps extends StickerCardProps {
   | 'withdrawn_amount';
 }
 
+// Legacy embedded ItemSize (for backward compatibility during migration)
 export interface ItemSize {
   name: string;
   code?: string;
   price: number;
   is_default: boolean;
+}
+
+// Separate ItemSize entity (matches backend)
+export interface ItemSizeEntity {
+  id: string;
+  item_id: string;
+  business_id: string;
+  name: string;
+  code: string;
+  price: number;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Item {
@@ -2460,8 +2487,10 @@ export interface Item {
   max_per_order?: number;
   is_sizeable?: boolean;
   is_customizable?: boolean;
-  sizes?: ItemSize[];
-  modifier_assignment?: ItemModifierAssignment;
+  default_size_id?: string | null; // FK to ItemSize.id
+  sizes?: ItemSize[]; // Legacy - kept for backward compatibility
+  modifier_groups?: ItemModifierGroupAssignment[]; // Updated to match backend
+  modifier_assignment?: ItemModifierAssignment; // Legacy - kept for backward compatibility
   apply_sides?: boolean;
   sides?: {
     both?: boolean;
@@ -2477,7 +2506,7 @@ export interface CreateItemInput {
   description?: string;
   sort_order?: number;
   is_active?: boolean;
-  base_price?: number;
+  base_price?: number; // Used ONLY if is_sizeable = false
   category_id: string;
   image?: AttachmentInput;
   is_available?: boolean;
@@ -2486,8 +2515,10 @@ export interface CreateItemInput {
   business_id?: string;
   is_sizeable?: boolean;
   is_customizable?: boolean;
-  sizes?: ItemSize[];
-  modifier_assignment?: ItemModifierAssignment;
+  default_size_id?: string | null; // FK to ItemSize.id, required if is_sizeable = true
+  sizes?: ItemSize[]; // Legacy - kept for backward compatibility
+  modifier_groups?: ItemModifierGroupAssignment[]; // Updated to match backend
+  modifier_assignment?: ItemModifierAssignment; // Legacy - kept for backward compatibility
   apply_sides?: boolean;
   sides?: {
     both?: boolean;
@@ -2508,13 +2539,15 @@ export type ModifierDisplayType = 'RADIO' | 'CHECKBOX';
 export interface QuantityLevel {
   quantity: number;
   name?: string;
-  price: number;
+  price?: number; // Optional for group-level defaults
+  is_default?: boolean;
+  display_order?: number;
+  is_active?: boolean;
 }
 
 export interface PricesBySize {
-  S?: number;
-  M?: number;
-  L?: number;
+  sizeCode: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  priceDelta: number; // Price difference from base
 }
 
 export interface Modifier {
@@ -2522,12 +2555,17 @@ export interface Modifier {
   modifier_group_id: string;
   name: string;
   is_default: boolean;
-  price?: number;
   max_quantity?: number;
+  // Per-modifier overrides
   quantity_levels?: QuantityLevel[];
-  prices_by_size?: PricesBySize;
+  prices_by_size?: PricesBySize[];
+  display_order: number;
+  sort_order?: number; // Added to match usage
   is_active: boolean;
-  sort_order: number;
+  sides_config?: {
+    enabled: boolean;
+    allowed_sides?: string[]; // Array of 'LEFT', 'RIGHT', 'WHOLE'
+  };
   created_at: string;
   updated_at: string;
 }
@@ -2540,6 +2578,10 @@ export interface ModifierGroup {
   min_select: number;
   max_select: number;
   applies_per_quantity: boolean;
+  // Group-level quantity levels (defaults for all modifiers)
+  quantity_levels?: QuantityLevel[];
+  // Group-level pricing by size
+  prices_by_size?: PricesBySize[];
   is_active: boolean;
   sort_order: number;
   modifiers?: Modifier[];
@@ -2551,12 +2593,13 @@ export interface CreateModifierInput {
   modifier_group_id: string;
   name: string;
   is_default?: boolean;
-  price?: number;
   max_quantity?: number;
-  quantity_levels?: QuantityLevel[];
-  prices_by_size?: PricesBySize;
+  display_order?: number;
   is_active?: boolean;
-  sort_order?: number;
+  sides_config?: {
+    enabled?: boolean;
+    allowed_sides?: string[];
+  };
 }
 
 export interface UpdateModifierInput extends Partial<CreateModifierInput> {
@@ -2569,6 +2612,10 @@ export interface CreateModifierGroupInput {
   min_select: number;
   max_select: number;
   applies_per_quantity?: boolean;
+  // Group-level quantity levels
+  quantity_levels?: QuantityLevel[];
+  // Group-level pricing by size
+  prices_by_size?: PricesBySize[];
   is_active?: boolean;
   sort_order?: number;
   business_id?: string;
@@ -2578,8 +2625,8 @@ export interface UpdateModifierGroupInput extends Partial<CreateModifierGroupInp
   id: string;
 }
 
-export interface ModifierGroupPaginator extends PaginatorInfo<ModifierGroup> {}
-export interface ModifierPaginator extends PaginatorInfo<Modifier> {}
+export interface ModifierGroupPaginator extends PaginatorInfo<ModifierGroup> { }
+export interface ModifierPaginator extends PaginatorInfo<Modifier> { }
 
 export interface ModifierGroupQueryOptions extends QueryOptions {
   name?: string;
@@ -2594,13 +2641,32 @@ export interface ModifierQueryOptions extends QueryOptions {
 }
 
 // Item Modifier Assignment Types
+export interface ItemModifierPriceOverride {
+  sizeCode: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  priceDelta: number;
+}
+
+export interface ItemModifierQuantityLevelOverride {
+  quantity: number;
+  name?: string;
+  price?: number;
+  is_default?: boolean;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface ItemModifierOverride {
+  modifier_id: string;
+  max_quantity?: number;
+  is_default?: boolean;
+  prices_by_size?: ItemModifierPriceOverride[];
+  quantity_levels?: ItemModifierQuantityLevelOverride[];
+}
+
 export interface ItemModifierGroupAssignment {
   modifier_group_id: string;
   display_order: number;
-  sides_config?: {
-    enabled: boolean;
-    allowed_sides?: number;
-  };
+  modifier_overrides?: ItemModifierOverride[]; // Item-level overrides for individual modifiers
 }
 
 export interface ItemModifierAssignment {

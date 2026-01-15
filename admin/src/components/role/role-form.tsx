@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,8 +15,8 @@ import Checkbox from '@/components/ui/checkbox/checkbox';
 import {
   useCreateRoleMutation,
   useUpdateRoleMutation,
-  usePermissionsQuery,
 } from '@/data/role';
+import { useGroupedPermissionsQuery } from '@/data/permission';
 import { Role } from '@/types';
 
 type FormValues = {
@@ -41,13 +41,6 @@ type IProps = {
   initialValues?: Role | null;
 };
 
-type PermissionsResponse = {
-  status: string;
-  data: {
-    permissions: string[];
-  };
-};
-
 export default function RoleForm({ initialValues }: IProps) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -58,7 +51,7 @@ export default function RoleForm({ initialValues }: IProps) {
     toast.success(
       t(initialValues ? 'common:update-success' : 'common:create-success'),
     );
-    queryClient.invalidateQueries('roles');
+    queryClient.invalidateQueries({ queryKey: ['roles'] });
     router.push('/roles');
   };
 
@@ -68,13 +61,11 @@ export default function RoleForm({ initialValues }: IProps) {
     );
   };
 
-  const { mutate: createRole, isLoading: creating } = useCreateRoleMutation();
-  const { mutate: updateRole, isLoading: updating } = useUpdateRoleMutation();
-  const { data: permissionsData, isLoading: loadingPermissions } =
-    usePermissionsQuery();
+  const { mutate: createRole, isPending: creating } = useCreateRoleMutation();
+  const { mutate: updateRole, isPending: updating } = useUpdateRoleMutation();
 
-  // Memoize permissions to prevent unnecessary re-renders
-  const permissions = useMemo(() => permissionsData || [], [permissionsData]);
+  // Use the new grouped permissions query
+  const { data: permissionsData, isPending: loadingPermissions } = useGroupedPermissionsQuery();
 
   const {
     register,
@@ -93,13 +84,19 @@ export default function RoleForm({ initialValues }: IProps) {
   });
 
   const onSubmit = (values: any) => {
+    // Ensure permissions is array of strings
+    const input = {
+      ...values,
+      permissions: values.permissions,
+    };
+
     if (initialValues?.id) {
       updateRole({
         id: initialValues.id,
-        input: values,
+        input: input,
       });
     } else {
-      createRole(values);
+      createRole(input);
     }
   };
 
@@ -107,10 +104,30 @@ export default function RoleForm({ initialValues }: IProps) {
 
   const currentPermissions = watch('permissions') || [];
 
-  const handlePermissionChange = (permission: string) => {
-    const newPermissions = currentPermissions.includes(permission)
-      ? currentPermissions.filter((p) => p !== permission)
-      : [...currentPermissions, permission];
+  const handlePermissionChange = (permissionKey: string) => {
+    const newPermissions = currentPermissions.includes(permissionKey)
+      ? currentPermissions.filter((p) => p !== permissionKey)
+      : [...currentPermissions, permissionKey];
+
+    setValue('permissions', newPermissions, { shouldValidate: true });
+  };
+
+  // Select all permissions for a module
+  const handleModuleSelect = (moduleName: string, modulePermissions: any[]) => {
+    const modulePermissionKeys = modulePermissions.map(p => p.key);
+    const allSelected = modulePermissionKeys.every((key: string) => currentPermissions.includes(key));
+
+    let newPermissions = [...currentPermissions];
+
+    if (allSelected) {
+      // Deselect all
+      newPermissions = newPermissions.filter(p => !modulePermissionKeys.includes(p));
+    } else {
+      // Select all
+      // Add ones that aren't already included
+      const toAdd = modulePermissionKeys.filter((key: string) => !currentPermissions.includes(key));
+      newPermissions = [...newPermissions, ...toAdd];
+    }
 
     setValue('permissions', newPermissions, { shouldValidate: true });
   };
@@ -167,29 +184,66 @@ export default function RoleForm({ initialValues }: IProps) {
           <div className="mb-5">
             <Label>{t('form:input-label-permissions')}</Label>
             {loadingPermissions ? (
-              <div>Loading permissions...</div>
+              <div className="py-4 text-center">Loading permissions...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {permissions?.map((permission) => {
-                  const isChecked = currentPermissions.includes(permission);
+              <div className="space-y-6">
+                {permissionsData?.modules.map((module) => {
+                  const modulePermissions = permissionsData.permissionsByModule[module] || [];
+                  const allSelected = modulePermissions.every(p => currentPermissions.includes(p.key));
+                  const someSelected = modulePermissions.some(p => currentPermissions.includes(p.key));
+
                   return (
-                    <Checkbox
-                      key={permission}
-                      id={`permission-${permission}`}
-                      name={`permissions.${permission}`}
-                      label={permission}
-                      checked={isChecked}
-                      onChange={() => handlePermissionChange(permission)}
-                      disabled={isLoading}
-                      aria-checked={isChecked}
-                      className="mb-2 last:mb-0"
-                    />
+                    <div key={module} className="border rounded-md p-4 bg-gray-50/50">
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            name={`module-${module}`}
+                            label=""
+                            checked={allSelected}
+                            /* indeterminate prop not supported by Checkbox component currently */
+                            onChange={() => handleModuleSelect(module, modulePermissions)}
+                            className="mt-0.5"
+                          />
+                          <h3 className="text-base font-semibold text-heading capitalize">
+                            {module.replace(/_/g, ' ')}
+                          </h3>
+                        </div>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {modulePermissions.length} permissions
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                        {modulePermissions.map((permission) => {
+                          const isChecked = currentPermissions.includes(permission.key);
+                          const label = permission.description || permission.action.replace(/_/g, ' ');
+
+                          return (
+                            <Checkbox
+                              key={permission.key}
+                              id={`permission-${permission.key}`}
+                              name={`permissions.${permission.key}`}
+                              label={label}
+                              checked={isChecked}
+                              onChange={() => handlePermissionChange(permission.key)}
+                              disabled={isLoading}
+                              className="flex items-start"
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             )}
+
+            {(!permissionsData || permissionsData.modules.length === 0) && !loadingPermissions && (
+              <div className="text-red-500 text-sm">{t('form:error-no-permissions-found') || 'No permissions found'}</div>
+            )}
+
             {errors.permissions && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 text-xs mt-2">
                 {t(errors.permissions.message!)}
               </p>
             )}

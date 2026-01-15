@@ -133,7 +133,6 @@ export const productClient = {
   //     ...params,
   //     search: HttpClient.formatSearchParams({ shop_id }),
   //   });
-  // },
   mostSoldProductByCategory({
     shop_id,
     ...params

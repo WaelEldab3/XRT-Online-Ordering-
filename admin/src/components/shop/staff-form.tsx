@@ -40,7 +40,7 @@ const AddStaffForm = () => {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const {
     register,
     handleSubmit,
@@ -50,7 +50,7 @@ const AddStaffForm = () => {
   } = useForm<FormValues>({
     resolver: yupResolver(staffFormSchema),
   });
-  const { mutate: addStaff, isLoading: loading } = useAddStaffMutation();
+  const { mutate: addStaff, isPending: loading } = useAddStaffMutation();
   const { t } = useTranslation();
 
   function onSubmit({ name, email, password }: FormValues) {

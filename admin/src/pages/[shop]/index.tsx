@@ -55,7 +55,7 @@ export default function ShopPage() {
   });
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useShopQuery({
     slug: shop!.toString(),

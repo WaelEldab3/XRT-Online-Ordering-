@@ -38,8 +38,8 @@ const TermsAndConditionsPage = () => {
     language: locale as string,
   });
 
-  const { data: shopData, isLoading } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const { data: shopData, isPending: isLoading } = useShopQuery({ slug: shop as string });
+  const shopId = (shopData as any)?.id!;
 
   if (loading || isLoading) return <Loader text={t('common:text-loading')} />;
   if (error) return <ErrorMessage message={error.message} />;

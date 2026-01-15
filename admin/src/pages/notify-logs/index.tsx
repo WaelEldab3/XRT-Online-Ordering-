@@ -36,7 +36,7 @@ const NotifyLogItem = ({ item }: any) => {
   const { permissions } = getAuthCredentials();
   const { locale } = useRouter();
 
-  const { mutate: seenNotifyLog, isLoading: creating } =
+  const { mutate: seenNotifyLog, isPending: creating } =
     useNotifyLogReadMutation();
 
   const { order } = useOrderQuery({
@@ -221,7 +221,7 @@ export default function NotifyLogsPage() {
   const [target, setTarget] = useState<string>();
   const [page, setPage] = useState(1);
   const [readStatus, setReadStatus] = useState<string>();
-  const { data, isLoading: loading, error } = useMeQuery();
+  const { data, isPending: loading, error } = useMeQuery();
 
   const {
     notifyLogs,

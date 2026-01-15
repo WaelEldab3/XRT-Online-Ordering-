@@ -13,7 +13,7 @@ export default function UpdateRolePage() {
   const { t } = useTranslation();
   const {
     data: role,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useRoleQuery({
     id: query.id as string,

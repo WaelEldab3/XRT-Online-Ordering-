@@ -28,7 +28,7 @@ export default function EditItemPage() {
     const { data: shopData } = useShopQuery({
         slug: shop as string,
     });
-    const shopId = shopData?.id!;
+    const shopId = (shopData as any)?.id!;
 
     const { item, isLoading: loading, error } = useItemQuery({
         id: id as string,

@@ -47,7 +47,7 @@ export default function CreateOrUpdateVendorProductsRequestFlashSaleForm({
   const [type, setType] = useState('');
   const [category, setCategory] = useState('');
   const { permissions } = getAuthCredentials();
-  const { data: user, isLoading: loading, error } = useMeQuery();
+  const { data: user, isPending: loading, error } = useMeQuery();
   const { currency } = useSettings();
   const { openModal } = useModalAction();
   const {
@@ -62,7 +62,7 @@ export default function CreateOrUpdateVendorProductsRequestFlashSaleForm({
       enabled: !!router.query.shop,
     },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const { products, loading: loadingProduct } = useProductsQuery({
     limit: 999,
@@ -101,9 +101,9 @@ export default function CreateOrUpdateVendorProductsRequestFlashSaleForm({
     resolver: yupResolver(flashSaleVendorRequestValidationSchema),
   });
 
-  const { mutate: createFlashSaleRequest, isLoading: creating } =
+  const { mutate: createFlashSaleRequest, isPending: creating } =
     useCreateFlashSaleRequestMutation();
-  const { mutate: updateFlashSaleRequest, isLoading: updating } =
+  const { mutate: updateFlashSaleRequest, isPending: updating } =
     useUpdateFlashSaleRequestMutation();
 
   const onSubmit = async (values: any) => {

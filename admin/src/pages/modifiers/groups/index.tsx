@@ -5,7 +5,6 @@ import Search from '@/components/common/search';
 import LinkButton from '@/components/ui/link-button';
 import { useState } from 'react';
 import ErrorMessage from '@/components/ui/error-message';
-import Loader from '@/components/ui/loader/loader';
 import { SortOrder } from '@/types';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
@@ -32,7 +31,7 @@ export default function ModifierGroups() {
     language: locale,
   });
 
-  if (loading) return <Loader text={t('common:text-loading')} />;
+  // Only show error for actual errors, not loading states
   if (error) return <ErrorMessage message={error.message} />;
 
   function handleSearch({ searchText }: { searchText: string }) {
@@ -58,7 +57,7 @@ export default function ModifierGroups() {
               placeholderText={t('form:input-placeholder-search-name')}
             />
 
-            {locale === Config.defaultLanguage && (getAuthCredentials().role === 'super_admin' || hasPermission(['categories:create'], getAuthCredentials().permissions)) && (
+            {locale === Config.defaultLanguage && (getAuthCredentials().role === 'super_admin' || hasPermission(['modifier_groups:create'], getAuthCredentials().permissions)) && (
               <LinkButton
                 href={`${Routes.modifierGroup.create}`}
                 className="h-12 w-full md:w-auto md:ms-6"
@@ -80,6 +79,7 @@ export default function ModifierGroups() {
         onPagination={handlePagination}
         onOrder={setOrder}
         onSort={setColumn}
+        isLoading={loading}
       />
     </>
   );

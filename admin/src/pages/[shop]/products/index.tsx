@@ -45,7 +45,7 @@ export default function ProductsPage() {
   const { data: shopData, isLoading: fetchingShop } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [type, setType] = useState('');

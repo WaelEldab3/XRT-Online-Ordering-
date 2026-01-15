@@ -5,7 +5,7 @@ import { useDeleteItemMutation } from '@/data/item';
 const ItemDeleteView = () => {
     const { data } = useModalState();
     const { closeModal } = useModalAction();
-    const { mutate: deleteItem, isLoading: loading } = useDeleteItemMutation();
+    const { mutate: deleteItem, isPending: loading } = useDeleteItemMutation();
 
     function handleDelete() {
         deleteItem({ id: data });

@@ -1,5 +1,5 @@
 import { StaffPaginator, StaffQueryOptions } from '@/types';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { mapPaginatorData } from '@/utils/data-mappers';
 import { API_ENDPOINTS } from './client/api-endpoints';
 import { staffClient } from './client/staff';
@@ -12,15 +12,12 @@ export const useStaffsQuery = (
   params: Partial<StaffQueryOptions>,
   options: any = {}
 ) => {
-  const { data, error, isLoading } = useQuery<StaffPaginator, Error>(
-    [API_ENDPOINTS.STAFFS, params],
-    ({ queryKey, pageParam }) =>
-      staffClient.paginated(Object.assign({}, queryKey[1], pageParam)),
-    {
-      keepPreviousData: true,
-      ...options,
-    }
-  );
+  const { data, error, isPending: isLoading } = useQuery<StaffPaginator, Error>({
+    queryKey: [API_ENDPOINTS.STAFFS, params],
+    queryFn: () => staffClient.paginated(params),
+    placeholderData: (previousData: StaffPaginator | undefined) => previousData,
+    ...options,
+  });
   return {
     staffs: data?.data ?? [],
     paginatorInfo: mapPaginatorData(data),
@@ -34,14 +31,15 @@ export const useAddStaffMutation = () => {
   const router = useRouter();
   const { t } = useTranslation();
 
-  return useMutation(staffClient.addStaff, {
+  return useMutation({
+    mutationFn: staffClient.addStaff,
     onSuccess: () => {
       router.push(`/${router?.query?.shop}${Routes.staff.list}`);
       toast.success(t('common:successfully-created'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STAFFS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STAFFS] });
     },
   });
 };
@@ -50,13 +48,14 @@ export const useRemoveStaffMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(staffClient.removeStaff, {
+  return useMutation({
+    mutationFn: staffClient.removeStaff,
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.STAFFS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.STAFFS] });
     },
   });
 };

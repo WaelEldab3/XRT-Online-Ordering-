@@ -28,7 +28,7 @@ export default function UpdateProductPage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const {
     product,
     isLoading: loading,

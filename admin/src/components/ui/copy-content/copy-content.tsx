@@ -8,6 +8,7 @@ type CopyContentProps = {
   className?: string;
   name: string;
   value: string;
+  note?: string;
 };
 
 const CopyContent: React.FC<CopyContentProps> = ({
@@ -47,7 +48,6 @@ const CopyContent: React.FC<CopyContentProps> = ({
       </label>
       <div className="relative">
         <Input
-          label={label}
           variant={variant}
           className={className}
           name={name}

@@ -32,7 +32,7 @@ export default function Reviews() {
     query: { shop },
   } = useRouter();
   const { data: shopData } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { reviews, paginatorInfo, loading, error } = useReviewsQuery(
     {
       shop_id: shopId,

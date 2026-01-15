@@ -22,10 +22,17 @@ export default function RegisterPage() {
   const { t } = useTranslation('common');
   return (
     <AuthPageLayout>
-      <h3 className="mb-6 mt-4 text-center text-base italic text-gray-500">
-        {t('admin-register-title')}
-      </h3>
-      <RegistrationForm />
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          {t('admin-register-title') || 'Welcome to XRT Restaurant System'}
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">
+          Create your account to get started
+        </p>
+      </div>
+      <div className="mt-6">
+        <RegistrationForm />
+      </div>
     </AuthPageLayout>
   );
 }

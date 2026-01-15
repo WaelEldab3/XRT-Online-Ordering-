@@ -13,12 +13,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const classes = {
-  root: 'inline-flex items-center justify-center flex-shrink-0 font-semibold leading-none rounded outline-none transition duration-300 ease-in-out focus:outline-none focus:shadow focus:ring-1 focus:ring-accent-700',
+  root: 'inline-flex items-center justify-center flex-shrink-0 font-semibold leading-none rounded-lg outline-none transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent/30',
   normal:
-    'bg-accent text-light border border-transparent hover:bg-accent-hover',
+    'bg-accent text-light border border-transparent hover:bg-accent-hover shadow-sm hover:shadow-md',
   custom: 'border border-transparent',
   outline:
-    'border border-border-400 bg-transparent text-body hover:text-light hover:bg-accent hover:border-accent',
+    'border border-gray-300 bg-white text-body hover:text-light hover:bg-accent hover:border-accent shadow-sm hover:shadow-md',
   loading:
     'h-4 w-4 ms-2 rounded-full border-2 border-transparent border-t-2 animate-spin',
   disabled:

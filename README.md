@@ -68,6 +68,83 @@ This monorepo contains two main applications:
 - CSV import/export functionality
 - Customer segmentation by business/location
 
+### 📦 Category Management
+
+- Full CRUD operations for categories
+- Image and icon upload via Cloudinary
+- Business-scoped categories
+- Kitchen section integration
+- Multi-language support
+- Sort order management
+
+### 🍕 Item Management
+
+- Complete item lifecycle management
+- Image upload support
+- **Separate ItemSize collection** - Item sizes are now managed independently:
+  - Create, update, delete sizes via `/items/:itemId/sizes` endpoints
+  - Each size has: name, code (unique per item), price, display_order, is_active
+  - Code mapping: Size codes (S, M, L, XL, XXL) used in modifier pricing map to ItemSize.code
+- Business rules:
+  - If `is_sizeable = false`: Uses `base_price`, `default_size_id` must be null
+  - If `is_sizeable = true`: Must have at least one ItemSize, `base_price` is ignored, `default_size_id` references a size
+- Modifier group assignment
+- Item-level sides configuration
+- Category-based organization
+- Active/inactive status management
+- Signature item marking
+- Customizable per-order limits
+- **Migration**: Run `npx ts-node customize_server/scripts/migrateItemSizes.ts` to migrate existing embedded sizes
+
+### 🎛️ Modifier Group & Modifier Management
+
+- **Modifier Groups** - Single source of truth for modifier configuration:
+  - Selection rules (RADIO/CHECKBOX, min/max selection, applies per quantity)
+  - Group-level quantity levels (Light, Normal, Extra) with default settings
+  - Size-based pricing (price deltas for S, M, L, XL, XXL)
+  - Business-scoped groups
+- **Modifiers** - Lightweight modifier items within groups:
+  - Name, display order, default selection
+  - Maximum quantity per modifier
+  - Automatic inheritance of group-level settings
+  - No individual pricing or quantity level configuration
+- **Item Integration** - Assign modifier groups to items with:
+  - Custom display order per item
+  - Item-level sides configuration (enabled/disabled, allowed sides count)
+  - **Per-Modifier Overrides** (NEW) - Customize each modifier individually:
+    - Override max_quantity per modifier for the item
+    - Override is_default flag per modifier for the item
+    - Item-level pricing by size per modifier
+    - Item-level quantity levels per modifier
+    - **All overrides apply ONLY to the item** (never affect global settings)
+- **Configuration Resolution Order**:
+  1. Modifier Group defaults (base configuration)
+  2. Modifier-level defaults (if any - future enhancement)
+  3. Item-level modifier overrides (item-specific customization)
+  4. Item-only behavior (sides_config)
+- **Validation** - Prevents deletion of groups used by items
+- **Soft Delete** - Safe deletion with data preservation
+- **Backward Compatible** - Existing items without overrides continue to work
+
+### 📥 Import System (Super Admin Only)
+
+- **Professional CSV/ZIP Import** - Import Items, ItemSizes, ModifierGroups, Modifiers, and Item Modifier Overrides
+- **Strict Validation** - Comprehensive validation with blocking errors and warnings
+- **Review Before Save** - Parse and validate without writing to database
+- **Draft Sessions** - Save import sessions and continue later (7-day TTL)
+- **Transactional Save** - All-or-nothing database writes with rollback protection
+- **Error Export** - Download validation errors as CSV
+- **Audit Logging** - Complete audit trail for all import operations
+- **Business Key Based** - Use business keys (item_key, group_key, modifier_key) instead of database IDs
+- **Safety First** - No incomplete data ever reaches the database
+
+**Import Flow:**
+1. Upload CSV or ZIP file → Parse and validate
+2. Review parsed data → Edit inline if needed
+3. Fix validation errors → Re-validate
+4. Save draft (optional) → Continue later
+5. Final save → Transactional write to database
+
 ### 💳 Financial Management
 
 - Withdrawal management system
@@ -175,6 +252,14 @@ NEXT_PUBLIC_APP_NAME=XRT Online Ordering
 - **API Info**: `http://localhost:3001/api/v1/`
 - **OpenAPI Spec**: `http://localhost:3001/api-docs.json`
 
+**Swagger Documentation Features:**
+- ✅ Complete API endpoint documentation
+- ✅ Detailed request/response schemas with proper data types
+- ✅ Interactive API testing interface
+- ✅ No empty data objects - all responses properly typed
+- ✅ Authentication examples
+- ✅ Error response documentation
+
 ### API Endpoints Overview
 
 #### Authentication
@@ -269,6 +354,144 @@ NEXT_PUBLIC_APP_NAME=XRT Online Ordering
 - `POST /categories` - Create category (Multipart: image, icon)
 - `PUT /categories/:id` - Update category (Multipart: image, icon)
 - `DELETE /categories/:id` - Delete category
+
+#### Item Management
+
+- `GET /items` - List all items (with pagination)
+- `GET /items/:id` - Get single item details
+- `POST /items` - Create item (Multipart: image, modifier_groups, default_size_id)
+- `PUT /items/:id` - Update item (Multipart: image, modifier_groups, default_size_id)
+- `DELETE /items/:id` - Delete item (also deletes all associated ItemSize records)
+
+#### Item Size Management
+
+**⚠️ Important:** Item sizes are now managed separately from items. Use these endpoints to manage sizes for sizable items.
+
+- `GET /items/:itemId/sizes` - Get all sizes for an item
+- `GET /items/:itemId/sizes/:id` - Get single item size
+- `POST /items/:itemId/sizes` - Create item size
+  - Required: `name`, `code`, `price`
+  - Optional: `display_order`, `is_active`
+  - Code must be unique per item
+- `PUT /items/:itemId/sizes/:id` - Update item size
+- `DELETE /items/:itemId/sizes/:id` - Delete item size
+  - Cannot delete if it's the default size (update item's default_size_id first)
+  - Cannot delete if it's the last size for a sizable item
+
+#### Import System (Super Admin Only)
+
+**Import Flow:**
+1. `POST /import/parse` - Upload CSV/ZIP file, parse and validate
+2. `GET /import/sessions/:id` - Review parsed data and validation results
+3. `PUT /import/sessions/:id` - Update data and save draft (optional)
+4. `POST /import/sessions/:id/save` - Final save to database (transactional)
+5. `GET /import/sessions/:id/errors` - Download errors as CSV (optional)
+6. `DELETE /import/sessions/:id` - Discard import session (optional)
+
+**CSV File Format Examples:**
+
+**Items.csv:**
+```csv
+item_key,business_id,name,description,base_price,category_name,is_sizeable,is_customizable
+ITEM001,biz123,Margherita Pizza,Classic pizza,12.99,Pizza,true,true
+ITEM002,biz123,Caesar Salad,Fresh salad,8.99,Salads,false,false
+```
+
+**ItemSizes.csv:**
+```csv
+item_key,size_code,name,price,display_order,is_default
+ITEM001,S,Small,10.99,1,false
+ITEM001,M,Medium,12.99,2,true
+ITEM001,L,Large,15.99,3,false
+```
+
+**ModifierGroups.csv:**
+```csv
+group_key,business_id,name,display_type,min_select,max_select
+GROUP001,biz123,Pizza Toppings,CHECKBOX,0,5
+GROUP002,biz123,Salad Dressing,RADIO,1,1
+```
+
+**Modifiers.csv:**
+```csv
+group_key,modifier_key,name,is_default,max_quantity,display_order
+GROUP001,MOD001,Pepperoni,false,3,1
+GROUP001,MOD002,Mushrooms,false,2,2
+GROUP002,MOD003,Caesar Dressing,true,1,1
+```
+
+**ItemModifierOverrides.csv:**
+```csv
+item_key,group_key,modifier_key,max_quantity,is_default
+ITEM001,GROUP001,MOD001,5,true
+```
+
+**Validation:**
+- All validation errors block saving (must be fixed)
+- Warnings are non-blocking but should be reviewed
+- Re-validation occurs on every update
+- Final save re-validates before writing to database
+
+**Item Modifier Groups with Per-Modifier Overrides:**
+
+When creating or updating items, you can customize each modifier individually using `modifier_overrides`:
+
+```json
+{
+  "modifier_groups": [
+    {
+      "modifier_group_id": "507f1f77bcf86cd799439011",
+      "display_order": 1,
+      "sides_config": {
+        "enabled": true,
+        "allowed_sides": 2
+      },
+      "modifier_overrides": [
+        {
+          "modifier_id": "507f1f77bcf86cd799439012",
+          "max_quantity": 5,
+          "is_default": true,
+          "prices_by_size": [
+            {"sizeCode": "M", "priceDelta": 1.50},
+            {"sizeCode": "L", "priceDelta": 2.50},
+            {"sizeCode": "XL", "priceDelta": 3.00}
+          ],
+          "quantity_levels": [
+            {"quantity": 2, "name": "Extra", "price": 1.00, "is_default": true}
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Modifier Override Fields:**
+- `modifier_id` (required): ID of the modifier to override
+- `max_quantity` (optional): Override max_quantity for this modifier (item-level only)
+- `is_default` (optional): Override default selection flag (item-level only)
+- `prices_by_size` (optional): Item-level pricing per size, overrides group defaults
+- `quantity_levels` (optional): Item-level quantity levels, overrides group defaults
+
+**⚠️ Important:** All modifier overrides apply ONLY to the specific item and never affect:
+- The modifier globally
+- The modifier group globally
+- Other items using the same modifier
+
+#### Modifier Group Management
+
+- `GET /modifier-groups` - List all modifier groups
+- `GET /modifier-groups/:id` - Get single modifier group with modifiers
+- `POST /modifier-groups` - Create modifier group (with selection rules, pricing, quantity levels)
+- `PUT /modifier-groups/:id` - Update modifier group
+- `DELETE /modifier-groups/:id` - Delete modifier group (soft delete, prevents if used by items)
+
+#### Modifier Management
+
+- `GET /modifier-groups/:groupId/modifiers` - List all modifiers in a group
+- `POST /modifier-groups/:groupId/modifiers` - Create modifier in a group
+- `PUT /modifier-groups/:groupId/modifiers/:id` - Update modifier
+- `DELETE /modifier-groups/:groupId/modifiers/:id` - Delete modifier (soft delete)
 
 #### Withdraw Management
 

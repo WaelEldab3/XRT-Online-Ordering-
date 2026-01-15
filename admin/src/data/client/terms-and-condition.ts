@@ -25,8 +25,7 @@ export const termsAndConditionClients = {
         shop_id: shop_id,
         ...params,
         search: HttpClient.formatSearchParams({ title, shop_id }),
-      }
-    );
+      });
   },
   approve: (variables: { id: string }) => {
     return HttpClient.post<any>(API_ENDPOINTS.APPROVE_TERMS_AND_CONDITIONS, variables);

@@ -39,7 +39,7 @@ export default function CreateOrUpdateWithdrawForm({ initialValues }: IProps) {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { price: shopBalance } = usePrice({
     amount: shopData?.balance?.current_balance!,
   });
@@ -54,7 +54,7 @@ export default function CreateOrUpdateWithdrawForm({ initialValues }: IProps) {
     resolver: yupResolver(withdrawValidationSchema),
   });
 
-  const { mutate: createWithdraw, isLoading: creating } =
+  const { mutate: createWithdraw, isPending: creating } =
     useCreateWithdrawMutation();
 
   const onSubmit = (values: any) => {

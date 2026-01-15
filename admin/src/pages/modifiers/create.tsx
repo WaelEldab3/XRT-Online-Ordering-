@@ -38,7 +38,7 @@ export default function CreateModifierPage() {
   // Update selectedGroupId when group selection changes
   useEffect(() => {
     if (selectedGroup) {
-      const groupId = typeof selectedGroup === 'object' ? selectedGroup.id : selectedGroup;
+      const groupId = typeof selectedGroup === 'object' && selectedGroup !== null ? (selectedGroup as any).id : selectedGroup;
       setSelectedGroupId(groupId);
     } else {
       setSelectedGroupId(null);

@@ -18,13 +18,13 @@ export interface Props extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const classes = {
-  root: 'ltr:pl-4 rtl:pr-4 ltr:pr-12 rtl:pl-12 h-12 flex items-center w-full rounded appearance-none transition duration-300 ease-in-out text-heading text-sm focus:outline-none focus:ring-0',
+  root: 'ltr:pl-4 rtl:pr-4 ltr:pr-12 rtl:pl-12 h-12 flex items-center w-full rounded-lg appearance-none transition-all duration-200 ease-in-out text-heading text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-0',
   normal:
-    'bg-gray-100 border border-border-base focus:shadow focus:bg-light focus:border-accent',
+    'bg-gray-50 border border-gray-300 focus:shadow-sm focus:bg-white focus:border-accent',
   solid:
-    'bg-gray-100 border border-border-100 focus:bg-light focus:border-accent',
-  outline: 'border border-border-base focus:border-accent',
-  shadow: 'focus:shadow',
+    'bg-gray-50 border border-gray-200 focus:bg-white focus:border-accent',
+  outline: 'border border-gray-300 bg-white focus:border-accent focus:ring-2 focus:ring-accent/20',
+  shadow: 'focus:shadow-md',
 };
 const PasswordInput = React.forwardRef<HTMLInputElement, Props>(
   (

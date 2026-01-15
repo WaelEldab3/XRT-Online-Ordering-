@@ -30,10 +30,17 @@ export default function ForgotPasswordPage() {
   const { t } = useTranslation();
   return (
     <AuthPageLayout>
-      <h3 className="mb-6 mt-4 text-center text-base italic text-body">
-        {t('form:form-title-forgot-password')}
-      </h3>
-      <ForgotPasswordForm />
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          {t('form:form-title-forgot-password') || 'Reset Password'}
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">
+          XRT Restaurant System - Password Recovery
+        </p>
+      </div>
+      <div className="mt-6">
+        <ForgotPasswordForm />
+      </div>
     </AuthPageLayout>
   );
 }

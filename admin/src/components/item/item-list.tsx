@@ -25,6 +25,7 @@ import { CloseIcon } from '@/components/icons/close-icon';
 import { TrashIcon } from '@/components/icons/trash';
 import Link from '@/components/ui/link';
 import Loader from '@/components/ui/loader/loader';
+import Card from '@/components/common/card';
 
 export type IProps = {
     items: Item[] | undefined;
@@ -65,7 +66,7 @@ const ItemList = ({
     const { alignLeft, alignRight } = useIsRTL();
     const { openModal } = useModalAction();
     const { isOpen, view } = useModalState();
-    const { mutate: updateItem, isLoading: isUpdating } = useUpdateItemMutation();
+    const { mutate: updateItem, isPending: isUpdating } = useUpdateItemMutation();
 
     const [sortingObj, setSortingObj] = useState<SortingObjType>({
         sort: SortOrder.Desc,
@@ -285,10 +286,28 @@ const ItemList = ({
     return (
         <>
             <div className="mb-6 overflow-hidden rounded shadow">
-                <Table
-                    /* @ts-ignore */
-                    columns={columns}
-                    emptyText={() => (
+                {/* Desktop: Full table, Mobile: Responsive cards */}
+                <div className="hidden md:block">
+                    <Table
+                        /* @ts-ignore */
+                        columns={columns}
+                        emptyText={() => (
+                            <div className="flex flex-col items-center py-7">
+                                <NoDataFound className="w-52" />
+                                <div className="mb-1 pt-6 text-base font-semibold text-heading">
+                                    {t('table:empty-table-data')}
+                                </div>
+                                <p className="text-[13px]">{t('table:empty-table-sorry-text')}</p>
+                            </div>
+                        )}
+                        data={items}
+                        rowKey="id"
+                        scroll={{ x: 1000 }}
+                    />
+                </div>
+                {/* Mobile: Card view */}
+                <div className="block md:hidden space-y-4">
+                    {!items || items.length === 0 ? (
                         <div className="flex flex-col items-center py-7">
                             <NoDataFound className="w-52" />
                             <div className="mb-1 pt-6 text-base font-semibold text-heading">
@@ -296,11 +315,89 @@ const ItemList = ({
                             </div>
                             <p className="text-[13px]">{t('table:empty-table-sorry-text')}</p>
                         </div>
+                    ) : (
+                        items.map((item: Item) => (
+                            <Card key={item.id} className="p-4">
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="relative aspect-square h-16 w-16 shrink-0 overflow-hidden rounded border border-border-200/80 bg-gray-100">
+                                            <img
+                                                src={item.image ?? siteSettings.product.placeholder}
+                                                alt={item.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <button
+                                                onClick={() => openModal('ITEM_PREVIEW', { id: item.id })}
+                                                className="text-left font-medium text-heading hover:text-accent transition-colors line-clamp-2"
+                                            >
+                                                {item.name}
+                                            </button>
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                {item.category?.name ?? item.category_id}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
+                                        <div>
+                                            <span className="text-xs font-medium text-gray-500 uppercase">Price</span>
+                                            <PriceWidget amount={(item?.base_price as number) ?? 0} />
+                                        </div>
+                                        <div>
+                                            <span className="text-xs font-medium text-gray-500 uppercase">Status</span>
+                                            <div className="mt-1">
+                                                <Badge
+                                                    textKey={item.is_active ? 'common:text-active' : 'common:text-inactive'}
+                                                    color={
+                                                        !item.is_active
+                                                            ? 'bg-yellow-400/10 text-yellow-500'
+                                                            : 'bg-accent bg-opacity-10 !text-accent'
+                                                    }
+                                                    className="capitalize"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-3">
+                                        <button
+                                            onClick={() => {
+                                                setTogglingSignatureId(item.id);
+                                                updateItem(
+                                                    {
+                                                        id: item.id,
+                                                        is_signature: !item.is_signature,
+                                                    },
+                                                    {
+                                                        onSuccess: () => {
+                                                            setTogglingSignatureId(null);
+                                                        },
+                                                    }
+                                                );
+                                            }}
+                                            className="text-gray-400 hover:text-accent transition-colors"
+                                            title={item.is_signature ? 'Remove signature' : 'Mark as signature'}
+                                        >
+                                            <StarIcon className="h-5 w-5" />
+                                        </button>
+                                        <Link
+                                            href={Routes.item.editWithoutLang(item.id, shop as string)}
+                                            className="text-gray-400 hover:text-accent transition-colors"
+                                        >
+                                            <EditIcon className="h-5 w-5" />
+                                        </Link>
+                                        <button
+                                            onClick={() => openModal('DELETE_ITEM', item)}
+                                            className="text-red-400 hover:text-red-600 transition-colors"
+                                        >
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))
                     )}
-                    data={items}
-                    rowKey="id"
-                    scroll={{ x: 1000 }}
-                />
+                </div>
             </div>
 
             {!!paginatorInfo?.total && (

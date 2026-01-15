@@ -34,7 +34,7 @@ const defaultValues = {
 const LoginForm = () => {
   const { t } = useTranslation();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { mutate: login, isLoading, error } = useLogin();
+  const { mutate: login, isPending: isLoading, error } = useLogin();
 
   function onSubmit(values: LoginInput, e?: React.BaseSyntheticEvent) {
     // Prevent any default form submission behavior
@@ -133,21 +133,31 @@ const LoginForm = () => {
   }
 
   return (
-    <>
+    <div className="space-y-5">
+      {errorMessage && (
+        <Alert
+          message={errorMessage}
+          variant="error"
+          closeable={true}
+          className="mb-4"
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
       <Form<LoginInput>
         validationSchema={loginFormSchema}
         onSubmit={onSubmit}
         useFormProps={{ defaultValues }}
       >
         {({ register, formState: { errors } }) => (
-          <>
+          <div className="space-y-4">
             <Input
               label={t('form:input-label-email')}
               {...register('email')}
               type="email"
               variant="outline"
-              className="mb-4"
               error={t(errors?.email?.message!)}
+              placeholder="Enter your email"
+              className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
             />
             <PasswordInput
               label={t('form:input-label-password')}
@@ -155,25 +165,21 @@ const LoginForm = () => {
               {...register('password')}
               error={t(errors?.password?.message!)}
               variant="outline"
-              className="mb-4"
+              placeholder="Enter your password"
               forgotPageLink={Routes.forgotPassword}
+              className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
             />
-            <Button className="w-full" loading={isLoading} disabled={isLoading}>
-              {t('form:button-label-login')}
+            <Button
+              className="w-full mt-6 h-11 text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+              loading={isLoading}
+              disabled={isLoading}
+            >
+              {t('form:button-label-login') || 'Sign In'}
             </Button>
-          </>
+          </div>
         )}
       </Form>
-      {errorMessage ? (
-        <Alert
-          message={t(errorMessage)}
-          variant="error"
-          closeable={true}
-          className="mt-5"
-          onClose={() => setErrorMessage(null)}
-        />
-      ) : null}
-    </>
+    </div>
   );
 };
 

@@ -9,8 +9,8 @@ import { useTranslation } from 'next-i18next';
 
 const CustomerBanView = () => {
   const { t } = useTranslation();
-  const { mutate: blockUser, isLoading: loading } = useBlockUserMutation();
-  const { mutate: unblockUser, isLoading: activeLoading } =
+  const { mutate: blockUser, isPending: loading } = useBlockUserMutation();
+  const { mutate: unblockUser, isPending: activeLoading } =
     useUnblockUserMutation();
 
   const { data } = useModalState();

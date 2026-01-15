@@ -14,7 +14,7 @@ export default function RefundDetailsPage() {
 
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useRefundQuery(query.refundId as string);
   

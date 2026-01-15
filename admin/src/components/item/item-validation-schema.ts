@@ -28,6 +28,14 @@ export const itemValidationSchema = yup.object().shape({
     is_signature: yup.boolean(),
     is_sizeable: yup.boolean(),
     is_customizable: yup.boolean(),
+    default_size_id: yup
+        .string()
+        .nullable()
+        .when('is_sizeable', {
+            is: (value: boolean) => value === true,
+            then: (schema) => schema.required('form:error-default-size-required'),
+            otherwise: (schema) => schema.nullable(),
+        }),
     sizes: yup.array().when('is_sizeable', {
         is: (value: boolean) => value === true,
         then: (schema) =>

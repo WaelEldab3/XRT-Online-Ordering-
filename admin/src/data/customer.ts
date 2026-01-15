@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from './client/api-endpoints';
 import { CustomerPaginator, Customer, MappedPaginatorInfo, SortOrder } from '@/types';
 import { customerClient } from './client/customer';
@@ -20,9 +20,9 @@ export const useCustomersQuery = ({
   sortedBy?: 'DESC' | 'ASC';
   isActive?: boolean;
 }) => {
-  const { data, error, isLoading } = useQuery<any, Error>(
-    [API_ENDPOINTS.CUSTOMERS, { limit, page, search, orderBy, sortedBy, isActive }],
-    () => customerClient.fetchCustomers({
+  const { data, error, isPending: isLoading } = useQuery<any, Error>({
+    queryKey: [API_ENDPOINTS.CUSTOMERS, { limit, page, search, orderBy, sortedBy, isActive }],
+    queryFn: () => customerClient.fetchCustomers({
       limit,
       page,
       search,
@@ -30,11 +30,9 @@ export const useCustomersQuery = ({
       sortedBy: sortedBy.toLowerCase() as SortOrder,
       isActive,
     }),
-    {
-      keepPreviousData: true,
-      staleTime: 60 * 1000, // 1 minute
-    },
-  );
+    placeholderData: (previousData: CustomerPaginator | undefined) => previousData,
+    staleTime: 60 * 1000, // 1 minute
+  });
 
   // Handle backend response format: { success: true, data: { customers: [...], paginatorInfo: {...} } }
   const responseData = data?.data || data;
@@ -73,16 +71,15 @@ export const useCustomersQuery = ({
 };
 
 export const useCustomerQuery = (id: string) => {
-  return useQuery<Customer, Error>(
-    [API_ENDPOINTS.CUSTOMERS, id],
-    () => customerClient.fetchCustomer({ id }),
-    {
-      enabled: !!id,
-      select: (data: any) => {
-        // Handle backend response format
-        return data?.data?.customer || data?.data || data;
-      },
+  return useQuery<Customer, Error>({
+    queryKey: [API_ENDPOINTS.CUSTOMERS, id],
+    queryFn: () => customerClient.fetchCustomer({ id }),
+    enabled: !!id,
+    select: (data: any) => {
+      // Handle backend response format
+      return data?.data?.customer || data?.data || data;
     },
+  },
   );
 };
 
@@ -90,58 +87,52 @@ export const useCreateCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation<any, Error, any>(
-    (variables) => {
+  return useMutation<any, Error, any>({
+    mutationFn: (variables) => {
       return customerClient.create(variables);
     },
-    {
-      onSuccess: () => {
-        toast.success(t('common:successfully-created'));
-        queryClient.invalidateQueries(API_ENDPOINTS.CUSTOMERS);
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t('common:create-failed'));
-      },
-    }
-  );
+    onSuccess: () => {
+      toast.success(t('common:successfully-created'));
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CUSTOMERS] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:create-failed'));
+    },
+  });
 };
 
 export const useUpdateCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation<any, Error, { id: string; variables: any }>(
-    ({ id, variables }) => customerClient.update({ id, input: variables }),
-    {
-      onSuccess: () => {
-        toast.success(t('common:successfully-updated'));
-        queryClient.invalidateQueries(API_ENDPOINTS.CUSTOMERS);
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t('common:update-failed'));
-      },
-    }
-  );
+  return useMutation<any, Error, { id: string; variables: any }>({
+    mutationFn: ({ id, variables }) => customerClient.update({ id, input: variables }),
+    onSuccess: () => {
+      toast.success(t('common:successfully-updated'));
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CUSTOMERS] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:update-failed'));
+    },
+  });
 };
 
 export const useDeleteCustomerMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation<any, Error, string>(
-    (id) => {
+  return useMutation<any, Error, string>({
+    mutationFn: (id) => {
       return customerClient.delete(id);
     },
-    {
-      onSuccess: () => {
-        toast.success(t('common:successfully-deleted'));
-        queryClient.invalidateQueries(API_ENDPOINTS.CUSTOMERS);
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t('common:delete-failed'));
-      },
-    }
-  );
+    onSuccess: () => {
+      toast.success(t('common:successfully-deleted'));
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CUSTOMERS] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:delete-failed'));
+    },
+  });
 };
 
 export const useImportCustomersMutation = () => {
@@ -152,8 +143,8 @@ export const useImportCustomersMutation = () => {
     any,
     Error,
     { customers: any[] }
-  >(
-    async (variables) => {
+  >({
+    mutationFn: async (variables) => {
       // Import customers by creating them one by one (can be optimized later)
       const results = [];
       for (const customer of variables.customers) {
@@ -172,15 +163,13 @@ export const useImportCustomersMutation = () => {
       }
       return { imported: results.length, data: results };
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(API_ENDPOINTS.CUSTOMERS);
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t('common:import-failed'));
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CUSTOMERS] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:import-failed'));
+    },
+  });
 };
 
 export const useExportCustomersMutation = () => {
@@ -190,8 +179,8 @@ export const useExportCustomersMutation = () => {
     any,
     Error,
     { format?: string }
-  >(
-    async (variables) => {
+  >({
+    mutationFn: async (variables) => {
       // Fetch all customers
       const response = await customerClient.fetchCustomers({
         limit: 10000, // Get all
@@ -216,11 +205,9 @@ export const useExportCustomersMutation = () => {
       // Return as blob-like object
       return new Blob([csvContent], { type: 'text/csv' });
     },
-    {
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || t('common:export-failed'));
-      },
-    }
-  );
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:export-failed'));
+    },
+  });
 };
 

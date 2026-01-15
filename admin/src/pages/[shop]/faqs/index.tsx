@@ -43,7 +43,7 @@ export default function Faqs() {
     query: { shop },
   } = useRouter();
   const { data: shopData } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const { faqs, loading, paginatorInfo, error } = useFaqsQuery({
     language: locale,

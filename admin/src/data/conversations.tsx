@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
   useInfiniteQuery,
-} from 'react-query';
+} from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { Routes } from '@/config/routes';
@@ -26,7 +26,7 @@ export const useConversationsQuery = (
 ) => {
   const {
     data,
-    isLoading,
+    isPending: isLoading,
     error,
     refetch,
     fetchNextPage,
@@ -34,17 +34,16 @@ export const useConversationsQuery = (
     isFetching,
     isSuccess,
     isFetchingNextPage,
-  } = useInfiniteQuery<ConversionPaginator, Error>(
-    [API_ENDPOINTS.CONVERSIONS, options],
-    ({ queryKey, pageParam }) =>
+  } = useInfiniteQuery<ConversionPaginator, Error>({
+    queryKey: [API_ENDPOINTS.CONVERSIONS, options],
+    initialPageParam: 1,
+    queryFn: ({ queryKey, pageParam }) =>
       conversationsClient.allConversation(
         Object.assign({}, queryKey[1], pageParam)
       ),
-    {
-      getNextPageParam: ({ current_page, last_page }) =>
-        last_page > current_page && { page: current_page + 1 },
-    }
-  );
+    getNextPageParam: ({ current_page, last_page }) =>
+      last_page > current_page && { page: current_page + 1 },
+  });
 
   function handleLoadMore() {
     if (Boolean(hasNextPage)) {
@@ -75,8 +74,9 @@ export const useCreateConversations = () => {
   const queryClient = useQueryClient();
   const { permissions } = getAuthCredentials();
   let permission = hasAccess(adminOnly, permissions);
-  return useMutation(conversationsClient.create, {
-    onSuccess: (data) => {
+  return useMutation({
+    mutationFn: conversationsClient.create,
+    onSuccess: (data: any) => {
       if (data?.id) {
         const routes = permission
           ? Routes?.message?.details(data?.id)
@@ -90,8 +90,8 @@ export const useCreateConversations = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MESSAGE);
-      queryClient.invalidateQueries(API_ENDPOINTS.CONVERSIONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MESSAGE] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CONVERSIONS] });
     },
   });
 };
@@ -99,7 +99,7 @@ export const useCreateConversations = () => {
 export const useMessagesQuery = (options: Partial<MessageQueryOptions>) => {
   const {
     data,
-    isLoading,
+    isPending: isLoading,
     error,
     refetch,
     fetchNextPage,
@@ -107,15 +107,14 @@ export const useMessagesQuery = (options: Partial<MessageQueryOptions>) => {
     isFetching,
     isSuccess,
     isFetchingNextPage,
-  } = useInfiniteQuery<MessagePaginator, Error>(
-    [API_ENDPOINTS.MESSAGE, options],
-    ({ queryKey, pageParam }) =>
+  } = useInfiniteQuery<MessagePaginator, Error>({
+    queryKey: [API_ENDPOINTS.MESSAGE, options],
+    initialPageParam: 1,
+    queryFn: ({ queryKey, pageParam }) =>
       conversationsClient.getMessage(Object.assign({}, queryKey[1], pageParam)),
-    {
-      getNextPageParam: ({ current_page, last_page }) =>
-        last_page > current_page && { page: current_page + 1 },
-    }
-  );
+    getNextPageParam: ({ current_page, last_page }) =>
+      last_page > current_page && { page: current_page + 1 },
+  });
 
   function handleLoadMore() {
     if (Boolean(hasNextPage)) {
@@ -140,13 +139,11 @@ export const useMessagesQuery = (options: Partial<MessageQueryOptions>) => {
 };
 
 export const useConversationQuery = ({ id }: { id: string }) => {
-  const { data, error, isLoading, isFetching } = useQuery<Conversations, Error>(
-    [API_ENDPOINTS.CONVERSIONS, id],
-    () => conversationsClient.getConversion({ id }),
-    {
-      keepPreviousData: true,
-    }
-  );
+  const { data, error, isPending: isLoading, isFetching } = useQuery<Conversations, Error>({
+    queryKey: [API_ENDPOINTS.CONVERSIONS, id],
+    queryFn: () => conversationsClient.getConversion({ id }),
+    placeholderData: (previousData: any) => previousData,
+  });
 
   return {
     data: data ?? [],
@@ -159,14 +156,15 @@ export const useConversationQuery = ({ id }: { id: string }) => {
 export const useSendMessage = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  return useMutation(conversationsClient.messageCreate, {
+  return useMutation({
+    mutationFn: conversationsClient.messageCreate,
     onSuccess: () => {
       toast.success(t('common:text-message-sent'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MESSAGE);
-      queryClient.invalidateQueries(API_ENDPOINTS.CONVERSIONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MESSAGE] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CONVERSIONS] });
     },
   });
 };
@@ -174,11 +172,12 @@ export const useSendMessage = () => {
 export const useMessageSeen = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  return useMutation(conversationsClient.messageSeen, {
+  return useMutation({
+    mutationFn: conversationsClient.messageSeen,
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.MESSAGE);
-      queryClient.invalidateQueries(API_ENDPOINTS.CONVERSIONS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MESSAGE] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CONVERSIONS] });
     },
   });
 };

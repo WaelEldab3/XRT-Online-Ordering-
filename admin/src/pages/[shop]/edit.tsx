@@ -24,7 +24,7 @@ export default function UpdateShopPage() {
   const { t } = useTranslation();
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useShopQuery({
     slug: shop as string,

@@ -51,8 +51,8 @@ export default function TermsAndConditions() {
   const {
     query: { shop },
   } = useRouter();
-  const { data: shopData, isLoading } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const { data: shopData, isPending: isLoading } = useShopQuery({ slug: shop as string });
+  const shopId = (shopData as any)?.id!;
 
   const { termsAndConditions, loading, paginatorInfo, error } =
     useTermsAndConditionsQuery({

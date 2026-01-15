@@ -29,7 +29,7 @@ export default function ShopTransferRequestVendorPage() {
   const [filterType, setFilterType] = useState('from');
   const [page, setPage] = useState(1);
 
-  const { data: user, isLoading: loading, error } = useMeQuery();
+  const { data: user, isPending: loading, error } = useMeQuery();
   const { role } = getAuthCredentials();
 
   const {

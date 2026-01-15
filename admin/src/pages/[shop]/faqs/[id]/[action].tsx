@@ -26,7 +26,7 @@ export default function UpdateFAQsPage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { faqs, loading, error } = useFaqQuery({
     id: query.id as string,
     language:

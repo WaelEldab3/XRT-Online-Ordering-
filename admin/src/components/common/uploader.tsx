@@ -34,7 +34,7 @@ export default function Uploader({
 }: any) {
   const { t } = useTranslation();
   const [files, setFiles] = useState<Attachment[]>(getPreviewImage(value));
-  const { mutate: upload, isLoading: loading } = useUploadMutation();
+  const { mutate: upload, isPending: loading } = useUploadMutation();
   const [error, setError] = useState<string | null>(null);
 
   // Helper to convert HTML accept string to react-dropzone object

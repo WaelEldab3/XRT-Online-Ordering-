@@ -1,7 +1,29 @@
-export interface ItemSize {
-    name: string;
-    price: number;
-    is_default: boolean;
+export interface ItemModifierPriceOverride {
+    sizeCode: 'S' | 'M' | 'L' | 'XL' | 'XXL';
+    priceDelta: number;
+}
+
+export interface ItemModifierQuantityLevelOverride {
+    quantity: number;
+    name?: string;
+    price?: number;
+    is_default?: boolean;
+    display_order?: number;
+    is_active?: boolean;
+}
+
+export interface ItemModifierOverride {
+    modifier_id: string;
+    max_quantity?: number;
+    is_default?: boolean;
+    prices_by_size?: ItemModifierPriceOverride[];
+    quantity_levels?: ItemModifierQuantityLevelOverride[];
+}
+
+export interface ItemModifierGroupAssignment {
+    modifier_group_id: string;
+    display_order: number;
+    modifier_overrides?: ItemModifierOverride[]; // Item-level overrides for individual modifiers
 }
 
 export interface Item {
@@ -24,7 +46,8 @@ export interface Item {
     max_per_order?: number;
     is_sizeable?: boolean;
     is_customizable?: boolean;
-    sizes?: ItemSize[];
+    default_size_id?: string; // FK to ItemSize.id, nullable - only used when is_sizeable = true
+    modifier_groups?: ItemModifierGroupAssignment[];
     created_at: Date;
     updated_at: Date;
 }
@@ -44,7 +67,8 @@ export interface CreateItemDTO {
     max_per_order?: number;
     is_sizeable?: boolean;
     is_customizable?: boolean;
-    sizes?: ItemSize[];
+    default_size_id?: string; // FK to ItemSize.id, nullable - only used when is_sizeable = true
+    modifier_groups?: ItemModifierGroupAssignment[];
 }
 
 export interface UpdateItemDTO {
@@ -61,7 +85,8 @@ export interface UpdateItemDTO {
     max_per_order?: number;
     is_sizeable?: boolean;
     is_customizable?: boolean;
-    sizes?: ItemSize[];
+    default_size_id?: string; // FK to ItemSize.id, nullable - only used when is_sizeable = true
+    modifier_groups?: ItemModifierGroupAssignment[];
 }
 
 export interface ItemFilters {

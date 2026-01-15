@@ -321,7 +321,7 @@ const CategoryList = ({
             expandedRowRender: () => ' ',
             rowExpandable: rowExpandable,
           }}
-          onRow={(record: Category) => {
+          onRow={(record: any) => {
             const baseClassName = 'cursor-pointer hover:bg-gray-50 transition-colors';
             const statusClassName = 
               record.id === deletingId

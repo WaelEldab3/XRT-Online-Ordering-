@@ -27,11 +27,11 @@ export default function UpdateAttributePage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useAttributeQuery({
     slug: query.attributeId as string,

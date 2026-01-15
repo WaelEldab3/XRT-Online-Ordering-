@@ -5,7 +5,7 @@ import Search from '@/components/common/search';
 import ErrorMessage from '@/components/ui/error-message';
 import Loader from '@/components/ui/loader/loader';
 import LinkButton from '@/components/ui/link-button';
-import { Permission, SortOrder } from '@/types';
+import { UserRoleEnum, SortOrder } from '@/types';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import {
@@ -33,12 +33,12 @@ export default function StoreNotices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [orderBy, setOrder] = useState('created_at');
   const [sortedBy, setColumn] = useState<SortOrder>(SortOrder.Desc);
-  const isSuperAdmin = permissions?.includes(Permission.SuperAdmin);
+  const isSuperAdmin = permissions?.includes('super_admin') || me?.role === UserRoleEnum.SuperAdmin;
   const {
     query: { shop },
   } = useRouter();
   const { data: shopData } = useShopQuery({ slug: shop as string });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { storeNotices, paginatorInfo, loading, error } = useStoreNoticesQuery(
     {
       limit: 15,

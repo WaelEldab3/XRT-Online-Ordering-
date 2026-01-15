@@ -41,7 +41,7 @@ export default function AttributePage() {
   const { data: shopData, isLoading: fetchingShop } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   function handleImportModal() {
     openModal('EXPORT_IMPORT_ATTRIBUTE', shopId);

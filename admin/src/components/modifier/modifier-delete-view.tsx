@@ -6,7 +6,7 @@ import {
 import { useDeleteModifierMutation } from '@/data/modifier';
 
 const ModifierDeleteView = () => {
-  const { mutate: deleteModifier, isLoading: loading } =
+  const { mutate: deleteModifier, isPending: loading } =
     useDeleteModifierMutation();
 
   const { data } = useModalState();

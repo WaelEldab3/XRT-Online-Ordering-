@@ -25,10 +25,10 @@ export default function UpdateTermsAndConditionsPage() {
   const router = useRouter();
   const { permissions } = getAuthCredentials();
   const { data: me } = useMeQuery();
-  const { data: shopData, isLoading } = useShopQuery({
+  const { data: shopData, isPending: isLoading } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { termsAndConditions, loading, error } = useTermsAndConditionQuery({
     slug: query.termSlug as string,
     language: locale as string,

@@ -26,10 +26,10 @@ export default function CreateTermsAndConditionsPage() {
   } = router;
   const { permissions } = getAuthCredentials();
   const { data: me } = useMeQuery();
-  const { data: shopData, isLoading } = useShopQuery({
+  const { data: shopData, isPending: isLoading } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const { settings, loading } = useSettingsQuery({
     language: locale as string,

@@ -4,13 +4,14 @@ import Description from '@/components/ui/description';
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import PasswordInput from '@/components/ui/password-input';
+import SwitchInput from '@/components/ui/switch-input';
+import CopyContent from '@/components/ui/copy-content/copy-content';
 import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
 import Label from '@/components/ui/label';
 import { useRolesQuery } from '@/data/role';
 import { useRegisterMutation, useUpdateUserMutation } from '@/data/user';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { CheckMarkCircle } from '@/components/icons/checkmark-circle';
-import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -48,6 +49,7 @@ type FormValues = {
   password?: string;
   passwordConfirmation?: string;
   role?: any;
+  showOldPassword?: boolean;
   profile?: {
     socials: {
       icon: any;
@@ -61,6 +63,7 @@ const defaultValues = {
   password: '',
   name: '',
   role: '',
+  showOldPassword: false,
   profile: {
     socials: [],
   },
@@ -73,10 +76,9 @@ type UserFormProps = {
 const UserForm = ({ initialValues }: UserFormProps) => {
   const { t } = useTranslation(['form', 'common']);
   const router = useRouter();
-  const { mutate: registerUser, isLoading: creating } = useRegisterMutation();
-  const { mutate: updateUser, isLoading: updating } = useUpdateUserMutation();
+  const { mutate: registerUser, isPending: creating } = useRegisterMutation();
+  const { mutate: updateUser, isPending: updating } = useUpdateUserMutation();
   const { roles, loading: loadingRoles } = useRolesQuery({ limit: 100 });
-  const [showOldPassword, setShowOldPassword] = useState(false);
 
   const isNew = !initialValues;
   const isLoading = creating || updating;
@@ -122,6 +124,11 @@ const UserForm = ({ initialValues }: UserFormProps) => {
   const passwordValue = useWatch({
     control,
     name: 'password',
+  });
+
+  const showOldPassword = useWatch({
+    control,
+    name: 'showOldPassword',
   });
 
   const rules = [
@@ -254,21 +261,19 @@ const UserForm = ({ initialValues }: UserFormProps) => {
           />
           {!isNew && (
             <div className="mb-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowOldPassword(!showOldPassword)}
-                className="mb-2"
-              >
-                {t('input-label-show-old-password')}
-              </Button>
+              <SwitchInput
+                name="showOldPassword"
+                control={control}
+                label={t('input-label-show-old-password')}
+              />
               {showOldPassword && (
-                <Input
-                  {...register('oldPassword' as any)}
+                <CopyContent
                   label={t('input-label-password-hash')}
-                  defaultValue={(initialValues as any)?.password}
-                  disabled
+                  name="oldPassword"
+                  value={(initialValues as any)?.password}
                   variant="outline"
+                  className="mt-4"
+                  note={t('form:text-password-hash-note', 'This is the securely hashed password. It cannot be decrypted.')}
                 />
               )}
             </div>

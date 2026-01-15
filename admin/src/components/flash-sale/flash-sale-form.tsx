@@ -81,7 +81,7 @@ export default function CreateOrUpdateFlashSaleForm({ initialValues }: IProps) {
   const [category, setCategory] = useState('');
   const [manufacturer, setManufacturer] = useState('');
   const { permissions } = getAuthCredentials();
-  const { data: user, isLoading: loading, error } = useMeQuery();
+  const { data: user, isPending: loading, error } = useMeQuery();
   const { currency } = useSettings();
   const { openModal } = useModalAction();
   const {
@@ -96,7 +96,7 @@ export default function CreateOrUpdateFlashSaleForm({ initialValues }: IProps) {
       enabled: !!router.query.shop,
     },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const { products, loading: loadingProduct } = useProductsQuery({
     limit: 999,
@@ -146,9 +146,9 @@ export default function CreateOrUpdateFlashSaleForm({ initialValues }: IProps) {
     resolver: yupResolver(flashSaleValidationSchema),
   });
 
-  const { mutate: createFlashSale, isLoading: creating } =
+  const { mutate: createFlashSale, isPending: creating } =
     useCreateFlashSaleMutation();
-  const { mutate: updateFlashSale, isLoading: updating } =
+  const { mutate: updateFlashSale, isPending: updating } =
     useUpdateFlashSaleMutation();
 
   const flashSaleName = watch('title');

@@ -12,8 +12,8 @@ export default function ImportProducts() {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
-  const { mutate: importProducts, isLoading: loading } =
+  const shopId = (shopData as any)?.id!;
+  const { mutate: importProducts, isPending: loading } =
     useImportProductsMutation();
 
   const handleDrop = async (acceptedFiles: any) => {

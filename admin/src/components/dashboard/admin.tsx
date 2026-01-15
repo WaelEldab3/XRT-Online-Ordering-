@@ -60,12 +60,13 @@ const TopRatedProducts = dynamic(
 export default function Dashboard() {
   const { t } = useTranslation();
   const { locale } = useRouter();
-  const { data, isLoading: loading } = useAnalyticsQuery();
+  const { data, isPending: loading } = useAnalyticsQuery();
+  const analyticsData = data as any;
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTimeFrame, setActiveTimeFrame] = useState(1);
   const [orderDataRange, setOrderDataRange] = useState(
-    data?.todayTotalOrderByStatus,
+    analyticsData?.todayTotalOrderByStatus,
   );
 
   const {
@@ -131,19 +132,19 @@ export default function Dashboard() {
 
   const { price: total_revenue } = usePrice(
     data && {
-      amount: data?.totalRevenue!,
+      amount: analyticsData?.totalRevenue!,
     },
   );
   const { price: todays_revenue } = usePrice(
     data && {
-      amount: data?.todaysRevenue!,
+      amount: analyticsData?.todaysRevenue!,
     },
   );
 
   let salesByYear: number[] = Array.from({ length: 12 }, (_) => 0);
-  if (data?.totalYearSaleByMonth && Array.isArray(data.totalYearSaleByMonth)) {
+  if (analyticsData?.totalYearSaleByMonth && Array.isArray(analyticsData.totalYearSaleByMonth)) {
     // Map the monthly data, ensuring we don't exceed 12 months and provide a fallback for NaN
-    data.totalYearSaleByMonth.forEach((item: any, index: number) => {
+    analyticsData.totalYearSaleByMonth.forEach((item: any, index: number) => {
       if (index < 12) {
         const total = item?.total ?? item?.value ?? 0;
         const value = typeof total === 'number' ? total : parseFloat(String(total || '0'));
@@ -173,13 +174,13 @@ export default function Dashboard() {
   useEffect(() => {
     switch (activeTimeFrame) {
       case 1:
-        setOrderDataRange(data?.todayTotalOrderByStatus);
+        setOrderDataRange(analyticsData?.todayTotalOrderByStatus);
         break;
       case 7:
-        setOrderDataRange(data?.weeklyTotalOrderByStatus);
+        setOrderDataRange(analyticsData?.weeklyTotalOrderByStatus);
         break;
       case 30:
-        setOrderDataRange(data?.monthlyTotalOrderByStatus);
+        setOrderDataRange(analyticsData?.monthlyTotalOrderByStatus);
         break;
       case 365:
         setOrderDataRange(data?.yearlyTotalOrderByStatus);
@@ -262,7 +263,7 @@ export default function Dashboard() {
             titleTransKey="sticker-card-title-total-shops"
             icon={<BasketIcon className="h-8 w-8" />}
             color="#E157A0"
-            price={data?.totalShops}
+            price={analyticsData?.totalShops}
           />
         </div>
       </div>

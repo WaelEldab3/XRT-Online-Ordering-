@@ -86,6 +86,11 @@ export const Routes = {
   modifier: {
     ...routesFactory('/modifiers'),
   },
+  import: {
+    list: '/import',
+    upload: '/import/upload',
+    review: '/import/review/:id',
+  },
   shop: {
     ...routesFactory('/shops'),
   },

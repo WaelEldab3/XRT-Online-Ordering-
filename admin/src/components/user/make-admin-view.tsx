@@ -6,7 +6,7 @@ import {
 import { useUpdateUserMutation } from '@/data/user';
 
 const MakeAdminView = () => {
-  const { mutate: updateUser, isLoading: loading } = useUpdateUserMutation();
+  const { mutate: updateUser, isPending: loading } = useUpdateUserMutation();
   const { data } = useModalState();
 
   const { closeModal } = useModalAction();

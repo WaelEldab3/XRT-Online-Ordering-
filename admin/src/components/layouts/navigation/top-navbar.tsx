@@ -162,7 +162,7 @@ const Navbar = () => {
     setIsAccepting(isAcceptingOrders);
   }, [isAcceptingOrders]);
 
-  const { mutate: updateSettingsMutation, isLoading: updating } = useUpdateSettingsMutation();
+  const { mutate: updateSettingsMutation, isPending: updating } = useUpdateSettingsMutation();
 
   const handleToggleOrders = (value: boolean) => {
     if (!currentSettings) return;

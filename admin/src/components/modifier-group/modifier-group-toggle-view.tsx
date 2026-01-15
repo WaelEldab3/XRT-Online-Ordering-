@@ -6,7 +6,7 @@ import { CloseFillIcon } from '@/components/icons/close-fill';
 import { useTranslation } from 'next-i18next';
 
 const ModifierGroupToggleView = () => {
-    const { mutate: updateGroup, isLoading: loading } = useUpdateModifierGroupMutation();
+    const { mutate: updateGroup, isPending: loading } = useUpdateModifierGroupMutation();
     const { data } = useModalState();
     const { closeModal } = useModalAction();
     const { t } = useTranslation();

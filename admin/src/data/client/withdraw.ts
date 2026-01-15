@@ -21,7 +21,6 @@ export const withdrawClient = {
       ...params,
       business_id: business_id || shop_id,
     });
-    // Handle backend response format: { success: true, data: { withdraws: [...], paginatorInfo: {...} } }
     return response?.data || response;
   },
   create: async (variables: CreateWithdrawInput) => {
@@ -42,8 +41,7 @@ export const withdrawClient = {
   approve: async (data: ApproveWithdrawInput) => {
     const response = await HttpClient.post<any>(
       `${API_ENDPOINTS.WITHDRAWS}/${data.id}/approve`,
-      { status: data.status, note: data.note }
-    );
+      { status: data.status, note: data.note });
     return response?.data?.withdraw || response?.data || response;
   },
 };

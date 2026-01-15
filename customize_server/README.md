@@ -77,23 +77,45 @@ src/
 
 ### 📦 Category Management
 - **Category CRUD** - Full category management
-- **Image Upload** - Cloudinary integration
+- **Image Upload** - Cloudinary integration (image & icon support)
 - **Business-Scoped** - Categories per business
+- **Kitchen Section Integration** - Link categories to kitchen sections
+- **Multi-language Support** - Translated languages tracking
  
- ### 📦 Item Management
+### 🍕 Item Management
  - **Item CRUD** - Full item management within categories
  - **Image Upload** - Cloudinary integration for item images
- - **Filtering** - Filter items by category, active status, etc.
+- **Size Management** - Multiple sizes per item (S, M, L, XL, XXL) with individual pricing
+- **Modifier Group Assignment** - Assign modifier groups to items with custom display order
+- **Sides Configuration** - Item-level sides configuration per modifier group
+- **Filtering** - Filter items by category, active status, business
+- **Pagination** - Efficient data retrieval
+
+### 🎛️ Modifier Group & Modifier Management
+- **Modifier Group CRUD** - Complete modifier group lifecycle
+- **Group-Level Configuration** - Single source of truth for:
+  - **Selection Rules**: Display type (RADIO/CHECKBOX), min/max selection, applies per quantity
+  - **Quantity Levels**: Default quantity levels (Light, Normal, Extra) with pricing
+  - **Pricing by Size**: Size-based price deltas (S, M, L, XL, XXL)
+- **Modifier Management** - Lightweight modifiers within groups:
+  - Name, display order, is_default, max_quantity, is_active
+  - Automatically inherit group-level settings
+- **Item Integration** - Assign modifier groups to items with custom display order
+- **Sides Configuration** - Item-level sides configuration per modifier group
+- **Business-Scoped** - All modifier groups scoped to businesses
+- **Validation** - Prevents deletion of groups used by items
+- **Soft Delete** - Safe deletion with data preservation
 
 
 ### 🔧 Additional Features
 - **TypeScript** - Full type safety
-- **API Documentation** - Swagger/OpenAPI
+- **API Documentation** - Swagger/OpenAPI with complete schemas
 - **Error Handling** - Centralized error management
 - **Logging** - Structured logging
 - **Email Service** - Nodemailer integration
 - **Database Seeding** - Scripts for initial data
 - **Health Checks** - Server status endpoint
+- **Swagger Improvements** - Properly typed response schemas (no empty data objects)
 
 ## 🚀 Quick Start
 
@@ -236,23 +258,203 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 
 | Method | Endpoint            | Description          | Auth Required | Role Required      |
 | ------ | ------------------- | -------------------- | ------------- | ------------------ |
-| Method | Endpoint            | Description              | Auth Required | Role Required               |
-| ------ | ------------------- | ------------------------ | ------------- | --------------------------- |
-| GET    | `/categories`       | List all categories      | ✅            | Any authenticated           |
-| GET    | `/categories/:id`   | Get category details     | ✅            | `admin` or `super_admin`    |
-| POST   | `/categories`       | Create category          | ✅            | `admin` or `super_admin`    |
-| PUT    | `/categories/:id`   | Update category          | ✅            | `admin` or `super_admin`    |
-| DELETE | `/categories/:id`   | Delete category          | ✅            | `admin` or `super_admin`    |
+| GET    | `/categories`       | List all categories  | ✅            | Any authenticated  |
+| GET    | `/categories/:id`    | Get category details | ✅            | Any authenticated  |
+| POST   | `/categories`       | Create category      | ✅            | `admin` or `super_admin` |
+| PUT    | `/categories/:id`   | Update category      | ✅            | `admin` or `super_admin` |
+| DELETE | `/categories/:id`  | Delete category      | ✅            | `admin` or `super_admin` |
  
  ### Item Management Endpoints
  
  | Method | Endpoint            | Description          | Auth Required | Role Required      |
  | ------ | ------------------- | -------------------- | ------------- | ------------------ |
- | GET    | `/items`            | List all items       | ✅            | Any authenticated           |
- | GET    | `/items/:id`        | Get item details     | ✅            | Any authenticated           |
- | POST   | `/items`            | Create item          | ✅            | `admin` or `super_admin`    |
- | PUT    | `/items/:id`        | Update item          | ✅            | `admin` or `super_admin`    |
- | DELETE | `/items/:id`        | Delete item          | ✅            | `admin` or `super_admin`    |
+| GET    | `/items`            | List all items       | ✅            | Any authenticated  |
+| GET    | `/items/:id`        | Get item details     | ✅            | Any authenticated  |
+| POST   | `/items`            | Create item          | ✅            | `admin` or `super_admin` |
+| PUT    | `/items/:id`        | Update item          | ✅            | `admin` or `super_admin` |
+| DELETE | `/items/:id`        | Delete item          | ✅            | `admin` or `super_admin` |
+
+**Request Body (POST/PUT):**
+- `multipart/form-data` with:
+  - `name`, `description`, `base_price`, `category_id`, `business_id`
+  - `image` (file upload)
+  - `is_sizeable` (boolean) - If true, sizes are managed via `/items/:itemId/sizes` endpoint
+  - `default_size_id` (optional) - ID of default ItemSize (only used when is_sizeable is true)
+  - `modifier_groups` (JSON string - see detailed structure below)
+
+**⚠️ Important Changes:**
+- Item sizes are now managed separately via `/items/:itemId/sizes` endpoints
+- When `is_sizeable = true`: Create sizes using POST `/items/:itemId/sizes`, then optionally set `default_size_id`
+- When `is_sizeable = false`: Use `base_price`, `default_size_id` must be null
+- See Item Size Management section below for size CRUD operations
+
+**Modifier Groups Structure (JSON string):**
+```json
+[
+  {
+    "modifier_group_id": "507f1f77bcf86cd799439011",
+    "display_order": 1,
+    "sides_config": {
+      "enabled": true,
+      "allowed_sides": 2
+    },
+    "modifier_overrides": [
+      {
+        "modifier_id": "507f1f77bcf86cd799439012",
+        "max_quantity": 5,
+        "is_default": true,
+        "prices_by_size": [
+          {"sizeCode": "M", "priceDelta": 1.50},
+          {"sizeCode": "L", "priceDelta": 2.50}
+        ],
+        "quantity_levels": [
+          {"quantity": 2, "name": "Extra", "price": 1.00, "is_default": true}
+        ]
+      }
+    ]
+  }
+]
+```
+
+**Modifier Overrides Explanation:**
+- `modifier_overrides` (optional): Item-level customizations for individual modifiers
+- Each override applies ONLY to the specific item and never affects:
+  - The modifier globally
+  - The modifier group globally
+  - Other items using the same modifier
+- Override fields are all optional:
+  - `max_quantity`: Override modifier's max_quantity for this item
+  - `is_default`: Override modifier's is_default flag for this item
+  - `prices_by_size`: Item-level pricing per size (overrides group defaults)
+  - `quantity_levels`: Item-level quantity levels (overrides group defaults)
+
+### Modifier Group Management Endpoints
+
+| Method | Endpoint                    | Description                    | Auth Required | Role Required      |
+| ------ | --------------------------- | ------------------------------ | ------------- | ------------------ |
+| GET    | `/modifier-groups`          | List all modifier groups       | ✅            | Any authenticated  |
+| GET    | `/modifier-groups/:id`      | Get modifier group with modifiers | ✅        | Any authenticated  |
+| POST   | `/modifier-groups`          | Create modifier group          | ✅            | `admin` or `super_admin` |
+| PUT    | `/modifier-groups/:id`      | Update modifier group          | ✅            | `admin` or `super_admin` |
+| DELETE | `/modifier-groups/:id`      | Delete modifier group          | ✅            | `admin` or `super_admin` |
+
+**Request Body (POST/PUT):**
+```json
+{
+  "name": "Pizza Toppings",
+  "display_type": "CHECKBOX",
+  "min_select": 0,
+  "max_select": 5,
+  "applies_per_quantity": false,
+  "quantity_levels": [
+    {"quantity": 1, "name": "Light", "is_default": false, "display_order": 1},
+    {"quantity": 2, "name": "Normal", "is_default": true, "display_order": 2},
+    {"quantity": 3, "name": "Extra", "is_default": false, "display_order": 3}
+  ],
+  "prices_by_size": [
+    {"sizeCode": "S", "priceDelta": 0},
+    {"sizeCode": "M", "priceDelta": 1.50},
+    {"sizeCode": "L", "priceDelta": 2.50},
+    {"sizeCode": "XL", "priceDelta": 3.50},
+    {"sizeCode": "XXL", "priceDelta": 4.50}
+  ],
+  "is_active": true,
+  "sort_order": 1
+}
+```
+
+### Item Size Management Endpoints
+
+| Method | Endpoint                            | Description                                    | Auth Required | Role Required      |
+| ------ | ----------------------------------- | ---------------------------------------------- | ------------- | ------------------ |
+| GET    | `/items/:itemId/sizes`              | List all sizes for an item                    | ✅            | Any authenticated  |
+| GET    | `/items/:itemId/sizes/:id`          | Get single item size                          | ✅            | Any authenticated  |
+| POST   | `/items/:itemId/sizes`              | Create item size                              | ✅            | `admin` or `super_admin` |
+| PUT    | `/items/:itemId/sizes/:id`          | Update item size                              | ✅            | `admin` or `super_admin` |
+| DELETE | `/items/:itemId/sizes/:id`          | Delete item size                              | ✅            | `admin` or `super_admin` |
+
+**Request Body (POST):**
+```json
+{
+  "name": "Large",
+  "code": "L",
+  "price": 15.99,
+  "display_order": 2,
+  "is_active": true
+}
+```
+
+**Request Body (PUT):**
+- Same as POST, all fields optional
+
+**Business Rules:**
+- `code` must be unique per item (e.g., 'S', 'M', 'L', 'XL', 'XXL' or custom codes)
+- Code is used for modifier pricing mapping (`prices_by_size.sizeCode` should match ItemSize.code)
+- Cannot delete a size if it's set as `default_size_id` (update item first)
+- Cannot delete the last size if item has `is_sizeable = true` (add another size first or set `is_sizeable = false`)
+- Item must have `is_sizeable = true` to create sizes
+- When deleting an item, all associated sizes are automatically deleted
+
+**Migration:**
+Run `npx ts-node scripts/migrateItemSizes.ts` to migrate existing embedded sizes to the new ItemSize collection.
+
+### Import System Endpoints (Super Admin Only)
+
+| Method | Endpoint                          | Description                                    | Auth Required | Role Required |
+| ------ | --------------------------------- | ---------------------------------------------- | ------------- | ------------ |
+| POST   | `/import/parse`                   | Parse and validate CSV/ZIP file                | ✅            | `super_admin` |
+| GET    | `/import/sessions`                | List all import sessions                       | ✅            | `super_admin` |
+| GET    | `/import/sessions/:id`            | Get import session details                     | ✅            | `super_admin` |
+| PUT    | `/import/sessions/:id`             | Update import session (save draft)             | ✅            | `super_admin` |
+| POST   | `/import/sessions/:id/save`       | Final save to database (transactional)         | ✅            | `super_admin` |
+| DELETE | `/import/sessions/:id`             | Discard import session                         | ✅            | `super_admin` |
+| GET    | `/import/sessions/:id/errors`     | Download validation errors as CSV               | ✅            | `super_admin` |
+
+**Import File Format:**
+- Accepts single CSV file or ZIP containing multiple CSV files
+- Uses business keys (item_key, group_key, modifier_key) - NOT database IDs
+- Auto-detects entity type by filename or column presence
+- Supported entities: Items, ItemSizes, ModifierGroups, Modifiers, ItemModifierOverrides
+
+**Validation Rules:**
+- **Items**: item_key unique, name required, base_price required if not sizable, at least one size if sizable
+- **ItemSizes**: size_code unique per item, price > 0, exactly one default size per item
+- **ModifierGroups**: group_key unique, name required, min_select ≤ max_select, valid display_type
+- **Modifiers**: modifier_key unique per group, name required, max_quantity ≥ 1
+- **Overrides**: Valid item_key, group_key, modifier_key, size_code must exist for item
+
+**Import Session:**
+- Status: `draft` (has errors), `validated` (no errors), `confirmed` (saved), `discarded`
+- TTL: 7 days (auto-deleted after expiration)
+- All validation errors and warnings stored for review
+- Can be updated and re-validated before final save
+
+**Safety Features:**
+- No database writes until final save
+- Transactional save with rollback on any failure
+- Re-validation before final save
+- Complete audit logging
+- Super Admin only access
+
+### Modifier Management Endpoints
+
+| Method | Endpoint                                    | Description              | Auth Required | Role Required      |
+| ------ | ------------------------------------------- | ------------------------ | ------------- | ------------------ |
+| GET    | `/modifier-groups/:groupId/modifiers`      | List modifiers in group | ✅            | Any authenticated  |
+| POST   | `/modifier-groups/:groupId/modifiers`       | Create modifier          | ✅            | `admin` or `super_admin` |
+| PUT    | `/modifier-groups/:groupId/modifiers/:id`   | Update modifier          | ✅            | `admin` or `super_admin` |
+| DELETE | `/modifier-groups/:groupId/modifiers/:id`   | Delete modifier           | ✅            | `admin` or `super_admin` |
+
+**Request Body (POST/PUT):**
+```json
+{
+  "name": "Pepperoni",
+  "is_default": false,
+  "max_quantity": 3,
+  "display_order": 1,
+  "is_active": true
+}
+```
 
 
 ## 🔐 Authentication Flow
@@ -317,11 +519,11 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 
 | Role         | Description                    | Default Permissions                    |
 | ------------ | ------------------------------ | -------------------------------------- |
-| `super_admin` | Full system access             | All permissions                        |
-| `admin`      | Administrative access          | Most admin permissions                 |
-| `manager`    | Management access              | Business management permissions        |
-| `client`     | Standard business user         | Profile & content read                 |
-| `user`       | Limited access                 | Profile only                           |
+| `super_admin` | **SYSTEM ROLE** (Immutable)    | All permissions                        |
+| `admin`      | Custom Role (Template)         | Most admin permissions                 |
+| `manager`    | Custom Role (Template)         | Business management permissions        |
+| `client`     | Custom Role (Template)         | Profile & content read                 |
+| `user`       | Custom Role (Default)          | Profile only                           |
 
 ### Available Permissions
 
@@ -345,6 +547,18 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
  - `items:update` - Update items
  - `items:delete` - Delete items
 
+#### Modifier Group Management
+- `modifier-groups:read` - View modifier groups
+- `modifier-groups:create` - Create modifier groups
+- `modifier-groups:update` - Update modifier groups
+- `modifier-groups:delete` - Delete modifier groups
+
+#### Modifier Management
+- `modifiers:read` - View modifiers
+- `modifiers:create` - Create modifiers
+- `modifiers:update` - Update modifiers
+- `modifiers:delete` - Delete modifiers
+
 
 #### Content Management
 - `content:read` - View content
@@ -362,6 +576,10 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 #### Profile
 - `profile:read` - View profile
 - `profile:update` - Update profile
+
+#### Permissions Management (Super Admin)
+- `permissions:read` - View all permissions
+- `permissions:update` - Update permission status
 
 #### Admin
 - `admin:dashboard` - Access admin dashboard
@@ -392,11 +610,17 @@ customize_server/
 │   │   │   ├── User.ts
 │   │   │   ├── Business.ts
 │   │   │   ├── BusinessSettings.ts
-│   │   │   └── Category.ts
+│   │   │   ├── Category.ts
+│   │   │   ├── Item.ts
+│   │   │   ├── ModifierGroup.ts
+│   │   │   └── Modifier.ts
 │   │   ├── repositories/          # Repository interfaces
 │   │   │   ├── IUserRepository.ts
 │   │   │   ├── IBusinessRepository.ts
-│   │   │   └── ICategoryRepository.ts
+│   │   │   ├── ICategoryRepository.ts
+│   │   │   ├── IItemRepository.ts
+│   │   │   ├── IModifierGroupRepository.ts
+│   │   │   └── IModifierRepository.ts
 │   │   ├── services/              # Service interfaces
 │   │   │   ├── IEmailService.ts
 │   │   │   └── IImageStorage.ts
@@ -404,16 +628,25 @@ customize_server/
 │   │       ├── auth/
 │   │       ├── users/
 │   │       ├── businesses/
-│   │       └── categories/
+│   │       ├── categories/
+│   │       ├── items/
+│   │       ├── modifier-groups/
+│   │       └── modifiers/
 │   ├── application/               # Application layer
 │   │   ├── controllers/           # HTTP controllers
 │   │   │   ├── AuthController.ts
 │   │   │   ├── BusinessController.ts
-│   │   │   └── CategoryController.ts
+│   │   │   ├── CategoryController.ts
+│   │   │   ├── ItemController.ts
+│   │   │   ├── ModifierGroupController.ts
+│   │   │   └── ModifierController.ts
 │   │   ├── routes/                # Express routes
 │   │   │   ├── auth.routes.ts
 │   │   │   ├── business.routes.ts
-│   │   │   └── category.routes.ts
+│   │   │   ├── category.routes.ts
+│   │   │   ├── item.routes.ts
+│   │   │   ├── modifier-group.routes.ts
+│   │   │   └── modifier.routes.ts
 │   │   └── middlewares/           # Express middlewares
 │   │       ├── auth.ts            # Authentication
 │   │       ├── authorize.ts       # Authorization

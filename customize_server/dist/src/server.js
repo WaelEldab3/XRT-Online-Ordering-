@@ -18,6 +18,11 @@ const attachment_routes_1 = __importDefault(require("./application/routes/attach
 const item_routes_1 = __importDefault(require("./application/routes/item.routes"));
 const customer_routes_1 = __importDefault(require("./application/routes/customer.routes"));
 const mock_routes_1 = __importDefault(require("./application/routes/mock.routes"));
+const modifier_group_routes_1 = __importDefault(require("./application/routes/modifier-group.routes"));
+const modifier_routes_1 = __importDefault(require("./application/routes/modifier.routes"));
+const item_size_routes_1 = __importDefault(require("./application/routes/item-size.routes"));
+const import_routes_1 = __importDefault(require("./application/routes/import.routes"));
+const permission_routes_1 = __importDefault(require("./application/routes/permission.routes"));
 const env_1 = require("./shared/config/env");
 const logger_1 = require("./shared/utils/logger");
 // Import swagger config - using relative path from src to config directory
@@ -50,7 +55,11 @@ app.get('/', (req, res) => {
         endpoints: {
             auth: `${env_1.env.API_BASE_URL}/auth`,
             businesses: `${env_1.env.API_BASE_URL}/businesses`,
-            categories: `${env_1.env.API_BASE_URL}/admin/categories`,
+            categories: `${env_1.env.API_BASE_URL}/categories`,
+            items: `${env_1.env.API_BASE_URL}/items`,
+            itemSizes: `${env_1.env.API_BASE_URL}/items/{itemId}/sizes`,
+            modifierGroups: `${env_1.env.API_BASE_URL}/modifier-groups`,
+            modifiers: `${env_1.env.API_BASE_URL}/modifier-groups/{groupId}/modifiers`,
             settings: `${env_1.env.API_BASE_URL}/settings`,
         },
         documentation: {
@@ -76,10 +85,15 @@ app.use(`${env_1.env.API_BASE_URL}/businesses`, business_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/categories`, category_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/settings`, settings_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/roles`, role_routes_1.default);
+app.use(`${env_1.env.API_BASE_URL}/permissions`, permission_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/withdraws`, withdraw_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/attachments`, attachment_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}/items`, item_routes_1.default);
+app.use(`${env_1.env.API_BASE_URL}/items`, item_size_routes_1.default); // Nested routes for item sizes
 app.use(`${env_1.env.API_BASE_URL}/customers`, customer_routes_1.default);
+app.use(`${env_1.env.API_BASE_URL}/modifier-groups`, modifier_group_routes_1.default);
+app.use(`${env_1.env.API_BASE_URL}/import`, import_routes_1.default);
+app.use(`${env_1.env.API_BASE_URL}`, modifier_routes_1.default);
 app.use(`${env_1.env.API_BASE_URL}`, mock_routes_1.default);
 // 404 handler
 app.use((req, res) => {

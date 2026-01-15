@@ -36,7 +36,7 @@ export default function RefundsPage() {
   const { data: shopData, isLoading: fetchingShop } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const { data, loading, error } = useRefundsQuery(
     {
       shop_id: shopId,

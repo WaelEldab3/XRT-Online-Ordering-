@@ -26,7 +26,7 @@ export default function RefundDetailsPage() {
   const { data: shopData } = useShopQuery({
     slug: query?.shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   if (
     !hasAccess(adminOnly, permissions) &&
     !me?.shops?.map((shop) => shop.id).includes(shopId) &&
@@ -37,7 +37,7 @@ export default function RefundDetailsPage() {
 
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useRefundQuery(query.refundId as string);
 

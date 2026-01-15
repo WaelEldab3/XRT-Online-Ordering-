@@ -7,7 +7,7 @@ import { useDeleteRoleMutation } from '@/data/role';
 import { getErrorMessage } from '@/utils/form-error';
 
 const RoleDeleteView = () => {
-  const { mutate: deleteRoleById, isLoading: loading } =
+  const { mutate: deleteRoleById, isPending: loading } =
     useDeleteRoleMutation();
 
   const { data } = useModalState();

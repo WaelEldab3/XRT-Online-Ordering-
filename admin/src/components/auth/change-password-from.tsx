@@ -26,7 +26,7 @@ const changePasswordSchema = yup.object().shape({
 
 const ChangePasswordForm = () => {
   const { t } = useTranslation();
-  const { mutate: changePassword, isLoading: loading } =
+  const { mutateAsync: changePassword, isPending: loading } =
     useChangePasswordMutation();
   const {
     register,
@@ -40,33 +40,28 @@ const ChangePasswordForm = () => {
   });
 
   async function onSubmit(values: any) {
-    changePassword(
-      {
+    try {
+      const data = await changePassword({
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
-      },
-      {
-        onError: (error: any) => {
-          Object.keys(error?.response?.data).forEach((field: any) => {
-            setError(field, {
-              type: 'manual',
-              message: error?.response?.data[field][0],
-            });
-          });
-        },
-        onSuccess: (data) => {
-          if (!data?.success) {
-            setError('oldPassword', {
-              type: 'manual',
-              message: data?.message ?? '',
-            });
-          } else if (data?.success) {
-            toast.success(t('common:password-changed-successfully'));
-            reset();
-          }
-        },
-      },
-    );
+      });
+      if (!data?.success) {
+        setError('oldPassword', {
+          type: 'manual',
+          message: data?.message ?? '',
+        });
+      } else if (data?.success) {
+        toast.success(t('common:password-changed-successfully'));
+        reset();
+      }
+    } catch (error: any) {
+      Object.keys(error?.response?.data || {}).forEach((field: any) => {
+        setError(field, {
+          type: 'manual',
+          message: error?.response?.data[field][0],
+        });
+      });
+    }
   }
 
   return (

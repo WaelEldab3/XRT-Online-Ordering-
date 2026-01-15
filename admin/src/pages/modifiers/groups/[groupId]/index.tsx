@@ -100,7 +100,7 @@ export default function ModifierGroupDetailsPage() {
 
         <div className="flex border-b border-dashed border-border-base pb-5 md:pb-7 mb-5">
           <h1 className="text-lg font-semibold text-heading">
-            {editModifier 
+            {editModifier
               ? t('form:form-title-edit-modifier') || 'Edit Modifier'
               : t('form:form-title-create-modifier') || 'Create Modifier'}
           </h1>
@@ -144,8 +144,8 @@ export default function ModifierGroupDetailsPage() {
               >
                 <IosArrowLeft width={18} />
               </Link>
-              <PageHeading 
-                title={group?.name ? `${group.name} - ${t('form:input-label-modifiers')}` : t('form:input-label-modifiers')} 
+              <PageHeading
+                title={group?.name ? `${group.name} - ${t('form:input-label-modifiers')}` : t('form:input-label-modifiers')}
               />
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function ModifierGroupDetailsPage() {
 
 ModifierGroupDetailsPage.authenticate = {
   permissions: adminOnly,
-  allowedPermissions: ['categories:read'],
+  allowedPermissions: ['modifier_groups:read'],
 };
 ModifierGroupDetailsPage.Layout = Layout;
 

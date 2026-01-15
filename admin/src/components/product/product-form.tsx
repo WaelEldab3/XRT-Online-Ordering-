@@ -100,7 +100,7 @@ export default function CreateOrUpdateProductForm({
       enabled: !!router.query.shop,
     },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
   const isNewTranslation = router?.query?.action === 'translate';
   const showPreviewButton =
     router?.query?.action === 'edit' && Boolean(initialValues?.slug);
@@ -126,9 +126,9 @@ export default function CreateOrUpdateProductForm({
 
   const upload_max_filesize = options?.server_info?.upload_max_filesize / 1024;
 
-  const { mutate: createProduct, isLoading: creating } =
+  const { mutate: createProduct, isPending: creating } =
     useCreateProductMutation();
-  const { mutate: updateProduct, isLoading: updating } =
+  const { mutate: updateProduct, isPending: updating } =
     useUpdateProductMutation();
 
   const onSubmit = async (values: any) => {

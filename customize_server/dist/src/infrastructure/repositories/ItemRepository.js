@@ -28,7 +28,29 @@ class ItemRepository {
             max_per_order: document.max_per_order,
             is_sizeable: document.is_sizeable,
             is_customizable: document.is_customizable,
-            sizes: document.sizes || [],
+            default_size_id: document.default_size_id
+                ? (typeof document.default_size_id === 'string'
+                    ? document.default_size_id
+                    : document.default_size_id?._id
+                        ? document.default_size_id._id.toString()
+                        : document.default_size_id.toString())
+                : undefined,
+            modifier_groups: document.modifier_groups ? document.modifier_groups.map((mg) => ({
+                modifier_group_id: typeof mg.modifier_group_id === 'string'
+                    ? mg.modifier_group_id
+                    : (mg.modifier_group_id?._id || mg.modifier_group_id).toString(),
+                display_order: mg.display_order || 0,
+                sides_config: mg.sides_config || undefined,
+                modifier_overrides: mg.modifier_overrides ? mg.modifier_overrides.map((mo) => ({
+                    modifier_id: typeof mo.modifier_id === 'string'
+                        ? mo.modifier_id
+                        : (mo.modifier_id?._id || mo.modifier_id).toString(),
+                    max_quantity: mo.max_quantity,
+                    is_default: mo.is_default,
+                    prices_by_size: mo.prices_by_size || undefined,
+                    quantity_levels: mo.quantity_levels || undefined,
+                })) : undefined,
+            })) : [],
             created_at: document.created_at,
             updated_at: document.updated_at,
         };
@@ -43,7 +65,11 @@ class ItemRepository {
         if (business_id) {
             query.business_id = business_id;
         }
-        const itemDoc = await ItemModel_1.ItemModel.findOne(query).populate('category_id');
+        const itemDoc = await ItemModel_1.ItemModel.findOne(query)
+            .populate('category_id')
+            .populate('default_size_id')
+            .populate('modifier_groups.modifier_group_id')
+            .populate('modifier_groups.modifier_overrides.modifier_id');
         return itemDoc ? this.toDomain(itemDoc) : null;
     }
     async findAll(filters) {
@@ -81,7 +107,10 @@ class ItemRepository {
                 .sort({ [orderBy]: sortedBy })
                 .skip(skip)
                 .limit(limit)
-                .populate('category_id'),
+                .populate('category_id')
+                .populate('default_size_id')
+                .populate('modifier_groups.modifier_group_id')
+                .populate('modifier_groups.modifier_overrides.modifier_id'),
             ItemModel_1.ItemModel.countDocuments(query),
         ]);
         return {
@@ -96,7 +125,11 @@ class ItemRepository {
         const itemDoc = await ItemModel_1.ItemModel.findOneAndUpdate({ _id: id, business_id }, itemData, {
             new: true,
             runValidators: true,
-        }).populate('category_id');
+        })
+            .populate('category_id')
+            .populate('default_size_id')
+            .populate('modifier_groups.modifier_group_id')
+            .populate('modifier_groups.modifier_overrides.modifier_id');
         if (!itemDoc) {
             throw new Error('Item not found');
         }

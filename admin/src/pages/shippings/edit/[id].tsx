@@ -12,7 +12,7 @@ export default function UpdateShippingPage() {
   const { t } = useTranslation();
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useShippingQuery(query.id as string);
   if (loading) return <Loader text={t('common:text-loading')} />;

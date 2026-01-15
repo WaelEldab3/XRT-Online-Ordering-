@@ -17,7 +17,6 @@ export const itemClient = {
         const response = await HttpClient.get<any>(`${API_ENDPOINTS.ITEMS}/${itemId}`, {
             language,
         });
-        // Handle backend response format: { success: true, data: { item: {...} } }
         return response?.data?.item || response?.data || response;
     },
     paginated: async ({
@@ -34,7 +33,6 @@ export const itemClient = {
             is_active: is_active !== undefined ? String(is_active) : undefined,
             is_available: is_available !== undefined ? String(is_available) : undefined,
         });
-        // Handle backend response format: { success: true, data: { items: [...], paginatorInfo: {...} } }
         return response?.data || response;
     },
     updateItem: async (data: UpdateItemInput) => {

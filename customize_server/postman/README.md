@@ -1276,3 +1276,36 @@ Create these collection variables:
    - Use "Get Users with Role" to see which users have the role
 
 The collection is ready to test all authentication features including JWT tokens, user approval, admin functions, security features, permission-based access control, and the new custom role management system.
+
+## 📦 Additional Endpoints Available
+
+The Postman collection also includes endpoints for:
+
+### Category Management
+- **GET** `/api/v1/categories` - List all categories
+- **GET** `/api/v1/categories/:id` - Get category details
+- **POST** `/api/v1/categories` - Create category (multipart/form-data)
+- **PUT** `/api/v1/categories/:id` - Update category (multipart/form-data)
+- **DELETE** `/api/v1/categories/:id` - Delete category
+
+### Item Management
+- **GET** `/api/v1/items` - List all items (with pagination)
+- **GET** `/api/v1/items/:id` - Get item details
+- **POST** `/api/v1/items` - Create item (multipart/form-data with sizes, modifier_groups)
+- **PUT** `/api/v1/items/:id` - Update item (multipart/form-data)
+- **DELETE** `/api/v1/items/:id` - Delete item
+
+### Modifier Group Management
+- **GET** `/api/v1/modifier-groups` - List all modifier groups
+- **GET** `/api/v1/modifier-groups/:id` - Get modifier group with modifiers
+- **POST** `/api/v1/modifier-groups` - Create modifier group (with selection rules, pricing, quantity levels)
+- **PUT** `/api/v1/modifier-groups/:id` - Update modifier group
+- **DELETE** `/api/v1/modifier-groups/:id` - Delete modifier group
+
+### Modifier Management
+- **GET** `/api/v1/modifier-groups/:groupId/modifiers` - List modifiers in a group
+- **POST** `/api/v1/modifier-groups/:groupId/modifiers` - Create modifier
+- **PUT** `/api/v1/modifier-groups/:groupId/modifiers/:id` - Update modifier
+- **DELETE** `/api/v1/modifier-groups/:groupId/modifiers/:id` - Delete modifier
+
+**Note**: All modifier group and modifier endpoints require authentication and appropriate role permissions (`admin` or `super_admin` for write operations).

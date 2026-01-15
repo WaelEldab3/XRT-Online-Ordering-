@@ -4,7 +4,7 @@ export interface State {
 }
 
 const initialState = {
-  siteTitle: 'PickBazar',
+  siteTitle: 'XRT Restaurant System',
   siteSubtitle: '',
   currency: 'USD',
   currencyOptions: {

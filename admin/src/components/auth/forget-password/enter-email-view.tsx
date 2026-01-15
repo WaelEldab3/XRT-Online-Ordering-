@@ -27,18 +27,22 @@ const EnterEmailView = ({ onSubmit, loading }: Props) => {
   } = useForm<{ email: string }>({ resolver: yupResolver(schema) });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <Input
         label={t('form:input-label-email')}
         {...register('email')}
         type="email"
         variant="outline"
-        className="mb-5"
-        placeholder="demo@demo.com"
+        placeholder="Enter your email address"
         error={t(errors.email?.message!)}
+        className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
       />
-      <Button className="h-11 w-full" loading={loading} disabled={loading}>
-        {t('form:text-submit-email')}
+      <Button
+        className="mt-6 h-11 w-full text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+        loading={loading}
+        disabled={loading}
+      >
+        {t('form:text-submit-email') || 'Send Reset Link'}
       </Button>
     </form>
   );

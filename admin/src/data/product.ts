@@ -1,7 +1,7 @@
 import Router, { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/data/client/api-endpoints';
 import { productClient } from './client/product';
 import {
@@ -18,7 +18,8 @@ export const useCreateProductMutation = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { t } = useTranslation();
-  return useMutation(productClient.create, {
+  return useMutation({
+    mutationFn: productClient.create,
     onSuccess: async () => {
       const generateRedirectUrl = router.query.shop
         ? `/${router.query.shop}${Routes.product.list}`
@@ -30,7 +31,7 @@ export const useCreateProductMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.PRODUCTS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.PRODUCTS] });
     },
     onError: (error: any) => {
       const { data, status } = error?.response;
@@ -48,15 +49,15 @@ export const useUpdateProductMutation = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const router = useRouter();
-  return useMutation(productClient.update, {
+  return useMutation({
+    mutationFn: productClient.update,
     onSuccess: async (data, variables) => {
       const updatedProduct = (data as any)?.data || data;
       queryClient.setQueryData(
         [API_ENDPOINTS.PRODUCTS, { slug: variables.slug, language: router.locale }],
         (old: any) => {
           return { data: updatedProduct };
-        }
-      );
+        });
       toast.success(t('common:successfully-updated'));
       const generateRedirectUrl = router.query.shop
         ? `/${router.query.shop}${Routes.product.list}`
@@ -67,7 +68,7 @@ export const useUpdateProductMutation = () => {
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.PRODUCTS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.PRODUCTS] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -78,13 +79,14 @@ export const useUpdateProductMutation = () => {
 export const useDeleteProductMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  return useMutation(productClient.delete, {
+  return useMutation({
+    mutationFn: productClient.delete,
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries(API_ENDPOINTS.PRODUCTS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.PRODUCTS] });
     },
     onError: (error: any) => {
       toast.error(t(`common:${error?.response?.data.message}`));
@@ -93,10 +95,10 @@ export const useDeleteProductMutation = () => {
 };
 
 export const useProductQuery = ({ slug, language }: GetParams) => {
-  const { data, error, isLoading } = useQuery<Product, Error>(
-    [API_ENDPOINTS.PRODUCTS, { slug, language }],
-    () => productClient.get({ slug, language }),
-  );
+  const { data, error, isPending: isLoading } = useQuery<Product, Error>({
+    queryKey: [API_ENDPOINTS.PRODUCTS, { slug, language }],
+    queryFn: () => productClient.get({ slug, language }),
+  });
 
   return {
     product: data,
@@ -109,9 +111,9 @@ export const useProductsQuery = (
   params: Partial<ProductQueryOptions>,
   options: any = {},
 ) => {
-  const { data, error, isLoading } = useQuery<ProductPaginator, Error>(
-    [API_ENDPOINTS.PRODUCTS, params],
-    () => Promise.resolve({
+  const { data, error, isPending: isLoading } = useQuery<ProductPaginator, Error>({
+    queryKey: [API_ENDPOINTS.PRODUCTS, params],
+    queryFn: () => Promise.resolve({
       data: [
         {
           id: 1,
@@ -146,13 +148,11 @@ export const useProductsQuery = (
         hasMorePages: false,
       }
     }) as any,
-    {
-      keepPreviousData: true,
-      retry: false,
-      refetchOnWindowFocus: false,
-      ...options,
-    },
-  );
+    placeholderData: (previousData: any) => previousData,
+    retry: false,
+    refetchOnWindowFocus: false,
+    ...options,
+  });
 
   return {
     products: (data as any)?.data ?? [],
@@ -165,13 +165,14 @@ export const useProductsQuery = (
 export const useGenerateDescriptionMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation('common');
-  return useMutation(productClient.generateDescription, {
+  return useMutation({
+    mutationFn: productClient.generateDescription,
     onSuccess: () => {
       toast.success(t('Generated...'));
     },
     // Always refetch after error or success:
     onSettled: (data) => {
-      queryClient.refetchQueries(API_ENDPOINTS.GENERATE_DESCRIPTION);
+      queryClient.refetchQueries({ queryKey: [API_ENDPOINTS.GENERATE_DESCRIPTION] });
       data;
     },
   });
@@ -180,16 +181,14 @@ export const useGenerateDescriptionMutation = () => {
 export const useInActiveProductsQuery = (
   options: Partial<ProductQueryOptions>,
 ) => {
-  const { data, error, isLoading } = useQuery<ProductPaginator, Error>(
-    [API_ENDPOINTS.NEW_OR_INACTIVE_PRODUCTS, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<ProductPaginator, Error>({
+    queryKey: [API_ENDPOINTS.NEW_OR_INACTIVE_PRODUCTS, options],
+    queryFn: ({ queryKey }) =>
       productClient.newOrInActiveProducts(
-        Object.assign({}, queryKey[1], pageParam),
+        Object.assign({}, queryKey[1])
       ),
-    {
-      keepPreviousData: true,
-    },
-  );
+    placeholderData: (previousData: any) => previousData,
+  });
 
   return {
     products: data?.data ?? [],
@@ -200,16 +199,14 @@ export const useInActiveProductsQuery = (
 };
 
 export const useProductStockQuery = (options: Partial<ProductQueryOptions>) => {
-  const { data, error, isLoading } = useQuery<ProductPaginator, Error>(
-    [API_ENDPOINTS.LOW_OR_OUT_OF_STOCK_PRODUCTS, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<ProductPaginator, Error>({
+    queryKey: [API_ENDPOINTS.LOW_OR_OUT_OF_STOCK_PRODUCTS, options],
+    queryFn: ({ queryKey }) =>
       productClient.lowOrOutOfStockProducts(
-        Object.assign({}, queryKey[1], pageParam),
+        Object.assign({}, queryKey[1])
       ),
-    {
-      keepPreviousData: true,
-    },
-  );
+    placeholderData: (previousData: any) => previousData,
+  });
 
   return {
     products: data?.data ?? [],
@@ -222,16 +219,14 @@ export const useProductStockQuery = (options: Partial<ProductQueryOptions>) => {
 // Read All products by flash sale
 
 export const useProductsByFlashSaleQuery = (options: any) => {
-  const { data, error, isLoading } = useQuery<ProductPaginator, Error>(
-    [API_ENDPOINTS.PRODUCTS_BY_FLASH_SALE, options],
-    ({ queryKey, pageParam }) =>
+  const { data, error, isPending: isLoading } = useQuery<ProductPaginator, Error>({
+    queryKey: [API_ENDPOINTS.PRODUCTS_BY_FLASH_SALE, options],
+    queryFn: ({ queryKey }) =>
       productClient.getProductsByFlashSale(
-        Object.assign({}, queryKey[1], pageParam),
+        Object.assign({}, queryKey[1])
       ),
-    {
-      keepPreviousData: true,
-    },
-  );
+    placeholderData: (previousData: any) => previousData,
+  });
 
   return {
     products: data?.data ?? [],

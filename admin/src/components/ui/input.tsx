@@ -21,13 +21,13 @@ export interface Props extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const classes = {
-  root: 'px-4 h-12 flex items-center w-full rounded appearance-none transition duration-300 ease-in-out text-heading text-sm focus:outline-none focus:ring-0',
+  root: 'px-4 h-12 flex items-center w-full rounded appearance-none transition-all duration-200 ease-in-out text-heading text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-0',
   normal:
-    'bg-gray-100 border border-border-base focus:shadow focus:bg-light focus:border-accent',
+    'bg-gray-50 border border-gray-300 focus:shadow-sm focus:bg-white focus:border-accent',
   solid:
-    'bg-gray-100 border border-border-100 focus:bg-light focus:border-accent',
-  outline: 'border border-border-base focus:border-accent',
-  shadow: 'focus:shadow',
+    'bg-gray-50 border border-gray-200 focus:bg-white focus:border-accent',
+  outline: 'border border-gray-300 bg-white focus:border-accent focus:ring-2 focus:ring-accent/20',
+  shadow: 'focus:shadow-md',
 };
 const sizeClasses = {
   small: 'text-sm h-10',
@@ -92,8 +92,9 @@ const Input = React.forwardRef<HTMLInputElement, Props>(
           className={twMerge(
             cn(
               disabled
-                ? `cursor-not-allowed border-[#D4D8DD] bg-[#EEF1F4] ${numberDisable} select-none`
+                ? `cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500 ${numberDisable} select-none`
                 : '',
+              error ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : '',
               rootClassName,
             ),
           )}
@@ -103,11 +104,14 @@ const Input = React.forwardRef<HTMLInputElement, Props>(
           spellCheck="false"
           disabled={disabled}
           aria-invalid={error ? 'true' : 'false'}
+          aria-describedby={error ? `${name}-error` : undefined}
           {...rest}
         />
-        {note && <p className="mt-2 text-xs text-body">{note}</p>}
+        {note && <p className="mt-2 text-xs text-gray-600">{note}</p>}
         {error && (
-          <p className="my-2 text-xs text-red-500 text-start">{error}</p>
+          <p id={`${name}-error`} className="mt-2 text-xs text-red-600 text-start" role="alert">
+            {error}
+          </p>
         )}
       </div>
     );

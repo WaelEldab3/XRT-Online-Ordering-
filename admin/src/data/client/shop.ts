@@ -17,7 +17,6 @@ export const shopClient = {
     const identifier = id || slug;
     if (!identifier) throw new Error('Shop ID or slug is required');
     const business = await businessClient.get({ id: identifier });
-    // Map business to shop format
     return {
       ...business,
       slug: business.id,

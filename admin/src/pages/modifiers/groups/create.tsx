@@ -10,7 +10,7 @@ export default function CreateModifierGroupPage() {
   const { permissions, role } = getAuthCredentials();
 
   // Allow super admin or users with categories:create permission
-  if (role !== SUPER_ADMIN && !hasPermission(['categories:create'], permissions)) {
+  if (role !== SUPER_ADMIN && !hasPermission(['modifier_groups:create'], permissions)) {
     router.replace('/');
   }
 
@@ -28,7 +28,7 @@ export default function CreateModifierGroupPage() {
 
 CreateModifierGroupPage.authenticate = {
   permissions: adminOnly,
-  allowedPermissions: ['categories:create'],
+  allowedPermissions: ['modifier_groups:create'],
 };
 CreateModifierGroupPage.Layout = Layout;
 

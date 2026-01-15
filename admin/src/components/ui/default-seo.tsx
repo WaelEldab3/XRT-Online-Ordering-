@@ -5,28 +5,28 @@ const DefaultSeo = () => {
   const settings = useSettings();
   return (
     <NextDefaultSeo
-      title={settings.siteTitle ?? 'PickBazar'}
-      titleTemplate={`%s | ${settings?.seo?.metaTitle ?? 'E-Commerce'}`}
-      description={settings?.seo?.metaDescription || settings?.siteSubtitle}
+      title={settings.siteTitle ?? 'XRT Restaurant System'}
+      titleTemplate={`%s | ${settings?.seo?.metaTitle ?? 'XRT Restaurant System'}`}
+      description={settings?.seo?.metaDescription || settings?.siteSubtitle || 'Restaurant Management Platform'}
       canonical={settings?.seo?.canonicalUrl}
       openGraph={{
-        title: settings?.seo?.ogTitle,
-        description: settings?.seo?.ogDescription,
+        title: settings?.seo?.ogTitle || settings?.siteTitle || 'XRT Restaurant System',
+        description: settings?.seo?.ogDescription || settings?.siteSubtitle || 'Restaurant Management Platform',
         type: 'website',
         locale: 'en_US',
-        site_name: settings?.siteTitle,
+        site_name: settings?.siteTitle || 'XRT Restaurant System',
         images: [
           {
             url: settings?.seo?.ogImage?.original,
             width: 800,
             height: 600,
-            alt: settings?.seo?.ogTitle,
+            alt: settings?.seo?.ogTitle || 'XRT Restaurant System',
           },
         ],
       }}
       twitter={{
         handle: settings?.seo?.twitterHandle,
-        site: settings?.siteTitle,
+        site: settings?.siteTitle || 'XRT Restaurant System',
         cardType: settings?.seo?.twitterCardType,
       }}
       additionalMetaTags={[

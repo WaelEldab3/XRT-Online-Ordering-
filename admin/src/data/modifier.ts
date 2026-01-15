@@ -1,5 +1,5 @@
 import Router, { useRouter } from 'next/router';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { Routes } from '@/config/routes';
@@ -19,20 +19,21 @@ export const useCreateModifierMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(async (input: any) => {
-    // Mock: Just return the input with generated ID
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      ...input,
-      id: `m_${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }, {
+  return useMutation({
+    mutationFn: async (input: any) => {
+      // Mock: Just return the input with generated ID
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        ...input,
+        id: `m_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    },
     onSuccess: () => {
       toast.success(t('common:successfully-created'));
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIERS);
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIERS] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
     onError: (error: any) => {
       console.error('❌ Create Modifier Error:', error);
@@ -45,15 +46,16 @@ export const useDeleteModifierMutation = () => {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation(async ({ id }: { id: string }) => {
-    // Mock: Just simulate deletion
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { id };
-  }, {
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      // Mock: Just simulate deletion
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return { id };
+    },
     onSuccess: () => {
       toast.success(t('common:successfully-deleted'));
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIERS);
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIERS] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
   });
 };
@@ -62,26 +64,26 @@ export const useUpdateModifierMutation = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  return useMutation(async ({ id, ...input }: any) => {
-    // Mock: Just return the updated data
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      ...input,
-      id,
-      updated_at: new Date().toISOString(),
-    };
-  }, {
+  return useMutation({
+    mutationFn: async ({ id, ...input }: any) => {
+      // Mock: Just return the updated data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        ...input,
+        id,
+        updated_at: new Date().toISOString(),
+      };
+    },
     onSuccess: async (data, variables) => {
       const updatedModifier = (data as any)?.data || data;
       queryClient.setQueryData(
         [API_ENDPOINTS.MODIFIERS, { id: variables.id, language: router.locale }],
         (old: any) => {
           return { data: updatedModifier };
-        }
-      );
+        });
       toast.success(t('common:successfully-updated'));
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIERS);
-      queryClient.invalidateQueries(API_ENDPOINTS.MODIFIER_GROUPS);
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIERS] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || t('common:update-failed'));
@@ -91,9 +93,9 @@ export const useUpdateModifierMutation = () => {
 
 export const useModifierQuery = ({ slug, id, language }: GetParams & { id?: string }) => {
   // Use mock data instead of API call
-  const { data, error, isLoading } = useQuery<Modifier, Error>(
-    [API_ENDPOINTS.MODIFIERS, { slug, id, language }],
-    async () => {
+  const { data, error, isPending: isLoading } = useQuery<Modifier, Error>({
+    queryKey: [API_ENDPOINTS.MODIFIERS, { slug, id, language }],
+    queryFn: async () => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -106,10 +108,8 @@ export const useModifierQuery = ({ slug, id, language }: GetParams & { id?: stri
       
       return modifier;
     },
-    {
-      enabled: Boolean(id || slug),
-    }
-  );
+    enabled: Boolean(id || slug),
+  });
 
   const modifier = (data as any)?.data || data;
 
@@ -122,9 +122,9 @@ export const useModifierQuery = ({ slug, id, language }: GetParams & { id?: stri
 
 export const useModifiersQuery = (options: Partial<ModifierQueryOptions>) => {
   // Use mock data instead of API call
-  const { data, error, isLoading } = useQuery<ModifierPaginator, Error>(
-    [API_ENDPOINTS.MODIFIERS, options],
-    async () => {
+  const { data, error, isPending: isLoading } = useQuery<ModifierPaginator, Error>({
+    queryKey: [API_ENDPOINTS.MODIFIERS, options],
+    queryFn: async () => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
       
@@ -170,10 +170,8 @@ export const useModifiersQuery = (options: Partial<ModifierQueryOptions>) => {
         links: [],
       };
     },
-    {
-      keepPreviousData: true,
-    }
-  );
+    placeholderData: (previousData) => previousData,
+  });
 
   const modifiers = (data as any)?.data ?? [];
   const paginatorInfo = (data as any)?.paginatorInfo ?? mapPaginatorData(data);

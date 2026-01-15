@@ -29,17 +29,19 @@ const CreateOrUpdateAddressForm = () => {
 
   function onSubmit(values: any) {
     const { __typename, ...rest } = values;
-    updateProfile({
-      id: customerId,
-      input: {
-        address: [
-          {
-            ...(address?.id ? { id: address.id } : {}),
-            ...rest,
-          },
-        ],
-      },
-    });
+    updateProfile(
+      {
+        id: customerId,
+        input: {
+          address: [
+            {
+              ...(address?.id ? { id: address.id } : {}),
+              ...rest,
+            },
+          ],
+        },
+      } as any
+    );
     return closeModal();
   }
 

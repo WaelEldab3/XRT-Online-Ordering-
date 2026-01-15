@@ -189,7 +189,7 @@ export const mockDashboardStats = {
 
 export const mockSettings = {
   options: {
-    siteTitle: 'PickBazar',
+    siteTitle: 'XRT Restaurant System',
     isUnderMaintenance: false,
     maintenance: {
       start: null,

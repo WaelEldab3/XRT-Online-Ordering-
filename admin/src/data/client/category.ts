@@ -1,6 +1,5 @@
 import {
   Category,
-  CategoryPaginator,
   CategoryQueryOptions,
   CreateCategoryInput,
   QueryOptions,
@@ -18,7 +17,6 @@ export const categoryClient = {
       ...params,
       business_id,
     });
-    // Handle backend response format: { success: true, data: [...] }
     const categories = response?.data || response || [];
     return {
       data: Array.isArray(categories) ? categories : [],
@@ -75,8 +73,7 @@ export const categoryClient = {
       formData,
       {
         headers: { 'Content-Type': 'multipart/form-data' },
-      }
-    );
+      });
     return response?.data || response;
   },
   delete: async ({ id }: { id: string }) => {

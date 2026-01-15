@@ -12,7 +12,7 @@ export default function ReviewDetailsPage() {
   const { query } = useRouter();
   const {
     data,
-    isLoading: loading,
+    isPending: loading,
     error,
   } = useReviewQuery(query.reviewId as string);
 

@@ -23,16 +23,27 @@ const EnterTokenView = ({ onSubmit, loading }: Props) => {
   } = useForm<{ token: string }>({ resolver: yupResolver(schema) });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
+        <p className="font-medium">Check your email</p>
+        <p className="mt-1 text-blue-700">
+          We&apos;ve sent a verification token to your email address. Please enter it below.
+        </p>
+      </div>
       <Input
-        label={t('form:token-label')}
+        label={t('form:token-label') || 'Verification Token'}
         {...register('token')}
         variant="outline"
-        className="mb-5"
+        placeholder="Enter the token from your email"
         error={t(errors.token?.message!)}
+        className="transition-all duration-200 focus:ring-2 focus:ring-accent/20"
       />
-      <Button className="h-11 w-full" loading={loading} disabled={loading}>
-        {t('form:text-submit-token')}
+      <Button
+        className="mt-6 h-11 w-full text-base font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+        loading={loading}
+        disabled={loading}
+      >
+        {t('form:text-submit-token') || 'Verify Token'}
       </Button>
     </form>
   );

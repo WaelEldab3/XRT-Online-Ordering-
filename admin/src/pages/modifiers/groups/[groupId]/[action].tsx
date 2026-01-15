@@ -20,7 +20,7 @@ export default function UpdateModifierGroupPage() {
 
   const { permissions, role } = getAuthCredentials();
   // Allow super admin or users with categories:update permission
-  if (role !== SUPER_ADMIN && !hasPermission(['categories:update'], permissions)) {
+  if (role !== SUPER_ADMIN && !hasPermission(['modifier_groups:update'], permissions)) {
     return <ErrorMessage message={t('common:text-permission-denied')} />;
   }
 
@@ -45,7 +45,7 @@ export default function UpdateModifierGroupPage() {
 
 UpdateModifierGroupPage.authenticate = {
   permissions: adminOnly,
-  allowedPermissions: ['categories:update'],
+  allowedPermissions: ['modifier_groups:update'],
 };
 UpdateModifierGroupPage.Layout = Layout;
 

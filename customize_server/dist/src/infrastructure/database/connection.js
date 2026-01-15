@@ -7,6 +7,7 @@ exports.connectDatabase = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const env_1 = require("../../shared/config/env");
 const logger_1 = require("../../shared/utils/logger");
+const PermissionRegistry_1 = require("../../shared/permissions/PermissionRegistry");
 let isConnected = false;
 let retryCount = 0;
 const MAX_RETRIES = 5;
@@ -50,6 +51,20 @@ const setupEventHandlers = () => {
     });
     // SIGINT handler removed for serverless compatibility
 };
+/**
+ * Sync permissions with database after successful connection
+ */
+const syncPermissions = async () => {
+    try {
+        if (!PermissionRegistry_1.permissionRegistry.isSynced()) {
+            await PermissionRegistry_1.permissionRegistry.syncWithDatabase();
+        }
+    }
+    catch (error) {
+        logger_1.logger.error(`❌ Failed to sync permissions: ${error.message}`);
+        // Don't throw - permission sync failure shouldn't prevent server from running
+    }
+};
 const connectDatabase = async () => {
     if (isConnected && mongoose_1.default.connection.readyState === 1) {
         logger_1.logger.info('🟢 Using existing MongoDB connection');
@@ -70,6 +85,8 @@ const connectDatabase = async () => {
                 logger_1.logger.info(`✅ MongoDB Connected: ${mongoose_1.default.connection.host}`);
                 isConnected = true;
                 retryCount = 0;
+                // Sync permissions after successful connection
+                await syncPermissions();
             }
             catch (err) {
                 if (attempt < MAX_RETRIES) {

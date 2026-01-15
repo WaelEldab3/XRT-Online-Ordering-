@@ -41,7 +41,7 @@ export default function CreateOrUpdateTermsAndConditionsForm({
   const router = useRouter();
   const { t } = useTranslation();
   const { permissions } = getAuthCredentials();
-  const { data: user, isLoading: loading, error } = useMeQuery();
+  const { data: user, isPending: loading, error } = useMeQuery();
   const { locale } = router;
   const {
     // @ts-ignore
@@ -57,7 +57,7 @@ export default function CreateOrUpdateTermsAndConditionsForm({
       enabled: !!router.query.shop,
     },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const {
     register,
@@ -74,9 +74,9 @@ export default function CreateOrUpdateTermsAndConditionsForm({
     resolver: yupResolver(termsAndConditionsValidationSchema),
   });
 
-  const { mutate: createTermsAndConditions, isLoading: creating } =
+  const { mutate: createTermsAndConditions, isPending: creating } =
     useCreateTermsAndConditionsMutation();
-  const { mutate: updateTermsAndConditions, isLoading: updating } =
+  const { mutate: updateTermsAndConditions, isPending: updating } =
     useUpdateTermsAndConditionsMutation();
 
   const termsAndConditionsName = watch('title');

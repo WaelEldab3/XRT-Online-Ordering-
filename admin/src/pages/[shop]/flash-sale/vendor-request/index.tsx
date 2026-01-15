@@ -42,7 +42,7 @@ export default function FlashSaleVendorRequestLists() {
   const { data: shopData } = useShopQuery({
     slug: shop as string,
   });
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const { flashSaleRequests, paginatorInfo, loading, error } =
     useRequestedListsForFlashSale({

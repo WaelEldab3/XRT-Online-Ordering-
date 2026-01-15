@@ -34,7 +34,7 @@ export default function CreateOrUpdateFaqsForm({ initialValues }: IProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const { permissions } = getAuthCredentials();
-  const { data: user, isLoading: loading, error } = useMeQuery();
+  const { data: user, isPending: loading, error } = useMeQuery();
   const { locale } = router;
   const {
     // @ts-ignore
@@ -50,7 +50,7 @@ export default function CreateOrUpdateFaqsForm({ initialValues }: IProps) {
       enabled: !!router.query.shop,
     },
   );
-  const shopId = shopData?.id!;
+  const shopId = (shopData as any)?.id!;
 
   const {
     register,
@@ -66,8 +66,8 @@ export default function CreateOrUpdateFaqsForm({ initialValues }: IProps) {
     resolver: yupResolver(faqsValidationSchema),
   });
 
-  const { mutate: createFAQs, isLoading: creating } = useCreateFaqsMutation();
-  const { mutate: updateFAQs, isLoading: updating } = useUpdateFaqsMutation();
+  const { mutate: createFAQs, isPending: creating } = useCreateFaqsMutation();
+  const { mutate: updateFAQs, isPending: updating } = useUpdateFaqsMutation();
 
   const faqName = watch('faq_title');
   const autoSuggestionList = useMemo(() => {

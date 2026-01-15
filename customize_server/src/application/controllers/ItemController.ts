@@ -6,6 +6,7 @@ import { GetItemsUseCase } from '../../domain/usecases/items/GetItemsUseCase';
 import { UpdateItemUseCase } from '../../domain/usecases/items/UpdateItemUseCase';
 import { DeleteItemUseCase } from '../../domain/usecases/items/DeleteItemUseCase';
 import { ItemRepository } from '../../infrastructure/repositories/ItemRepository';
+import { ItemSizeRepository } from '../../infrastructure/repositories/ItemSizeRepository';
 import { CloudinaryStorage } from '../../infrastructure/cloudinary/CloudinaryStorage';
 import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
@@ -22,11 +23,12 @@ export class ItemController {
     constructor() {
         const itemRepository = new ItemRepository();
         const imageStorage = new CloudinaryStorage();
+        const itemSizeRepository = new ItemSizeRepository();
 
-        this.createItemUseCase = new CreateItemUseCase(itemRepository, imageStorage);
+        this.createItemUseCase = new CreateItemUseCase(itemRepository, imageStorage, itemSizeRepository);
         this.getItemsUseCase = new GetItemsUseCase(itemRepository);
-        this.updateItemUseCase = new UpdateItemUseCase(itemRepository, imageStorage);
-        this.deleteItemUseCase = new DeleteItemUseCase(itemRepository, imageStorage);
+        this.updateItemUseCase = new UpdateItemUseCase(itemRepository, imageStorage, itemSizeRepository);
+        this.deleteItemUseCase = new DeleteItemUseCase(itemRepository, imageStorage, itemSizeRepository);
         this.getItemUseCase = new GetItemUseCase(itemRepository);
     }
 
@@ -45,7 +47,8 @@ export class ItemController {
             max_per_order,
             is_sizeable,
             is_customizable,
-            sizes,
+            default_size_id,
+            modifier_groups,
         } = req.body;
         const business_id = req.user?.business_id || req.body.business_id;
 
@@ -57,13 +60,13 @@ export class ItemController {
             throw new ValidationError('category_id is required');
         }
 
-        // Parse sizes if it's a string (common in form data)
-        let parsedSizes = undefined;
-        if (sizes) {
+        // Parse modifier_groups if it's a string (common in form data)
+        let parsedModifierGroups = undefined;
+        if (modifier_groups) {
             try {
-                parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+                parsedModifierGroups = typeof modifier_groups === 'string' ? JSON.parse(modifier_groups) : modifier_groups;
             } catch (error) {
-                throw new ValidationError('Invalid sizes format. Expected JSON array.');
+                throw new ValidationError('Invalid modifier_groups format. Expected JSON array.');
             }
         }
 
@@ -84,7 +87,8 @@ export class ItemController {
                     max_per_order: max_per_order ? parseInt(max_per_order as string) : undefined,
                     is_sizeable: is_sizeable !== undefined ? (is_sizeable === 'true' || is_sizeable === true) : undefined,
                     is_customizable: is_customizable !== undefined ? (is_customizable === 'true' || is_customizable === true) : undefined,
-                    sizes: parsedSizes,
+                    default_size_id: default_size_id || undefined,
+                    modifier_groups: parsedModifierGroups,
                 },
                 req.files as { [fieldname: string]: Express.Multer.File[] }
             );
@@ -165,7 +169,8 @@ export class ItemController {
             max_per_order,
             is_sizeable,
             is_customizable,
-            sizes,
+            default_size_id,
+            modifier_groups,
         } = req.body;
         
         // Get business_id from user or request body
@@ -187,13 +192,13 @@ export class ItemController {
             throw new ValidationError('business_id is required');
         }
 
-        // Parse sizes if it's a string (common in form data)
-        let parsedSizes = undefined;
-        if (sizes !== undefined) {
+        // Parse modifier_groups if it's a string (common in form data)
+        let parsedModifierGroups = undefined;
+        if (modifier_groups !== undefined) {
             try {
-                parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+                parsedModifierGroups = typeof modifier_groups === 'string' ? JSON.parse(modifier_groups) : modifier_groups;
             } catch (error) {
-                throw new ValidationError('Invalid sizes format. Expected JSON array.');
+                throw new ValidationError('Invalid modifier_groups format. Expected JSON array.');
             }
         }
 
@@ -223,7 +228,8 @@ export class ItemController {
         if (is_customizable !== undefined) {
             updateData.is_customizable = is_customizable === 'true' || is_customizable === true;
         }
-        if (parsedSizes !== undefined) updateData.sizes = parsedSizes;
+        if (default_size_id !== undefined) updateData.default_size_id = default_size_id || null;
+        if (parsedModifierGroups !== undefined) updateData.modifier_groups = parsedModifierGroups;
 
         const item = await this.updateItemUseCase.execute(
             id,

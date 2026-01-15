@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   USER_DELETE: 'auth/users/:id',
   USER_PERMISSIONS: 'auth/users/:id/permissions',
   ALL_PERMISSIONS: 'auth/permissions',
+  PERMISSIONS: 'permissions',
   ROLES: 'roles',
 
   // Business endpoints (shops in frontend)
@@ -75,6 +76,11 @@ export const API_ENDPOINTS = {
   ITEMS: 'items',
   MODIFIER_GROUPS: 'modifier-groups',
   MODIFIERS: 'modifiers',
+  IMPORT_PARSE: 'import/parse',
+  IMPORT_SESSIONS: 'import/sessions',
+  IMPORT_SESSION: 'import/sessions/:id',
+  IMPORT_SESSION_SAVE: 'import/sessions/:id/save',
+  IMPORT_SESSION_ERRORS: 'import/sessions/:id/errors',
 
   // Product endpoints
   POPULAR_PRODUCTS: 'products/popular',

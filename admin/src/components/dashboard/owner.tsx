@@ -56,7 +56,7 @@ const OwnerShopLayout = () => {
   const { locale } = useRouter();
   const router = useRouter();
   const { permissions } = getAuthCredentials();
-  const { data, isLoading: loading } = useAnalyticsQuery();
+  const { data, isPending: loading } = useAnalyticsQuery();
   const [activeTimeFrame, setActiveTimeFrame] = useState(1);
   const [orderDataRange, setOrderDataRange] = useState(
     data?.todayTotalOrderByStatus,

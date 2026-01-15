@@ -37,7 +37,7 @@ const NotifyLogItem = ({ item }: any) => {
   const { permissions } = getAuthCredentials();
   const { locale } = useRouter();
 
-  const { mutate: seenNotifyLog, isLoading: creating } =
+  const { mutate: seenNotifyLog, isPending: creating } =
     useNotifyLogReadMutation();
 
   const orderID = item?.notify_type === 'order' ? item?.notify_tracker : '';
@@ -190,7 +190,7 @@ export default function NotifyLogsPageForVendor() {
   const { locale } = useRouter();
   const [target, setTarget] = useState<string>('');
   const [page, setPage] = useState(1);
-  const { data, isLoading: loading, error } = useMeQuery();
+  const { data, isPending: loading, error } = useMeQuery();
 
   const {
     notifyLogs,

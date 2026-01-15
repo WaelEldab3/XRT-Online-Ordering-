@@ -27,10 +27,17 @@ export default function LoginPage() {
 
   return (
     <AuthPageLayout>
-      <h3 className="mb-6 mt-4 text-center text-base italic text-body">
-        {t('admin-login-title')}
-      </h3>
-      <LoginForm />
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          {t('admin-login-title') || 'Welcome to XRT Restaurant System'}
+        </h1>
+        <p className="text-sm text-gray-600 sm:text-base">
+          Restaurant Management Platform
+        </p>
+      </div>
+      <div className="mt-6">
+        <LoginForm />
+      </div>
     </AuthPageLayout>
   );
 }

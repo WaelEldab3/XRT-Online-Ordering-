@@ -7,6 +7,7 @@ const AdminPermissionsView = () => {
   const { t } = useTranslation();
   const { data: userId } = useModalState();
   const { data: user, isLoading } = useUserQuery({ id: userId });
+  const userData = user as any;
 
   console.log('AdminPermissionsView - userId:', userId);
   console.log('AdminPermissionsView - user data:', user);
@@ -15,13 +16,13 @@ const AdminPermissionsView = () => {
   if (isLoading) return <Loader text={t('common:text-loading')} />;
 
   // Get permissions from user data
-  const directPermissions = user?.permissions || [];
+  const directPermissions = userData?.permissions || [];
 
   console.log('AdminPermissionsView - directPermissions:', directPermissions);
 
   // Handle both string permissions and object permissions with name property
   const normalizePermissions = (permissions: any[]) => {
-    const normalized = permissions.map(p => typeof p === 'string' ? p : p?.name).filter(Boolean);
+    const normalized = permissions.map(p => typeof p === 'string' ? p : (p as any)?.name).filter(Boolean);
     console.log('AdminPermissionsView - normalized permissions:', normalized);
     return normalized;
   };
@@ -32,9 +33,9 @@ const AdminPermissionsView = () => {
     <div className="p-5 bg-light sm:p-8 min-w-[350px] sm:min-w-[450px] max-w-2xl">
       <h1 className="mb-4 text-center font-semibold text-heading sm:mb-6">
         {t('common:text-permissions')}
-        {user?.name && (
+        {userData?.name && (
           <span className="block text-sm font-normal text-body mt-1">
-            {user.name}
+            {userData.name}
           </span>
         )}
       </h1>
@@ -57,7 +58,7 @@ const AdminPermissionsView = () => {
           </p>
         )}
 
-        {user?.role === 'super_admin' && (
+        {userData?.role === 'super_admin' && (
           <p className="mt-4 text-center text-accent font-semibold">
             {t('common:text-super-admin-all-access')}
           </p>

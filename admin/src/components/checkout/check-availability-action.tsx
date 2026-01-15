@@ -29,13 +29,13 @@ export const CheckAvailabilityAction: React.FC<{
   const [errorMessage, setError] = useState('');
   const { items, total, isEmpty } = useCart();
 
-  const { mutate: verifyCheckout, isLoading: loading } =
+  const { mutateAsync: verifyCheckout, isPending: loading } =
     useVerifyCheckoutMutation();
 
-  function handleVerifyCheckout() {
+  async function handleVerifyCheckout() {
     if (billing_address && shipping_address) {
-      verifyCheckout(
-        {
+      try {
+        const data = await verifyCheckout({
           amount: total,
           customer_id: customer?.value,
           products: items?.map((item) => formatOrderedProduct(item)),
@@ -47,23 +47,18 @@ export const CheckAvailabilityAction: React.FC<{
             ...(shipping_address?.address &&
               omit(shipping_address.address, ['__typename'])),
           } as Address,
-        },
-        {
-          onSuccess: (data: any) => {
-            //@ts-ignore
-            if (data?.errors as string) {
-              //@ts-ignore
-              toast.error(data?.errors[0]?.message);
-            } else {
-              //@ts-ignore
-              setVerifiedResponse(data);
-            }
-          },
-          onError: (error: any) => {
-            setError(error?.message);
-          },
-        },
-      );
+        });
+        //@ts-ignore
+        if (data?.errors as string) {
+          //@ts-ignore
+          toast.error(data?.errors[0]?.message);
+        } else {
+          //@ts-ignore
+          setVerifiedResponse(data);
+        }
+      } catch (error: any) {
+        setError(error?.message);
+      }
     } else {
       setError('error-add-both-address');
     }
