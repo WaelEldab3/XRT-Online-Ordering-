@@ -32,9 +32,40 @@ export class ImportSaveService {
       const itemKeyToId = new Map<string, string>();
       const groupKeyToId = new Map<string, string>();
       const modifierKeyToId = new Map<string, string>();
-      const itemIdToDefaultSizeId = new Map<string, string>();
 
-      // 1. Create/Update Modifier Groups first (no dependencies)
+      const sizeCodeToId = new Map<string, string>();
+      const itemKeyToDefaultSizeCode = new Map<string, string>();
+
+      // 1. Create Item Sizes (Global) - Dependencies for Modifier Groups & Items
+      for (const sizeData of data.itemSizes) {
+        let sizeId: string;
+        const existingSize = await this.itemSizeRepository.exists(sizeData.size_code, business_id);
+
+        if (!existingSize) {
+          const createSizeDTO: CreateItemSizeDTO = {
+            business_id: business_id,
+            name: sizeData.name,
+            code: sizeData.size_code,
+            display_order: sizeData.display_order ?? 0,
+            is_active: sizeData.is_active ?? true,
+          };
+          const createdSize = await this.itemSizeRepository.create(createSizeDTO);
+          sizeId = createdSize.id;
+        } else {
+          const sizes = await this.itemSizeRepository.findAll({ business_id });
+          const foundSize = sizes.find(s => s.code === sizeData.size_code);
+          if (!foundSize) throw new Error(`Size ${sizeData.size_code} exists but not found for business_id: ${business_id}`);
+          sizeId = foundSize.id;
+        }
+
+        sizeCodeToId.set(sizeData.size_code, sizeId);
+
+        if (sizeData.is_default && sizeData.item_key) {
+          itemKeyToDefaultSizeCode.set(sizeData.item_key, sizeData.size_code);
+        }
+      }
+
+      // 2. Create/Update Modifier Groups (depends on Sizes)
       for (const groupData of data.modifierGroups) {
         // Check if group exists by name
         const existingGroups = await this.modifierGroupRepository.findAll({
@@ -59,7 +90,10 @@ export class ImportSaveService {
             is_active: groupData.is_active ?? true,
             sort_order: groupData.sort_order ?? 0,
             quantity_levels: groupData.quantity_levels,
-            prices_by_size: groupData.prices_by_size,
+            prices_by_size: groupData.prices_by_size?.map(p => ({
+              size_id: sizeCodeToId.get(p.sizeCode)!,
+              priceDelta: p.priceDelta
+            })).filter(p => p.size_id),
           };
 
           const createdGroup = await this.modifierGroupRepository.create(createGroupDTO);
@@ -67,7 +101,7 @@ export class ImportSaveService {
         }
       }
 
-      // 2. Create Modifiers (depends on Modifier Groups)
+      // 3. Create Modifiers (depends on Modifier Groups)
       for (const modifierData of data.modifiers) {
         const groupId = groupKeyToId.get(modifierData.group_key);
         if (!groupId) {
@@ -99,7 +133,7 @@ export class ImportSaveService {
         }
       }
 
-      // 3. Resolve category IDs
+      // 4. Resolve category IDs
       const categoryNameToId = new Map<string, string>();
       // Get all categories for the business
       const allCategories = await this.categoryRepository.findAll({
@@ -110,7 +144,7 @@ export class ImportSaveService {
         categoryNameToId.set(category.name.toLowerCase(), category.id);
       }
 
-      // 4. Create Items
+      // 5. Create Items
       for (const itemData of data.items) {
         let categoryId = itemData.category_id;
         if (!categoryId && itemData.category_name) {
@@ -139,36 +173,15 @@ export class ImportSaveService {
         itemKeyToId.set(itemData.item_key, createdItem.id);
       }
 
-      // 5. Create Item Sizes (depends on Items)
-      for (const sizeData of data.itemSizes) {
-        const itemId = itemKeyToId.get(sizeData.item_key);
-        if (!itemId) {
-          throw new ValidationError(`Item with item_key '${sizeData.item_key}' not found`);
-        }
-
-        const createSizeDTO: CreateItemSizeDTO = {
-          item_id: itemId,
-          restaurant_id: business_id,
-          name: sizeData.name,
-          code: sizeData.size_code,
-          price: sizeData.price,
-          display_order: sizeData.display_order ?? 0,
-          is_active: sizeData.is_active ?? true,
-        };
-
-        const createdSize = await this.itemSizeRepository.create(createSizeDTO);
-        
-        // Track default size
-        if (sizeData.is_default) {
-          itemIdToDefaultSizeId.set(itemId, createdSize.id);
-        }
-      }
-
       // 6. Set default_size_id for items
-      for (const [itemId, defaultSizeId] of itemIdToDefaultSizeId.entries()) {
-        await this.itemRepository.update(itemId, business_id, {
-          default_size_id: defaultSizeId,
-        });
+      for (const [itemKey, sizeCode] of itemKeyToDefaultSizeCode.entries()) {
+        const itemId = itemKeyToId.get(itemKey);
+        const sizeId = sizeCodeToId.get(sizeCode);
+        if (itemId && sizeId) {
+          await this.itemRepository.update(itemId, business_id, {
+            default_size_id: sizeId,
+          });
+        }
       }
 
       // 7. Link Items to Modifier Groups and apply overrides

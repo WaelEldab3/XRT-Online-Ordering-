@@ -5,7 +5,7 @@ import { ValidationError } from '../../../shared/errors/AppError';
 export class CreateModifierGroupUseCase {
   constructor(
     private modifierGroupRepository: IModifierGroupRepository
-  ) {}
+  ) { }
 
   async execute(data: CreateModifierGroupDTO): Promise<ModifierGroup> {
     // Validate min/max rules
@@ -38,10 +38,10 @@ export class CreateModifierGroupUseCase {
 
     // Validate prices by size
     if (data.prices_by_size && data.prices_by_size.length > 0) {
-      const sizeCodes = data.prices_by_size.map(ps => ps.sizeCode);
-      const uniqueSizeCodes = new Set(sizeCodes);
-      if (sizeCodes.length !== uniqueSizeCodes.size) {
-        throw new ValidationError('Prices by size must have unique size codes');
+      const sizeIds = data.prices_by_size.map(ps => ps.size_id);
+      const uniqueSizeIds = new Set(sizeIds);
+      if (sizeIds.length !== uniqueSizeIds.size) {
+        throw new ValidationError('Prices by size must have unique size IDs');
       }
     }
 

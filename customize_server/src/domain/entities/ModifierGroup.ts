@@ -39,6 +39,7 @@ export interface CreateModifierGroupDTO {
   max_select: number;
   applies_per_quantity?: boolean;
   quantity_levels?: QuantityLevel[];
+  prices_by_size?: PricesBySize[]; // Added missing field
   is_active?: boolean;
   sort_order?: number;
 }
@@ -50,6 +51,7 @@ export interface UpdateModifierGroupDTO {
   max_select?: number;
   applies_per_quantity?: boolean;
   quantity_levels?: QuantityLevel[];
+  prices_by_size?: PricesBySize[]; // Added missing field
   is_active?: boolean;
   sort_order?: number;
 }
