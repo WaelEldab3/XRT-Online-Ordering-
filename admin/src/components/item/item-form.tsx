@@ -4,7 +4,6 @@ import {
   useForm,
   FormProvider,
   Controller,
-  useFieldArray,
   useWatch,
 } from 'react-hook-form';
 import Button from '@/components/ui/button';
@@ -19,7 +18,6 @@ import {
   Item,
   CreateItemInput,
   UpdateItemInput,
-  ItemSize,
   ItemSizeConfig,
   ItemModifierAssignment,
   ItemModifierGroupAssignment,
@@ -634,7 +632,9 @@ export default function CreateOrUpdateItemForm({
     // Filter out groups that contain only size-related modifiers
     return modifierGroups.filter((group: any) => {
       const groupId = getGroupIdFromModifier(group.id);
-      const groupModifiers = modifiersByGroupId.get(groupId) || [];
+      const groupModifiers = groupId
+        ? modifiersByGroupId.get(groupId) || []
+        : [];
 
       // If the group has modifiers, check if they're all sizes
       if (groupModifiers.length > 0) {
@@ -876,7 +876,7 @@ export default function CreateOrUpdateItemForm({
         if (
           populatedGroups.some(
             (g: any, idx: number) =>
-              g !== currentValues.modifier_assignment.modifier_groups[idx],
+              g !== currentValues.modifier_assignment?.modifier_groups?.[idx],
           )
         ) {
           setValue('modifier_assignment.modifier_groups', populatedGroups, {
@@ -887,7 +887,7 @@ export default function CreateOrUpdateItemForm({
         if (
           populatedModifiers.some(
             (m: any, idx: number) =>
-              m !== currentValues.modifier_assignment.default_modifiers?.[idx],
+              m !== currentValues.modifier_assignment?.default_modifiers?.[idx],
           )
         ) {
           setValue(

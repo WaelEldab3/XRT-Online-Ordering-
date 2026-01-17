@@ -54,22 +54,29 @@ const SidebarItemMap = ({ menuItems }: any) => {
     pathname,
   } = router;
   const { data: me } = useMeQuery();
-  
+
   // Get shop from query, or try to extract from pathname if missing
   // Pathname might be like /[shop]/items/[id]/edit or /items/[id]/edit
   let shopSlug = shop?.toString() || '';
-  
+
   // If shop is missing from query but we're in a shop-scoped route, extract from pathname
   if (!shopSlug && pathname) {
     const pathParts = pathname.split('/').filter(Boolean);
     // Check if pathname starts with a shop slug pattern (not a known route)
-    const knownRoutes = ['items', 'products', 'categories', 'modifiers', 'orders', 'settings'];
+    const knownRoutes = [
+      'items',
+      'products',
+      'categories',
+      'modifiers',
+      'orders',
+      'settings',
+    ];
     if (pathParts.length > 0 && !knownRoutes.includes(pathParts[0])) {
       // First part might be shop slug
       shopSlug = pathParts[0];
     }
   }
-  
+
   // If still no shop slug, try to get from user's shops (fallback)
   if (!shopSlug && me?.shops && me.shops.length > 0) {
     // Use the first shop or managed shop
@@ -106,7 +113,7 @@ const SidebarItemMap = ({ menuItems }: any) => {
           permissions,
           childMenu,
         }: {
-          href: string;
+          href: string | ((shop: string) => string);
           label: string;
           icon: string;
           childMenu: any;
