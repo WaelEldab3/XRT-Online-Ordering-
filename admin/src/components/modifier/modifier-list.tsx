@@ -166,15 +166,8 @@ const ModifierList = ({
       align: alignLeft,
       width: 200,
       onHeaderCell: () => onHeaderClick('name'),
-      render: (name: string, record: Modifier) => (
-        <div className="font-medium text-heading">
-          {name}
-          {record.is_default && (
-            <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-              {t('form:input-label-default') || 'Default'}
-            </span>
-          )}
-        </div>
+      render: (name: string) => (
+        <div className="font-medium text-heading">{name}</div>
       ),
     },
     {
@@ -193,18 +186,19 @@ const ModifierList = ({
       ),
     },
     {
-      title: t('form:input-label-price') || 'Price',
-      dataIndex: 'prices_by_size',
-      key: 'price',
-      align: alignRight,
-      width: 120,
-      render: (_: any, record: Modifier) => {
-        const price = getModifierPrice(record);
-        if (price !== null) {
-          return <PriceDisplay amount={price} />;
-        }
-        return <span className="text-gray-400">—</span>;
-      },
+      title: t('form:input-label-default') || 'Default',
+      dataIndex: 'is_default',
+      key: 'is_default',
+      align: 'center',
+      width: 100,
+      render: (is_default: boolean) =>
+        is_default ? (
+          <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+            {t('common:text-yes')}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-sm">{t('common:text-no')}</span>
+        ),
     },
     {
       title: t('form:input-label-max-quantity') || 'Max Qty',

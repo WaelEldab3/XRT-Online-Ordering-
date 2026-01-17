@@ -1,4 +1,10 @@
-import { Control, Controller, UseFormRegister } from 'react-hook-form';
+import {
+  Control,
+  Controller,
+  UseFormRegister,
+  useWatch,
+  UseFormSetValue,
+} from 'react-hook-form';
 import { useTranslation } from 'next-i18next';
 import Card from '@/components/common/card';
 import Description from '@/components/ui/description';
@@ -7,10 +13,12 @@ import Input from '@/components/ui/input';
 import SelectInput from '@/components/ui/select-input';
 import { FormValues, DEFAULT_QUANTITY_LEVELS } from '../item-form-types';
 import { getGroupId } from '../utils/item-form-utils';
+import { useMemo } from 'react';
 
 interface ModifiersSectionProps {
   register: UseFormRegister<FormValues>;
   control: Control<FormValues>;
+  setValue: UseFormSetValue<FormValues>;
   modifierGroupsFiltered: any[];
   loadingModifierGroups: boolean;
   relevantModifiers: any[];
@@ -24,6 +32,7 @@ interface ModifiersSectionProps {
 export default function ModifiersSection({
   register,
   control,
+  setValue,
   modifierGroupsFiltered,
   loadingModifierGroups,
   relevantModifiers,
@@ -34,6 +43,84 @@ export default function ModifiersSection({
   itemSizes,
 }: ModifiersSectionProps) {
   const { t } = useTranslation();
+
+  // Watch pricing mode for each group
+  const pricingMode =
+    useWatch({
+      control,
+      name: 'modifier_assignment.pricing_mode',
+      defaultValue: {},
+    }) || {};
+
+  // Watch item sizes to determine active ones
+  const configuredSizes =
+    useWatch({
+      control,
+      name: 'sizes',
+      defaultValue: [],
+    }) || [];
+
+  const activeItemSizes = useMemo(() => {
+    if (!itemSizes || !isSizeable) return [];
+    // Get enabled size IDs from the form configuration
+    const enabledSizeIds = configuredSizes
+      .filter((s: any) => s.is_active)
+      .map((s: any) => s.size_id);
+    return itemSizes.filter((size: any) => enabledSizeIds.includes(size.id));
+  }, [itemSizes, configuredSizes, isSizeable]);
+
+  // Get modifiers grouped by their modifier group
+  const modifiersByGroup = useMemo(() => {
+    const grouped: { [groupId: string]: any[] } = {};
+    selectedModifierGroups.forEach((group) => {
+      const groupId = getGroupId(group);
+      if (groupId) {
+        grouped[groupId] = allModifiersList.filter((m) => {
+          const mGroupId =
+            typeof m.modifier_group_id === 'object'
+              ? m.modifier_group_id?.id || m.modifier_group_id?._id
+              : m.modifier_group_id;
+          return String(mGroupId) === String(groupId);
+        });
+      }
+    });
+    return grouped;
+  }, [selectedModifierGroups, allModifiersList]);
+
+  const getInheritedPrice = (
+    modifier: any,
+    group: any,
+    sizeCode: string,
+    quantity: number,
+  ) => {
+    // 1. Check Modifier Level
+    if (modifier.quantity_levels) {
+      const modQtyLevel = modifier.quantity_levels.find(
+        (ql: any) => ql.quantity === quantity,
+      );
+      if (modQtyLevel?.prices_by_size) {
+        const modPrice = modQtyLevel.prices_by_size.find(
+          (pbs: any) => pbs.sizeCode === sizeCode,
+        )?.priceDelta;
+        if (modPrice !== undefined) return modPrice;
+      }
+    }
+
+    // 2. Check Group Level
+    if (group.quantity_levels) {
+      const groupQtyLevel = group.quantity_levels.find(
+        (ql: any) => ql.quantity === quantity,
+      );
+      if (groupQtyLevel?.prices_by_size) {
+        const groupPrice = groupQtyLevel.prices_by_size.find(
+          (pbs: any) => pbs.sizeCode === sizeCode,
+        )?.priceDelta;
+        if (groupPrice !== undefined) return groupPrice;
+      }
+    }
+
+    return 0;
+  };
 
   return (
     <div className="flex flex-wrap pb-8 my-5 border-b border-dashed border-border-base sm:my-8">
@@ -57,6 +144,230 @@ export default function ModifiersSection({
             placeholder={t('form:input-placeholder-select-modifier-groups')}
           />
         </div>
+
+        {/* Per-group pricing mode toggles */}
+        {selectedModifierGroups.length > 0 && (
+          <div className="mb-5 space-y-4">
+            <Label className="text-base font-semibold">
+              {t('form:input-label-pricing-configuration')}
+            </Label>
+            {selectedModifierGroups.map((group: any) => {
+              const groupId = getGroupId(group);
+              if (!groupId) return null;
+              const isOverride = pricingMode[groupId] === 'override';
+              const groupModifiers = modifiersByGroup[groupId] || [];
+
+              return (
+                <div
+                  key={groupId}
+                  className="border border-gray-200 rounded-lg overflow-hidden"
+                >
+                  <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-heading">
+                        {group.name}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        {groupModifiers.length} {t('form:modifiers-count')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-xs ${!isOverride ? 'text-accent font-medium' : 'text-gray-500'}`}
+                      >
+                        {t('form:pricing-mode-inherit')}
+                      </span>
+                      <Controller
+                        name={
+                          `modifier_assignment.pricing_mode.${groupId}` as any
+                        }
+                        control={control}
+                        defaultValue="inherit"
+                        render={({ field }) => (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newMode =
+                                field.value === 'override'
+                                  ? 'inherit'
+                                  : 'override';
+                              field.onChange(newMode);
+
+                              // Populate defaults if switching to override
+                              if (newMode === 'override') {
+                                groupModifiers.forEach((modifier: any) => {
+                                  if (
+                                    isSizeable &&
+                                    activeItemSizes &&
+                                    activeItemSizes.length > 0
+                                  ) {
+                                    activeItemSizes.forEach((size: any) => {
+                                      DEFAULT_QUANTITY_LEVELS.forEach((qty) => {
+                                        const price = getInheritedPrice(
+                                          modifier,
+                                          group,
+                                          size.code || size.name,
+                                          qty.quantity,
+                                        );
+                                        setValue(
+                                          `modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.code || size.name}.${qty.quantity}` as any,
+                                          price,
+                                        );
+                                      });
+                                    });
+                                  } else {
+                                    // Non-sizeable population?
+                                    // Leaving simplistic for now as request focused on sizes
+                                  }
+                                });
+                              }
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              isOverride ? 'bg-accent' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                isOverride ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        )}
+                      />
+                      <span
+                        className={`text-xs ${isOverride ? 'text-accent font-medium' : 'text-gray-500'}`}
+                      >
+                        {t('form:pricing-mode-override')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isOverride ? (
+                    <div className="p-4">
+                      {groupModifiers.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">
+                          {t('form:no-modifiers-in-group')}
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          {isSizeable &&
+                          activeItemSizes &&
+                          activeItemSizes.length > 0 ? (
+                            // Show pricing table by size and quantity
+                            groupModifiers.map((modifier: any) => (
+                              <div
+                                key={modifier.id}
+                                className="border border-gray-100 rounded-lg overflow-hidden"
+                              >
+                                <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+                                  <span className="text-sm font-medium">
+                                    {modifier.name}
+                                  </span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-gray-50">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                          {t('form:input-label-quantity-level')}
+                                        </th>
+                                        {activeItemSizes.map((size: any) => (
+                                          <th
+                                            key={size.code || size.name}
+                                            className="px-3 py-2 text-center text-xs font-medium text-gray-500"
+                                          >
+                                            {size.name || size.code}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {DEFAULT_QUANTITY_LEVELS.map(
+                                        (qtyLevel) => (
+                                          <tr
+                                            key={qtyLevel.quantity}
+                                            className="border-t border-gray-100"
+                                          >
+                                            <td className="px-3 py-2 font-medium text-gray-700">
+                                              {t(
+                                                `form:quantity-level-${qtyLevel.name.toLowerCase()}`,
+                                              )}{' '}
+                                              ({qtyLevel.quantity})
+                                            </td>
+                                            {activeItemSizes.map(
+                                              (size: any) => (
+                                                <td
+                                                  key={size.code || size.name}
+                                                  className="px-3 py-2"
+                                                >
+                                                  <Input
+                                                    {...register(
+                                                      `modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.code || size.name}.${qtyLevel.quantity}` as any,
+                                                      { valueAsNumber: true },
+                                                    )}
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    placeholder="0.00"
+                                                    className="w-20 text-center text-sm"
+                                                    variant="outline"
+                                                  />
+                                                </td>
+                                              ),
+                                            )}
+                                          </tr>
+                                        ),
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            // Non-sizeable or no active sizes
+                            <div className="grid grid-cols-2 gap-4">
+                              {groupModifiers.map((modifier: any) => (
+                                <div
+                                  key={modifier.id}
+                                  className="flex items-center gap-3"
+                                >
+                                  <Label className="flex-1 text-sm">
+                                    {modifier.name}
+                                  </Label>
+                                  <Input
+                                    {...register(
+                                      `modifier_assignment.modifier_prices.${modifier.id}` as any,
+                                      { valueAsNumber: true },
+                                    )}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    className="w-24 text-sm"
+                                    variant="outline"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 bg-blue-50 text-blue-700 text-sm">
+                      <span className="font-medium">
+                        {t('form:pricing-inherited-from-group')}
+                      </span>
+                      <span className="text-blue-600 ms-1">
+                        {t('form:pricing-will-use-group-config')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <Controller
           name="modifier_assignment.default_modifiers"
@@ -131,110 +442,6 @@ export default function ModifiersSection({
             );
           }}
         />
-
-        {/* Modifier Prices by Size and Quantity Levels */}
-        {isSizeable && itemSizes && itemSizes.length > 0 && (
-          <div className="mb-5">
-            <Label className="mb-3 block">
-              {t('form:input-label-modifier-prices-by-size-quantity')}
-            </Label>
-            <div className="space-y-6">
-              {relevantModifiers.length === 0 ? (
-                <div className="p-4 text-center text-sm text-gray-500 border border-gray-200 rounded-lg">
-                  {selectedModifierGroups.length === 0
-                    ? t('form:select-modifier-groups-first')
-                    : t('form:no-modifiers-found')}
-                </div>
-              ) : (
-                relevantModifiers.map(
-                  (modifier: any, modifierIndex: number) => {
-                    const quantityLevelsToShow = DEFAULT_QUANTITY_LEVELS;
-
-                    return (
-                      <div
-                        key={modifier.id || modifierIndex}
-                        className="border border-gray-200 rounded-lg overflow-hidden"
-                      >
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                          <h4 className="text-sm font-semibold text-heading">
-                            {modifier.name}
-                          </h4>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-4 py-2 text-left text-xs font-semibold text-heading border-b border-gray-200">
-                                  {t('form:input-label-quantity-level')}
-                                </th>
-                                {itemSizes.map(
-                                  (size: any, sizeIndex: number) => (
-                                    <th
-                                      key={sizeIndex}
-                                      className="px-4 py-2 text-center text-xs font-semibold text-heading border-b border-gray-200"
-                                    >
-                                      {size.name ||
-                                        size.code ||
-                                        `Size ${sizeIndex + 1}`}
-                                    </th>
-                                  ),
-                                )}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {quantityLevelsToShow.map(
-                                (qtyLevel: any, qtyIndex: number) => (
-                                  <tr
-                                    key={qtyIndex}
-                                    className="border-b border-gray-200 hover:bg-gray-50"
-                                  >
-                                    <td className="px-4 py-3 text-sm text-heading font-medium">
-                                      {t(
-                                        `form:quantity-level-${qtyLevel.name.toLowerCase()}`,
-                                      )}{' '}
-                                      ({t('form:input-label-quantity')}:{' '}
-                                      {qtyLevel.quantity})
-                                    </td>
-                                    {itemSizes.map(
-                                      (size: any, sizeIndex: number) => (
-                                        <td
-                                          key={sizeIndex}
-                                          className="px-4 py-3"
-                                        >
-                                          <Input
-                                            {...register(
-                                              `modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.code || size.name}.${qtyLevel.quantity}` as any,
-                                              {
-                                                valueAsNumber: true,
-                                              },
-                                            )}
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            placeholder="0.00"
-                                            className="w-full text-center"
-                                            variant="outline"
-                                          />
-                                        </td>
-                                      ),
-                                    )}
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    );
-                  },
-                )
-              )}
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              {t('form:modifier-prices-by-size-quantity-help')}
-            </p>
-          </div>
-        )}
       </Card>
     </div>
   );

@@ -495,7 +495,7 @@ export default function CreateOrUpdateModifierForm({
         </Tabs>
 
         <StickyFooterPanel className="z-0">
-          <div className="text-end">
+          <div className="flex items-center justify-end">
             <Button
               variant="outline"
               onClick={() => {

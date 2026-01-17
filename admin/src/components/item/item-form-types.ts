@@ -32,7 +32,10 @@ export type FormValues = {
   default_size_id?: string | null; // FK to ItemSize.id, required if is_sizeable = true
   sizes?: ItemSizeConfig[]; // Updated to match Item structure
   modifier_groups?: ItemModifierGroupAssignment[]; // Updated to match backend
-  modifier_assignment?: ItemModifierAssignment; // Legacy - kept for backward compatibility
+  modifier_assignment?: ItemModifierAssignment & {
+    // Per-group pricing mode: 'inherit' uses group config, 'override' allows custom pricing
+    pricing_mode?: { [groupId: string]: 'inherit' | 'override' };
+  };
   apply_sides?: boolean;
   sides?: {
     both?: boolean;

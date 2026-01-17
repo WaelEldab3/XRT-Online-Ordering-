@@ -15,10 +15,15 @@ import dynamic from 'next/dynamic';
 
 const ReactQueryDevtools = dynamic(
   () =>
-    import('@tanstack/react-query-devtools').then((d) => ({
-      default: d.ReactQueryDevtools,
-    })),
-  { ssr: false }
+    import('@tanstack/react-query-devtools')
+      .then((d) => ({
+        default: d.ReactQueryDevtools,
+      }))
+      .catch(() => ({
+        // If devtools fail to load, render nothing
+        default: () => null,
+      })),
+  { ssr: false, loading: () => null },
 );
 import { appWithTranslation } from 'next-i18next';
 import { ModalProvider } from '@/components/ui/modal/modal.context';
@@ -105,7 +110,7 @@ const CustomApp = ({ Component, pageProps }: AppPropsWithLayout) => {
             refetchOnWindowFocus: false,
           },
         },
-      })
+      }),
   );
   const getLayout = Component.getLayout ?? ((page) => page);
 

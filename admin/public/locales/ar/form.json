@@ -851,5 +851,12 @@
   "modifier-pricing-helper-text": "تكوين التسعير لهذا المعدل. تتجاوز هذه الإعدادات تكوين المجموعة.",
   "input-label-inherit-pricing": "توارث من المجموعة",
   "inherit-pricing-helper": "قم بالتمكين لاستخدام تكوين التسعير المحدد في مجموعة المعدل.",
-  "pricing-inherited-text": "يتم حاليًا وراثه التسعير ومستويات الكمية من مجموعة المعدل. قم بتعطيل التوارث لتعيين تسعير مخصص لهذا المعدل."
+  "pricing-inherited-text": "يتم حاليًا وراثه التسعير ومستويات الكمية من مجموعة المعدل. قم بتعطيل التوارث لتعيين تسعير مخصص لهذا المعدل.",
+  "input-label-pricing-configuration": "تكوين التسعير حسب المجموعة",
+  "pricing-mode-inherit": "استخدام تسعير المجموعة",
+  "pricing-mode-override": "تجاوز التسعير",
+  "modifiers-count": "معدلات",
+  "no-modifiers-in-group": "لا توجد معدلات في هذه المجموعة بعد.",
+  "pricing-inherited-from-group": "استخدام تسعير المجموعة.",
+  "pricing-will-use-group-config": "سيتم وراثه الأسعار من تكوين مجموعة المعدل."
 }

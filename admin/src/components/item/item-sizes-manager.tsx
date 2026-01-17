@@ -356,72 +356,71 @@ export default function ItemSizesManager({
               <CloseIcon className="h-4 w-4" />
             </Button>
           </div>
-          <form onSubmit={handleSubmit(handleCreateGlobalSize)}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <Label className="mb-2">
-                  {t('form:input-label-size-name')}*
-                </Label>
-                <Controller
-                  name="name"
-                  control={control}
-                  rules={{ required: t('form:error-size-name-required') }}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      error={errors.name?.message}
-                      className="!h-10"
-                      placeholder="e.g. Small"
-                    />
-                  )}
-                />
-              </div>
-              <div>
-                <Label className="mb-2">
-                  {t('form:input-label-size-code')}*
-                </Label>
-                <Controller
-                  name="code"
-                  control={control}
-                  rules={{ required: t('form:error-size-code-required') }}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      error={errors.code?.message}
-                      className="!h-10 font-mono"
-                      placeholder="e.g. S"
-                    />
-                  )}
-                />
-              </div>
-              <div>
-                <Label className="mb-2">
-                  {t('form:input-label-display-order')}
-                </Label>
-                <Controller
-                  name="display_order"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="number"
-                      className="!h-10"
-                      placeholder="0"
-                      value={field.value ?? 0}
-                      onChange={(e) =>
-                        field.onChange(parseInt(e.target.value) || 0)
-                      }
-                    />
-                  )}
-                />
-              </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <Label className="mb-2">{t('form:input-label-size-name')}*</Label>
+              <Controller
+                name="name"
+                control={control}
+                rules={{ required: t('form:error-size-name-required') }}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    error={errors.name?.message}
+                    className="!h-10"
+                    placeholder="e.g. Small"
+                  />
+                )}
+              />
             </div>
-            <div className="mt-12 flex justify-end">
-              <Button type="submit" loading={creating} disabled={creating}>
-                {t('form:button-label-create')}
-              </Button>
+            <div>
+              <Label className="mb-2">{t('form:input-label-size-code')}*</Label>
+              <Controller
+                name="code"
+                control={control}
+                rules={{ required: t('form:error-size-code-required') }}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    error={errors.code?.message}
+                    className="!h-10 font-mono"
+                    placeholder="e.g. S"
+                  />
+                )}
+              />
             </div>
-          </form>
+            <div>
+              <Label className="mb-2">
+                {t('form:input-label-display-order')}
+              </Label>
+              <Controller
+                name="display_order"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="number"
+                    className="!h-10"
+                    placeholder="0"
+                    value={field.value ?? 0}
+                    onChange={(e) =>
+                      field.onChange(parseInt(e.target.value) || 0)
+                    }
+                  />
+                )}
+              />
+            </div>
+          </div>
+          <div className="mt-12 flex justify-end">
+            <Button
+              type="button"
+              loading={creating}
+              disabled={creating}
+              onClick={handleSubmit(handleCreateGlobalSize)}
+            >
+              {t('form:button-label-create')}
+            </Button>
+          </div>
         </Card>
       )}
 

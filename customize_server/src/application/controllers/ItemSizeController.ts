@@ -7,7 +7,11 @@ import { GetItemSizesUseCase } from '../../domain/usecases/item-sizes/GetItemSiz
 import { GetItemSizeUseCase } from '../../domain/usecases/item-sizes/GetItemSizeUseCase';
 import { DeleteItemSizeUseCase } from '../../domain/usecases/item-sizes/DeleteItemSizeUseCase';
 import { ItemSizeRepository } from '../../infrastructure/repositories/ItemSizeRepository';
-import { CreateItemSizeDTO, UpdateItemSizeDTO, ItemSizeFilters } from '../../domain/entities/ItemSize';
+import {
+  CreateItemSizeDTO,
+  UpdateItemSizeDTO,
+  ItemSizeFilters,
+} from '../../domain/entities/ItemSize';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { ValidationError } from '../../shared/errors/AppError';
 import { UserRole } from '../../shared/constants/roles';
@@ -30,7 +34,7 @@ export class ItemSizeController {
   }
 
   create = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const business_id = req.user?.business_id || req.body.restaurant_id;
+    const business_id = req.user?.business_id || req.body.business_id || req.body.restaurant_id;
 
     if (!business_id && req.user?.role !== UserRole.SUPER_ADMIN) {
       throw new ValidationError('restaurant_id is required');

@@ -37,11 +37,12 @@ src/
 ✅ **Controllers**: Thin, delegate to use cases  
 ✅ **Use Cases**: All business logic  
 ✅ **Repositories**: Only layer touching Mongoose  
-✅ **RBAC**: Centralized in middlewares  
+✅ **RBAC**: Centralized in middlewares
 
 ## 📋 Features
 
 ### 🔐 Authentication & Security
+
 - **JWT Authentication** - Access & refresh token system
 - **Password Hashing** - bcrypt with salt rounds
 - **Account Management** - Approval, banning, activation
@@ -53,6 +54,7 @@ src/
 - **Helmet Security** - HTTP headers security
 
 ### 👥 User Management
+
 - **Complete CRUD** - Create, read, update, delete users
 - **User Approval System** - Admin approval workflow
 - **Ban/Unban Users** - Account status management
@@ -62,6 +64,7 @@ src/
 - **Pagination** - Efficient data retrieval
 
 ### 🏢 Business Management
+
 - **Multi-Business Support** - Manage multiple businesses
 - **Business CRUD** - Full business lifecycle
 - **Business Settings** - Operating hours, delivery, fees, tips, hero slider
@@ -69,6 +72,7 @@ src/
 - **Owner Management** - Business ownership tracking
 
 ### 🎭 Role-Based Access Control (RBAC)
+
 - **Built-in Roles**: `super_admin`, `admin`, `manager`, `client`, `user`
 - **Custom Roles** - Create roles with specific permissions
 - **Permission System** - 30+ granular permissions
@@ -76,15 +80,17 @@ src/
 - **Permission Checking** - Middleware-based authorization
 
 ### 📦 Category Management
+
 - **Category CRUD** - Full category management
 - **Image Upload** - Cloudinary integration (image & icon support)
 - **Business-Scoped** - Categories per business
 - **Kitchen Section Integration** - Link categories to kitchen sections
 - **Multi-language Support** - Translated languages tracking
- 
+
 ### 🍕 Item Management
- - **Item CRUD** - Full item management within categories
- - **Image Upload** - Cloudinary integration for item images
+
+- **Item CRUD** - Full item management within categories
+- **Image Upload** - Cloudinary integration for item images
 - **Size Management** - Multiple sizes per item (S, M, L, XL, XXL) with individual pricing
 - **Modifier Group Assignment** - Assign modifier groups to items with custom display order
 - **Sides Configuration** - Item-level sides configuration per modifier group
@@ -92,6 +98,7 @@ src/
 - **Pagination** - Efficient data retrieval
 
 ### 🎛️ Modifier Group & Modifier Management
+
 - **Modifier Group CRUD** - Complete modifier group lifecycle
 - **Group-Level Configuration** - Single source of truth for:
   - **Selection Rules**: Display type (RADIO/CHECKBOX), min/max selection, applies per quantity
@@ -106,8 +113,8 @@ src/
 - **Validation** - Prevents deletion of groups used by items
 - **Soft Delete** - Safe deletion with data preservation
 
-
 ### 🔧 Additional Features
+
 - **TypeScript** - Full type safety
 - **API Documentation** - Swagger/OpenAPI with complete schemas
 - **Error Handling** - Centralized error management
@@ -201,7 +208,6 @@ src/
    ```
 
 6. **Access API**
-
    - **API Base**: `http://localhost:3001/api/v1`
    - **Health Check**: `http://localhost:3001/health`
    - **API Info**: `http://localhost:3001/api/v1/`
@@ -218,32 +224,32 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 
 ### Authentication Endpoints
 
-| Method | Endpoint                | Description                    | Auth Required |
-| ------ | ----------------------- | ------------------------------ | ------------- |
-| POST   | `/auth/register`        | Register new user              | ❌            |
-| POST   | `/auth/login`           | User login                     | ❌            |
-| POST   | `/auth/refresh-token`   | Refresh access token           | ❌            |
-| POST   | `/auth/forgot-password` | Request password reset OTP     | ❌            |
-| POST   | `/auth/verify-reset-token` | Verify reset token            | ❌            |
-| POST   | `/auth/reset-password` | Reset password with OTP         | ❌            |
-| GET    | `/auth/me`              | Get current user profile        | ✅            |
-| PATCH  | `/auth/update-password` | Update user password           | ✅            |
-| POST   | `/auth/logout`          | Logout user                    | ✅            |
+| Method | Endpoint                   | Description                | Auth Required |
+| ------ | -------------------------- | -------------------------- | ------------- |
+| POST   | `/auth/register`           | Register new user          | ❌            |
+| POST   | `/auth/login`              | User login                 | ❌            |
+| POST   | `/auth/refresh-token`      | Refresh access token       | ❌            |
+| POST   | `/auth/forgot-password`    | Request password reset OTP | ❌            |
+| POST   | `/auth/verify-reset-token` | Verify reset token         | ❌            |
+| POST   | `/auth/reset-password`     | Reset password with OTP    | ❌            |
+| GET    | `/auth/me`                 | Get current user profile   | ✅            |
+| PATCH  | `/auth/update-password`    | Update user password       | ✅            |
+| POST   | `/auth/logout`             | Logout user                | ✅            |
 
 ### User Management Endpoints (Admin)
 
-| Method | Endpoint                      | Description              | Permission Required |
-| ------ | ----------------------------- | ------------------------ | ------------------- |
-| GET    | `/auth/users`                 | List all users           | `users:read`        |
-| POST   | `/auth/users`                 | Create new user          | `users:create`      |
-| GET    | `/auth/users/:id`              | Get user details         | `users:read`        |
-| PATCH  | `/auth/users/:id`              | Update user              | `users:update`      |
-| DELETE | `/auth/users/:id`              | Delete user              | `users:delete`      |
-| PATCH  | `/auth/users/:id/approve`      | Approve user account     | `users:approve`     |
-| PATCH  | `/auth/users/:id/ban`          | Ban/unban user           | `users:ban`         |
-| PATCH  | `/auth/users/:id/permissions`  | Update user permissions  | `users:update`      |
-| GET    | `/auth/users/:id/permissions` | Get user permissions     | `users:read`        |
-| GET    | `/auth/permissions`            | List all permissions     | `users:read`        |
+| Method | Endpoint                      | Description             | Permission Required |
+| ------ | ----------------------------- | ----------------------- | ------------------- |
+| GET    | `/auth/users`                 | List all users          | `users:read`        |
+| POST   | `/auth/users`                 | Create new user         | `users:create`      |
+| GET    | `/auth/users/:id`             | Get user details        | `users:read`        |
+| PATCH  | `/auth/users/:id`             | Update user             | `users:update`      |
+| DELETE | `/auth/users/:id`             | Delete user             | `users:delete`      |
+| PATCH  | `/auth/users/:id/approve`     | Approve user account    | `users:approve`     |
+| PATCH  | `/auth/users/:id/ban`         | Ban/unban user          | `users:ban`         |
+| PATCH  | `/auth/users/:id/permissions` | Update user permissions | `users:update`      |
+| GET    | `/auth/users/:id/permissions` | Get user permissions    | `users:read`        |
+| GET    | `/auth/permissions`           | List all permissions    | `users:read`        |
 
 ### Business Management Endpoints
 
@@ -256,25 +262,26 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 
 ### Category Management Endpoints
 
-| Method | Endpoint            | Description          | Auth Required | Role Required      |
-| ------ | ------------------- | -------------------- | ------------- | ------------------ |
-| GET    | `/categories`       | List all categories  | ✅            | Any authenticated  |
-| GET    | `/categories/:id`    | Get category details | ✅            | Any authenticated  |
-| POST   | `/categories`       | Create category      | ✅            | `admin` or `super_admin` |
-| PUT    | `/categories/:id`   | Update category      | ✅            | `admin` or `super_admin` |
-| DELETE | `/categories/:id`  | Delete category      | ✅            | `admin` or `super_admin` |
- 
- ### Item Management Endpoints
- 
- | Method | Endpoint            | Description          | Auth Required | Role Required      |
- | ------ | ------------------- | -------------------- | ------------- | ------------------ |
-| GET    | `/items`            | List all items       | ✅            | Any authenticated  |
-| GET    | `/items/:id`        | Get item details     | ✅            | Any authenticated  |
-| POST   | `/items`            | Create item          | ✅            | `admin` or `super_admin` |
-| PUT    | `/items/:id`        | Update item          | ✅            | `admin` or `super_admin` |
-| DELETE | `/items/:id`        | Delete item          | ✅            | `admin` or `super_admin` |
+| Method | Endpoint          | Description          | Auth Required | Role Required            |
+| ------ | ----------------- | -------------------- | ------------- | ------------------------ |
+| GET    | `/categories`     | List all categories  | ✅            | Any authenticated        |
+| GET    | `/categories/:id` | Get category details | ✅            | Any authenticated        |
+| POST   | `/categories`     | Create category      | ✅            | `admin` or `super_admin` |
+| PUT    | `/categories/:id` | Update category      | ✅            | `admin` or `super_admin` |
+| DELETE | `/categories/:id` | Delete category      | ✅            | `admin` or `super_admin` |
+
+### Item Management Endpoints
+
+| Method | Endpoint     | Description      | Auth Required | Role Required            |
+| ------ | ------------ | ---------------- | ------------- | ------------------------ |
+| GET    | `/items`     | List all items   | ✅            | Any authenticated        |
+| GET    | `/items/:id` | Get item details | ✅            | Any authenticated        |
+| POST   | `/items`     | Create item      | ✅            | `admin` or `super_admin` |
+| PUT    | `/items/:id` | Update item      | ✅            | `admin` or `super_admin` |
+| DELETE | `/items/:id` | Delete item      | ✅            | `admin` or `super_admin` |
 
 **Request Body (POST/PUT):**
+
 - `multipart/form-data` with:
   - `name`, `description`, `base_price`, `category_id`, `business_id`
   - `image` (file upload)
@@ -283,12 +290,14 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
   - `modifier_groups` (JSON string - see detailed structure below)
 
 **⚠️ Important Changes:**
+
 - Item sizes are now managed separately via `/items/:itemId/sizes` endpoints
 - When `is_sizeable = true`: Create sizes using POST `/items/:itemId/sizes`, then optionally set `default_size_id`
 - When `is_sizeable = false`: Use `base_price`, `default_size_id` must be null
 - See Item Size Management section below for size CRUD operations
 
 **Modifier Groups Structure (JSON string):**
+
 ```json
 [
   {
@@ -304,12 +313,10 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
         "max_quantity": 5,
         "is_default": true,
         "prices_by_size": [
-          {"sizeCode": "M", "priceDelta": 1.50},
-          {"sizeCode": "L", "priceDelta": 2.50}
+          { "sizeCode": "M", "priceDelta": 1.5 },
+          { "sizeCode": "L", "priceDelta": 2.5 }
         ],
-        "quantity_levels": [
-          {"quantity": 2, "name": "Extra", "price": 1.00, "is_default": true}
-        ]
+        "quantity_levels": [{ "quantity": 2, "name": "Extra", "price": 1.0, "is_default": true }]
       }
     ]
   }
@@ -317,6 +324,7 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 ```
 
 **Modifier Overrides Explanation:**
+
 - `modifier_overrides` (optional): Item-level customizations for individual modifiers
 - Each override applies ONLY to the specific item and never affects:
   - The modifier globally
@@ -330,15 +338,16 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 
 ### Modifier Group Management Endpoints
 
-| Method | Endpoint                    | Description                    | Auth Required | Role Required      |
-| ------ | --------------------------- | ------------------------------ | ------------- | ------------------ |
-| GET    | `/modifier-groups`          | List all modifier groups       | ✅            | Any authenticated  |
-| GET    | `/modifier-groups/:id`      | Get modifier group with modifiers | ✅        | Any authenticated  |
-| POST   | `/modifier-groups`          | Create modifier group          | ✅            | `admin` or `super_admin` |
-| PUT    | `/modifier-groups/:id`      | Update modifier group          | ✅            | `admin` or `super_admin` |
-| DELETE | `/modifier-groups/:id`      | Delete modifier group          | ✅            | `admin` or `super_admin` |
+| Method | Endpoint               | Description                       | Auth Required | Role Required            |
+| ------ | ---------------------- | --------------------------------- | ------------- | ------------------------ |
+| GET    | `/modifier-groups`     | List all modifier groups          | ✅            | Any authenticated        |
+| GET    | `/modifier-groups/:id` | Get modifier group with modifiers | ✅            | Any authenticated        |
+| POST   | `/modifier-groups`     | Create modifier group             | ✅            | `admin` or `super_admin` |
+| PUT    | `/modifier-groups/:id` | Update modifier group             | ✅            | `admin` or `super_admin` |
+| DELETE | `/modifier-groups/:id` | Delete modifier group             | ✅            | `admin` or `super_admin` |
 
 **Request Body (POST/PUT):**
+
 ```json
 {
   "name": "Pizza Toppings",
@@ -347,16 +356,16 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
   "max_select": 5,
   "applies_per_quantity": false,
   "quantity_levels": [
-    {"quantity": 1, "name": "Light", "is_default": false, "display_order": 1},
-    {"quantity": 2, "name": "Normal", "is_default": true, "display_order": 2},
-    {"quantity": 3, "name": "Extra", "is_default": false, "display_order": 3}
+    { "quantity": 1, "name": "Light", "is_default": false, "display_order": 1 },
+    { "quantity": 2, "name": "Normal", "is_default": true, "display_order": 2 },
+    { "quantity": 3, "name": "Extra", "is_default": false, "display_order": 3 }
   ],
   "prices_by_size": [
-    {"sizeCode": "S", "priceDelta": 0},
-    {"sizeCode": "M", "priceDelta": 1.50},
-    {"sizeCode": "L", "priceDelta": 2.50},
-    {"sizeCode": "XL", "priceDelta": 3.50},
-    {"sizeCode": "XXL", "priceDelta": 4.50}
+    { "sizeCode": "S", "priceDelta": 0 },
+    { "sizeCode": "M", "priceDelta": 1.5 },
+    { "sizeCode": "L", "priceDelta": 2.5 },
+    { "sizeCode": "XL", "priceDelta": 3.5 },
+    { "sizeCode": "XXL", "priceDelta": 4.5 }
   ],
   "is_active": true,
   "sort_order": 1
@@ -364,54 +373,60 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 ```
 
 ### Item Size Management Endpoints
- 
- | Method | Endpoint                            | Description                                    | Auth Required | Role Required      |
- | ------ | ----------------------------------- | ---------------------------------------------- | ------------- | ------------------ |
- | GET    | `/sizes`                            | List all global sizes for business             | ✅            | Any authenticated  |
- | GET    | `/sizes/:id`                        | Get single size details                        | ✅            | Any authenticated  |
- | POST   | `/sizes`                            | Create global size                             | ✅            | `admin` or `super_admin` |
- | PUT    | `/sizes/:id`                        | Update global size                             | ✅            | `admin` or `super_admin` |
- | DELETE | `/sizes/:id`                        | Delete global size                             | ✅            | `admin` or `super_admin` |
- 
- **Request Body (POST):**
- ```json
- {
-   "name": "Large",
-   "code": "L",
-   "display_order": 2,
-   "is_active": true
- }
- ```
- 
- **Request Body (PUT):**
- - Same as POST, all fields optional
- 
- **Business Rules:**
- - Sizes are **GLOBAL** per business (not per item)
- - `code` must be unique per business (e.g., 'S', 'M', 'L', 'XL')
- - Code is used for modifier pricing mapping (`prices_by_size.sizeCode` matches ItemSize.code)
- - Items link to these sizes via pricing configuration
- - Deleting a size affects all items using that size (soft delete recommended)
+
+| Method | Endpoint     | Description                        | Auth Required | Role Required            |
+| ------ | ------------ | ---------------------------------- | ------------- | ------------------------ |
+| GET    | `/sizes`     | List all global sizes for business | ✅            | Any authenticated        |
+| GET    | `/sizes/:id` | Get single size details            | ✅            | Any authenticated        |
+| POST   | `/sizes`     | Create global size                 | ✅            | `admin` or `super_admin` |
+| PUT    | `/sizes/:id` | Update global size                 | ✅            | `admin` or `super_admin` |
+| DELETE | `/sizes/:id` | Delete global size                 | ✅            | `admin` or `super_admin` |
+
+**Request Body (POST):**
+
+```json
+{
+  "business_id": "your_business_id",
+  "name": "Large",
+  "code": "L",
+  "display_order": 2,
+  "is_active": true
+}
+```
+
+**Request Body (PUT):**
+
+- Same as POST, all fields optional
+
+**Business Rules:**
+
+- Sizes are **GLOBAL** per business (not per item)
+- `code` must be unique per business (e.g., 'S', 'M', 'L', 'XL')
+- Code is used for modifier pricing mapping (`prices_by_size.sizeCode` matches ItemSize.code)
+- Items link to these sizes via pricing configuration
+- Deleting a size affects all items using that size (soft delete recommended)
 
 ### Import System Endpoints (Super Admin Only)
 
-| Method | Endpoint                          | Description                                    | Auth Required | Role Required |
-| ------ | --------------------------------- | ---------------------------------------------- | ------------- | ------------ |
-| POST   | `/import/parse`                   | Parse and validate CSV/ZIP file                | ✅            | `super_admin` |
-| GET    | `/import/sessions`                | List all import sessions                       | ✅            | `super_admin` |
-| GET    | `/import/sessions/:id`            | Get import session details                     | ✅            | `super_admin` |
-| PUT    | `/import/sessions/:id`             | Update import session (save draft)             | ✅            | `super_admin` |
-| POST   | `/import/sessions/:id/save`       | Final save to database (transactional)         | ✅            | `super_admin` |
-| DELETE | `/import/sessions/:id`             | Discard import session                         | ✅            | `super_admin` |
-| GET    | `/import/sessions/:id/errors`     | Download validation errors as CSV               | ✅            | `super_admin` |
+| Method | Endpoint                      | Description                            | Auth Required | Role Required |
+| ------ | ----------------------------- | -------------------------------------- | ------------- | ------------- |
+| POST   | `/import/parse`               | Parse and validate CSV/ZIP file        | ✅            | `super_admin` |
+| GET    | `/import/sessions`            | List all import sessions               | ✅            | `super_admin` |
+| GET    | `/import/sessions/:id`        | Get import session details             | ✅            | `super_admin` |
+| PUT    | `/import/sessions/:id`        | Update import session (save draft)     | ✅            | `super_admin` |
+| POST   | `/import/sessions/:id/save`   | Final save to database (transactional) | ✅            | `super_admin` |
+| DELETE | `/import/sessions/:id`        | Discard import session                 | ✅            | `super_admin` |
+| GET    | `/import/sessions/:id/errors` | Download validation errors as CSV      | ✅            | `super_admin` |
 
 **Import File Format:**
+
 - Accepts single CSV file or ZIP containing multiple CSV files
 - Uses business keys (item_key, group_key, modifier_key) - NOT database IDs
 - Auto-detects entity type by filename or column presence
 - Supported entities: Items, ItemSizes, ModifierGroups, Modifiers, ItemModifierOverrides
 
 **Validation Rules:**
+
 - **Items**: item_key unique, name required, base_price required if not sizable, at least one size if sizable
 - **ItemSizes**: size_code unique per item, price > 0, exactly one default size per item
 - **ModifierGroups**: group_key unique, name required, min_select ≤ max_select, valid display_type
@@ -419,12 +434,14 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 - **Overrides**: Valid item_key, group_key, modifier_key, size_code must exist for item
 
 **Import Session:**
+
 - Status: `draft` (has errors), `validated` (no errors), `confirmed` (saved), `discarded`
 - TTL: 7 days (auto-deleted after expiration)
 - All validation errors and warnings stored for review
 - Can be updated and re-validated before final save
 
 **Safety Features:**
+
 - No database writes until final save
 - Transactional save with rollback on any failure
 - Re-validation before final save
@@ -433,14 +450,15 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
 
 ### Modifier Management Endpoints
 
-| Method | Endpoint                                    | Description              | Auth Required | Role Required      |
-| ------ | ------------------------------------------- | ------------------------ | ------------- | ------------------ |
-| GET    | `/modifier-groups/:groupId/modifiers`      | List modifiers in group | ✅            | Any authenticated  |
-| POST   | `/modifier-groups/:groupId/modifiers`       | Create modifier          | ✅            | `admin` or `super_admin` |
-| PUT    | `/modifier-groups/:groupId/modifiers/:id`   | Update modifier          | ✅            | `admin` or `super_admin` |
-| DELETE | `/modifier-groups/:groupId/modifiers/:id`   | Delete modifier           | ✅            | `admin` or `super_admin` |
+| Method | Endpoint                                  | Description             | Auth Required | Role Required            |
+| ------ | ----------------------------------------- | ----------------------- | ------------- | ------------------------ |
+| GET    | `/modifier-groups/:groupId/modifiers`     | List modifiers in group | ✅            | Any authenticated        |
+| POST   | `/modifier-groups/:groupId/modifiers`     | Create modifier         | ✅            | `admin` or `super_admin` |
+| PUT    | `/modifier-groups/:groupId/modifiers/:id` | Update modifier         | ✅            | `admin` or `super_admin` |
+| DELETE | `/modifier-groups/:groupId/modifiers/:id` | Delete modifier         | ✅            | `admin` or `super_admin` |
 
 **Request Body (POST/PUT):**
+
 ```json
 {
   "name": "Pepperoni",
@@ -450,7 +468,6 @@ Production: https://xrt-online-ordering.vercel.app/api/v1
   "is_active": true
 }
 ```
-
 
 ## 🔐 Authentication Flow
 
@@ -468,6 +485,7 @@ curl -X POST http://localhost:3001/api/v1/auth/register \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -512,17 +530,18 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 
 ### Built-in Roles
 
-| Role         | Description                    | Default Permissions                    |
-| ------------ | ------------------------------ | -------------------------------------- |
-| `super_admin` | **SYSTEM ROLE** (Immutable)    | All permissions                        |
-| `admin`      | Custom Role (Template)         | Most admin permissions                 |
-| `manager`    | Custom Role (Template)         | Business management permissions        |
-| `client`     | Custom Role (Template)         | Profile & content read                 |
-| `user`       | Custom Role (Default)          | Profile only                           |
+| Role          | Description                 | Default Permissions             |
+| ------------- | --------------------------- | ------------------------------- |
+| `super_admin` | **SYSTEM ROLE** (Immutable) | All permissions                 |
+| `admin`       | Custom Role (Template)      | Most admin permissions          |
+| `manager`     | Custom Role (Template)      | Business management permissions |
+| `client`      | Custom Role (Template)      | Profile & content read          |
+| `user`        | Custom Role (Default)       | Profile only                    |
 
 ### Available Permissions
 
 #### User Management
+
 - `users:read` - View user information
 - `users:create` - Create new users
 - `users:update` - Update user data
@@ -531,31 +550,35 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 - `users:ban` - Ban/unban users
 
 #### Category Management
+
 - `categories:read` - View categories
 - `categories:create` - Create categories
 - `categories:update` - Update categories
 - `categories:delete` - Delete categories
- 
- #### Item Management
- - `items:read` - View items
- - `items:create` - Create items
- - `items:update` - Update items
- - `items:delete` - Delete items
+
+#### Item Management
+
+- `items:read` - View items
+- `items:create` - Create items
+- `items:update` - Update items
+- `items:delete` - Delete items
 
 #### Modifier Group Management
+
 - `modifier-groups:read` - View modifier groups
 - `modifier-groups:create` - Create modifier groups
 - `modifier-groups:update` - Update modifier groups
 - `modifier-groups:delete` - Delete modifier groups
 
 #### Modifier Management
+
 - `modifiers:read` - View modifiers
 - `modifiers:create` - Create modifiers
 - `modifiers:update` - Update modifiers
 - `modifiers:delete` - Delete modifiers
 
-
 #### Content Management
+
 - `content:read` - View content
 - `content:create` - Create content
 - `content:update` - Update content
@@ -563,31 +586,37 @@ curl -X POST http://localhost:3001/api/v1/auth/refresh-token \
 - `content:publish` - Publish content
 
 #### System
+
 - `system:read` - View system information
 - `system:update` - Update system settings
 - `system:backup` - System backup
 - `system:logs` - View system logs
 
 #### Profile
+
 - `profile:read` - View profile
 - `profile:update` - Update profile
 
 #### Permissions Management (Super Admin)
+
 - `permissions:read` - View all permissions
 - `permissions:update` - Update permission status
 
 #### Admin
+
 - `admin:dashboard` - Access admin dashboard
 - `admin:settings` - Manage settings
 - `admin:analytics` - View analytics
 
 #### Roles
+
 - `roles:read` - View roles
 - `roles:create` - Create roles
 - `roles:update` - Update roles
 - `roles:delete` - Delete roles
 
 #### Withdraws
+
 - `withdraws:read` - View withdrawals
 - `withdraws:create` - Create withdrawal
 - `withdraws:update` - Update withdrawal
@@ -769,17 +798,20 @@ All API responses follow a consistent format:
 ### Environment Setup
 
 1. **Set NODE_ENV to production**
+
    ```env
    NODE_ENV=production
    ```
 
 2. **Use strong JWT secrets** (minimum 32 characters)
+
    ```env
    JWT_SECRET=your_very_long_and_secure_secret_key_minimum_32_characters
    REFRESH_TOKEN_SECRET=your_very_long_and_secure_refresh_secret_key_minimum_32_characters
    ```
 
 3. **Configure MongoDB with authentication**
+
    ```env
    MONGODB_URI=mongodb://username:password@host:port/database?authSource=admin
    ```
@@ -814,11 +846,13 @@ CMD ["npm", "start"]
 ## 📊 Monitoring & Logging
 
 ### Development Mode
+
 - Detailed error messages with stack traces
 - Request/response logging
 - Database query logging (if enabled)
 
 ### Production Mode
+
 - Error tracking only
 - Performance monitoring
 - Security event logging
@@ -828,6 +862,7 @@ CMD ["npm", "start"]
 ### Manual Testing
 
 Use the provided Postman collection:
+
 1. Import `postman/XRT-Customized-System.postman_collection.json`
 2. Set environment variables:
    - `baseUrl`: `http://localhost:3001/api/v1`
@@ -891,6 +926,6 @@ For support and questions:
 ✨ **RBAC** - Granular permission system  
 ✨ **JWT Auth** - Secure token-based authentication  
 ✨ **Multi-Business** - Support for multiple businesses  
-✨ **Production Ready** - Error handling, logging, security  
+✨ **Production Ready** - Error handling, logging, security
 
 🎉 **Built with enterprise-grade security and scalability in mind**

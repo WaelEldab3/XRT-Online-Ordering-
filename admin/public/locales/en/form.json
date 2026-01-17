@@ -1013,5 +1013,15 @@
   "modifier-pricing-helper-text": "Configure pricing for this modifier. These settings override the group-level configuration.",
   "input-label-inherit-pricing": "Inherit from Group",
   "inherit-pricing-helper": "Enable to use the pricing configuration defined in the modifier group.",
-  "pricing-inherited-text": "Pricing and quantity levels are currently inherited from the modifier group. Disable inheritance to set custom pricing for this modifier."
+  "pricing-inherited-text": "Pricing and quantity levels are currently inherited from the modifier group. Disable inheritance to set custom pricing for this modifier.",
+  "input-label-pricing-configuration": "Pricing Configuration by Group",
+  "pricing-mode-inherit": "Use Group Pricing",
+  "pricing-mode-override": "Override Pricing",
+  "modifiers-count": "modifiers",
+  "no-modifiers-in-group": "No modifiers in this group yet.",
+  "pricing-inherited-from-group": "Using group pricing.",
+  "pricing-will-use-group-config": "Prices will be inherited from modifier group configuration.",
+  "quantity-level-light": "Light",
+  "quantity-level-normal": "Normal",
+  "quantity-level-extra": "Extra"
 }

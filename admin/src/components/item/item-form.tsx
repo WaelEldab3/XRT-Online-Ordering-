@@ -3,7 +3,7 @@ import Button from '@/components/ui/button';
 import { useRouter } from 'next/router';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { itemValidationSchema } from './item-validation-schema';
-import { CreateItemInput, UpdateItemInput } from '@/types';
+import { CreateItemInput, UpdateItemInput, ItemSizeConfig } from '@/types';
 import { useTranslation } from 'next-i18next';
 import { useShopQuery } from '@/data/shop';
 import Alert from '@/components/ui/alert';
@@ -71,7 +71,7 @@ export default function CreateOrUpdateItemForm({
     { slug: router.query.shop as string },
     { enabled: !!router.query.shop },
   );
-  const shopId = (shopData as any)?.id!;
+  const shopId = (shopData as any)?.id! || initialValues?.business_id;
 
   // Form caching
   const {
@@ -157,25 +157,30 @@ export default function CreateOrUpdateItemForm({
     }
   }, []);
 
-  // Cache form data on change
-  const formValues = watch();
+  // Cache form data on change using subscription
   useEffect(() => {
     if (!isInitialized) return;
-    const allFormValues = getValues();
-    if (!Object.keys(allFormValues).length) return;
-    const cacheableData: Partial<FormValues> = {
-      ...allFormValues,
-      image: allFormValues.image
-        ? typeof allFormValues.image === 'string'
-          ? allFormValues.image
-          : ''
-        : undefined,
-    };
-    if (allFormValues.image && typeof allFormValues.image !== 'string') {
-      imageFileRef.current = allFormValues.image;
-    }
-    setCachedFormData(cacheableData as FormValues);
-  }, [formValues, isInitialized]);
+
+    const subscription = watch((formValues) => {
+      if (!formValues || !Object.keys(formValues).length) return;
+      const cacheableData: Partial<FormValues> = {
+        ...(formValues as any),
+        image: formValues.image
+          ? typeof formValues.image === 'string'
+            ? formValues.image
+            : ''
+          : undefined,
+        // Cast sizes to satisfy ItemSizeConfig[] type (watch returns deeply partial types)
+        sizes: formValues.sizes as ItemSizeConfig[] | undefined,
+      };
+      if (formValues.image && typeof formValues.image !== 'string') {
+        imageFileRef.current = formValues.image as File;
+      }
+      setCachedFormData(cacheableData as FormValues);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isInitialized, watch, setCachedFormData, imageFileRef]);
 
   // Auto-set is_sizeable
   useEffect(() => {
@@ -345,11 +350,18 @@ export default function CreateOrUpdateItemForm({
     }
   };
 
+  const onError = (errors: any) => {
+    console.error('Validation Errors:', errors);
+    const errorMsg = t('form:error-check-inputs');
+    setErrorMessage(errorMsg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <>
       {errorMessage ? (
         <Alert
-          message={t(`common:${errorMessage}`)}
+          message={t(`common:${errorMessage}`) || errorMessage}
           variant="error"
           closeable={true}
           className="mt-5"
@@ -357,7 +369,7 @@ export default function CreateOrUpdateItemForm({
         />
       ) : null}
       <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onError)} noValidate>
           <Tabs defaultTab="basic" className="w-full">
             <TabList>
               <Tab id="basic">{t('form:tab-basic-information')}</Tab>
@@ -409,6 +421,7 @@ export default function CreateOrUpdateItemForm({
               <ModifiersSection
                 register={register}
                 control={control}
+                setValue={setValue}
                 modifierGroupsFiltered={modifierGroupsFiltered}
                 loadingModifierGroups={loadingModifierGroups}
                 relevantModifiers={relevantModifiers}

@@ -41,8 +41,12 @@ const LoginForm = () => {
   useState(() => {
     if (typeof window !== 'undefined') {
       const savedEmail = localStorage.getItem('remember_email');
+      const savedPassword = localStorage.getItem('remember_password');
       if (savedEmail) {
         defaultValues.email = savedEmail;
+        if (savedPassword) {
+          defaultValues.password = savedPassword;
+        }
         setRememberMe(true);
       }
     }
@@ -61,8 +65,10 @@ const LoginForm = () => {
     // Handle Remember Me
     if (rememberMe) {
       localStorage.setItem('remember_email', values.email);
+      localStorage.setItem('remember_password', values.password);
     } else {
       localStorage.removeItem('remember_email');
+      localStorage.removeItem('remember_password');
     }
 
     login(
