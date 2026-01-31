@@ -5,18 +5,8 @@ import { storage } from '../../infrastructure/cloudinary/CloudinaryStorage';
 
 // const storage = multer.memoryStorage();
 
-const fileFilter = (
-  req: Request,
-  file: Express.Multer.File,
-  cb: multer.FileFilterCallback
-) => {
-  if (file.fieldname === 'icon') {
-    if (file.mimetype === 'image/svg+xml') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only SVG files are allowed for icons'));
-    }
-  } else if (file.mimetype.startsWith('image/')) {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (file.fieldname === 'icon' || file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
     cb(new Error('Only image files are allowed'));

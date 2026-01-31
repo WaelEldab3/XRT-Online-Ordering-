@@ -383,8 +383,8 @@ export default function CreateOrUpdateCategoriesForm({
             name="icon"
             control={control as any}
             multiple={false}
-            accept="image/svg+xml"
-            helperText={t('form:upload-svg-helper-text')}
+            accept="image/*"
+            helperText={t('form:upload-image-helper-text')}
             section="categories"
           />
         </Card>
