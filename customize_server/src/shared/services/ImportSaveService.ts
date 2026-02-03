@@ -1,15 +1,17 @@
 import mongoose from 'mongoose';
-import { ParsedImportData } from '../../domain/entities/ImportSession';
+import { ParsedImportData, RollbackOperation } from '../../domain/entities/ImportSession';
 import { IItemRepository } from '../../domain/repositories/IItemRepository';
 import { IItemSizeRepository } from '../../domain/repositories/IItemSizeRepository';
 import { IModifierGroupRepository } from '../../domain/repositories/IModifierGroupRepository';
 import { IModifierRepository } from '../../domain/repositories/IModifierRepository';
 import { ICategoryRepository } from '../../domain/repositories/ICategoryRepository';
+import { IKitchenSectionRepository } from '../../domain/repositories/IKitchenSectionRepository';
 import { CreateItemDTO } from '../../domain/entities/Item';
 import { CreateItemSizeDTO } from '../../domain/entities/ItemSize';
 import { CreateModifierGroupDTO } from '../../domain/entities/ModifierGroup';
 import { CreateModifierDTO } from '../../domain/entities/Modifier';
 import { ValidationError } from '../errors/AppError';
+import { getKitchenSectionIdByName } from '../constants/kitchen-sections';
 
 export class ImportSaveService {
   constructor(
@@ -17,7 +19,8 @@ export class ImportSaveService {
     private itemSizeRepository: IItemSizeRepository,
     private modifierGroupRepository: IModifierGroupRepository,
     private modifierRepository: IModifierRepository,
-    private categoryRepository: ICategoryRepository
+    private categoryRepository: ICategoryRepository,
+    private kitchenSectionRepository: IKitchenSectionRepository
   ) {}
 
   /**
@@ -26,34 +29,21 @@ export class ImportSaveService {
   /**
    * Save all import data in a single transaction with Upsert logic
    */
-  async saveAll(data: ParsedImportData, business_id: string): Promise<void> {
+  async saveAll(data: ParsedImportData, business_id: string): Promise<RollbackOperation[]> {
     const session = await mongoose.startSession();
     session.startTransaction();
+    const rollbackOps: RollbackOperation[] = [];
 
     try {
       // Maps to track entities by Natural Keys (Name/Parent) -> ID
       const categoryNameToId = new Map<string, string>();
-      const itemKeyToId = new Map<string, string>(); // item_key (Name in Generic CSV) -> ID
+      const itemCompositeKey = (name: string, categoryName?: string) =>
+        `${(name || '').trim()}|${(categoryName || '').trim()}`;
+      const itemNameToId = new Map<string, string>(); // item composite key (name|category_name) -> ID
       const groupKeyToId = new Map<string, string>();
       const modifierKeyToId = new Map<string, string>();
       const sizeCodeToId = new Map<string, string>();
-      const itemKeyToDefaultSizeCode = new Map<string, string>();
-
-      // 0. Upsert Categories (New Step)
-      if (data.categories && data.categories.length > 0) {
-        for (const catData of data.categories) {
-          const existingCats = await this.categoryRepository.findAll({
-            business_id,
-            // We need to filter by name, but findAll might not support 'name' filter.
-            // If not, we fetch all and find in memory, or use a new 'findByName' method if exists.
-            // Assuming we fetch all later, but for now let's query specific or efficient way.
-            // Actually, later in Step 4 we fetch all categories. Let's start by fetching all categories once.
-          });
-          // Optimisation: Fetch all categories once at start?
-          // But we might create new ones.
-          // Let's rely on finding by name one by one or caching.
-        }
-      }
+      const itemNameToDefaultSizeCode = new Map<string, string>();
 
       // Optimization: Fetch all existing Categories for Business
       const allCategories = await this.categoryRepository.findAll({ business_id });
@@ -70,6 +60,16 @@ export class ImportSaveService {
 
           if (existingId) {
             // Update
+            const existingCategory = allCategories.find((c) => c.id === existingId);
+            if (existingCategory) {
+              rollbackOps.push({
+                entityType: 'category',
+                action: 'update',
+                id: existingId,
+                previousData: existingCategory,
+              });
+            }
+
             await this.categoryRepository.update(existingId, business_id, {
               description: catData.description,
               sort_order: catData.sort_order,
@@ -85,6 +85,11 @@ export class ImportSaveService {
               is_active: catData.is_active ?? true,
             });
             categoryNameToId.set(lowerName, createdCat.id);
+            rollbackOps.push({
+              entityType: 'category',
+              action: 'create',
+              id: createdCat.id,
+            });
           }
         }
       }
@@ -100,6 +105,13 @@ export class ImportSaveService {
           const foundSize = sizes.find((s) => s.code === sizeData.size_code);
           if (foundSize) {
             sizeId = foundSize.id;
+            rollbackOps.push({
+              entityType: 'item_size',
+              action: 'update',
+              id: sizeId,
+              previousData: foundSize,
+            });
+
             // Update
             await this.itemSizeRepository.update(sizeId, {
               name: sizeData.name,
@@ -107,7 +119,7 @@ export class ImportSaveService {
               is_active: sizeData.is_active,
             });
           } else {
-            throw new Error(`Size ${sizeData.size_code} check failed.`);
+            throw new Error('Size not found.');
           }
         } else {
           const createdSize = await this.itemSizeRepository.create({
@@ -118,12 +130,20 @@ export class ImportSaveService {
             is_active: sizeData.is_active ?? true,
           });
           sizeId = createdSize.id;
+          rollbackOps.push({
+            entityType: 'item_size',
+            action: 'create',
+            id: sizeId,
+          });
         }
 
         sizeCodeToId.set(sizeData.size_code, sizeId);
 
-        if (sizeData.is_default && sizeData.item_key) {
-          itemKeyToDefaultSizeCode.set(sizeData.item_key, sizeData.size_code);
+        if (sizeData.is_default && sizeData.item_name) {
+          itemNameToDefaultSizeCode.set(
+            itemCompositeKey(sizeData.item_name, sizeData.item_category_name),
+            sizeData.size_code
+          );
         }
       }
 
@@ -142,8 +162,16 @@ export class ImportSaveService {
 
         if (existingGroup) {
           groupKeyToId.set(groupData.group_key, existingGroup.id);
+          rollbackOps.push({
+            entityType: 'modifier_group',
+            action: 'update',
+            id: existingGroup.id,
+            previousData: existingGroup,
+          });
+
           // Update
           await this.modifierGroupRepository.update(existingGroup.id, business_id, {
+            display_name: groupData.display_name,
             display_type: groupData.display_type,
             min_select: groupData.min_select,
             max_select: groupData.max_select,
@@ -163,6 +191,7 @@ export class ImportSaveService {
           const createGroupDTO: CreateModifierGroupDTO = {
             business_id,
             name: groupData.name,
+            display_name: groupData.display_name,
             display_type: groupData.display_type,
             min_select: groupData.min_select,
             max_select: groupData.max_select,
@@ -179,6 +208,11 @@ export class ImportSaveService {
 
           const createdGroup = await this.modifierGroupRepository.create(createGroupDTO);
           groupKeyToId.set(groupData.group_key, createdGroup.id);
+          rollbackOps.push({
+            entityType: 'modifier_group',
+            action: 'create',
+            id: createdGroup.id,
+          });
         }
       }
 
@@ -186,7 +220,7 @@ export class ImportSaveService {
       for (const modifierData of data.modifiers) {
         const groupId = groupKeyToId.get(modifierData.group_key);
         if (!groupId) {
-          throw new ValidationError(`ModifierGroup '${modifierData.group_key}' not found/created.`);
+          throw new ValidationError('Modifier group not found. Import groups first.');
         }
 
         // Check if modifier exists by name in group
@@ -202,6 +236,13 @@ export class ImportSaveService {
             `${modifierData.group_key}:${modifierData.modifier_key}`,
             existingModifier.id
           );
+          rollbackOps.push({
+            entityType: 'modifier',
+            action: 'update',
+            id: existingModifier.id,
+            previousData: existingModifier,
+          });
+
           // Update
           await this.modifierRepository.update(existingModifier.id, groupId, {
             display_order: modifierData.display_order,
@@ -221,6 +262,11 @@ export class ImportSaveService {
             `${modifierData.group_key}:${modifierData.modifier_key}`,
             createdModifier.id
           );
+          rollbackOps.push({
+            entityType: 'modifier',
+            action: 'create',
+            id: createdModifier.id,
+          });
         }
       }
 
@@ -234,9 +280,7 @@ export class ImportSaveService {
         if (!categoryId) {
           // Skip or Error? User said "Match existing... Parent to establish hierarchy".
           // If Category not found, we cannot create Item properly.
-          throw new ValidationError(
-            `Category '${itemData.category_name}' not found for Item '${itemData.name}'. Ensure Category is created or imported first.`
-          );
+          throw new ValidationError('Category not found for this item. Import categories first.');
         }
 
         // Search for Existing Item by Name AND Category
@@ -250,9 +294,17 @@ export class ImportSaveService {
         // If not, we iterate. Re-checking ItemFilters in Item.ts... yes, name and category_id are in ItemFilters.
 
         const existingItem = existingItems.items.length > 0 ? existingItems.items[0] : null;
+        const itemKey = itemCompositeKey(itemData.name, itemData.category_name);
 
         if (existingItem) {
-          itemKeyToId.set(itemData.item_key, existingItem.id);
+          itemNameToId.set(itemKey, existingItem.id);
+          rollbackOps.push({
+            entityType: 'item',
+            action: 'update',
+            id: existingItem.id,
+            previousData: existingItem,
+          });
+
           // Update
           await this.itemRepository.update(existingItem.id, {
             description: itemData.description,
@@ -280,15 +332,36 @@ export class ImportSaveService {
             sort_order: itemData.sort_order ?? 0,
           };
           const createdItem = await this.itemRepository.create(createItemDTO);
-          itemKeyToId.set(itemData.item_key, createdItem.id);
+          itemNameToId.set(itemKey, createdItem.id);
+          rollbackOps.push({
+            entityType: 'item',
+            action: 'create',
+            id: createdItem.id,
+          });
         }
       }
 
       // 6. Set default_size_id for items
-      for (const [itemKey, sizeCode] of itemKeyToDefaultSizeCode.entries()) {
-        const itemId = itemKeyToId.get(itemKey);
+      for (const [itemKey, sizeCode] of itemNameToDefaultSizeCode.entries()) {
+        const itemId = itemNameToId.get(itemKey);
         const sizeId = sizeCodeToId.get(sizeCode);
         if (itemId && sizeId) {
+          // Note: This is an "Update" on Item, but we already captured the "Item Update Snapshot" above if it existed.
+          // If the item was just created, we don't need a snapshot (rollback will delete it).
+          // If it was updated, we already have the previous state.
+          // However, if we do MULTIPLE updates to the same item, we should only capture the FIRST one.
+          // Logic: We check if we already have an 'update' op for this item ID.
+          const alreadyCaptured = rollbackOps.some(
+            (op) => op.entityType === 'item' && op.id === itemId && op.action === 'update'
+          );
+
+          if (!alreadyCaptured) {
+            // It must have been created in this session, or we missed it (unlikely given the loop above).
+            // If created, we are good.
+            // If it existed but wasn't updated in the main loop (e.g. only setting default size), we should capture it.
+            // But the main loop iterates ALL items in data.items.
+          }
+
           await this.itemRepository.update(itemId, {
             default_size_id: sizeId,
           });
@@ -300,12 +373,13 @@ export class ImportSaveService {
       // We will re-build the modifier_groups assignment based on import data.
 
       for (const itemData of data.items) {
-        const itemId = itemKeyToId.get(itemData.item_key);
+        const itemId = itemNameToId.get(itemCompositeKey(itemData.name, itemData.category_name));
         if (!itemId) continue;
 
         // Find overrides/assignments for this item
+        const itemKey = itemCompositeKey(itemData.name, itemData.category_name);
         const itemOverrides = data.itemModifierOverrides.filter(
-          (o) => o.item_key === itemData.item_key
+          (o) => itemCompositeKey(o.item_name, o.item_category_name) === itemKey
         );
 
         // If no overrides/groups defined in import, skip update? Or clear?
@@ -350,6 +424,10 @@ export class ImportSaveService {
           .filter((g) => g !== null) as any[];
 
         if (modifierGroups.length > 0) {
+          // Again, check if we need to snapshot (same logic as default_size_id).
+          // If the item was not touched in the main loop (unlikely since we iterate data.items there too), capture it.
+          // Since we iterate data.items, we definitely touched it there.
+
           await this.itemRepository.update(itemId, {
             modifier_groups: modifierGroups,
           });
@@ -357,6 +435,7 @@ export class ImportSaveService {
       }
 
       await session.commitTransaction();
+      return rollbackOps;
     } catch (error) {
       await session.abortTransaction();
       throw error;

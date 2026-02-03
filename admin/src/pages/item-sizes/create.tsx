@@ -3,9 +3,19 @@ import ItemSizeForm from '@/components/item-size/item-size-form';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import { adminOnly } from '@/utils/auth-utils';
+import { useRouter } from 'next/router';
+import { useBusinessesQuery } from '@/data/business';
+import Loader from '@/components/ui/loader/loader';
 
 export default function CreateItemSizePage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { businesses, loading } = useBusinessesQuery();
+  const businessId =
+    (router.query.business_id as string) || businesses?.[0]?.id;
+
+  if (loading) return <Loader text={t('common:text-loading')} />;
+
   return (
     <>
       <div className="flex border-b border-dashed border-border-base pb-5 md:pb-7">
@@ -13,7 +23,7 @@ export default function CreateItemSizePage() {
           {t('form:form-title-create-item-size')}
         </h1>
       </div>
-      <ItemSizeForm />
+      <ItemSizeForm businessId={businessId} />
     </>
   );
 }

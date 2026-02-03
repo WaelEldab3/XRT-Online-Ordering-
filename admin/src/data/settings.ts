@@ -21,9 +21,7 @@ export const useUpdateSettingsMutation = () => {
 
   return useMutation({
     mutationFn: (data: any) => settingsClient.update(data),
-    onError: (error) => {
-      console.log(error);
-    },
+    onError: (error) => {},
     onSuccess: (data: any) => {
       updateSettings(data?.options || data); // Handle flat response
       setMaintenanceDetails(

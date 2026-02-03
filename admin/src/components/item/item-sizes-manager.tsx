@@ -18,7 +18,7 @@ import Description from '@/components/ui/description';
 import cn from 'classnames';
 
 interface ItemSizesManagerProps {
-  businessId: string;
+  businessId?: string;
   value?: ItemSizeConfig[];
   onChange?: (value: ItemSizeConfig[]) => void;
   defaultSizeId?: string | null;
@@ -45,7 +45,7 @@ export default function ItemSizesManager({
     sizes: globalSizes,
     isLoading,
     error,
-  } = useItemSizesQuery(businessId);
+  } = useItemSizesQuery(businessId, { enabled: !!businessId });
   const { mutate: createGlobalSize, isPending: creating } =
     useCreateItemSizeMutation();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -67,7 +67,7 @@ export default function ItemSizesManager({
   const handleCreateGlobalSize = (data: CreateGlobalSizeForm) => {
     createGlobalSize(
       {
-        business_id: businessId,
+        business_id: businessId!,
         name: data.name,
         code: data.code,
         display_order: data.display_order,
@@ -303,9 +303,9 @@ export default function ItemSizesManager({
     ],
   );
 
-  // Early returns AFTER all hooks have been called
-  if (isLoading) return <Loader text={t('form:loading-sizes')} />;
-  if (error)
+  // Early returns AFTER all hooks have been called (only show loader when we have businessId and query is running)
+  if (businessId && isLoading) return <Loader text={t('form:loading-sizes')} />;
+  if (businessId && error)
     return (
       <ErrorMessage
         message={(error as any)?.message || t('form:error-loading-sizes')}
@@ -328,7 +328,7 @@ export default function ItemSizesManager({
             type="button"
             size="small"
             onClick={() => setShowAddForm(true)}
-            disabled={disabled}
+            disabled={disabled || !businessId}
             className="shrink-0"
           >
             <PlusIcon className="h-4 w-4 me-2" />
@@ -429,7 +429,11 @@ export default function ItemSizesManager({
           <p className="text-sm text-gray-500 mb-4">
             {t('form:text-no-global-sizes-found')}
           </p>
-          <Button size="small" onClick={() => setShowAddForm(true)}>
+          <Button
+            size="small"
+            onClick={() => setShowAddForm(true)}
+            disabled={!businessId}
+          >
             {t('form:button-create-first-size')}
           </Button>
         </div>

@@ -24,8 +24,9 @@ export default function CreateItemPage() {
     const { data: shopData } = useShopQuery({
         slug: shop as string,
     });
-    const shopId = (shopData as any)?.id!;
+    const shopId = (shopData as any)?.id;
     if (
+        shopId &&
         !hasAccess(adminOnly, permissions) &&
         !me?.shops?.map((shop) => shop.id).includes(shopId) &&
         me?.managed_shop?.id != shopId
@@ -40,7 +41,7 @@ export default function CreateItemPage() {
                     {t('form:form-title-create-item')}
                 </h1>
             </div>
-            <CreateOrUpdateItemForm />
+            <CreateOrUpdateItemForm initialShopId={shopId} />
         </>
     );
 }

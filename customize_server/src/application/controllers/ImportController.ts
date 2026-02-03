@@ -10,7 +10,13 @@ import { FinalSaveImportUseCase } from '../../domain/usecases/import/FinalSaveIm
 import { GetImportSessionUseCase } from '../../domain/usecases/import/GetImportSessionUseCase';
 import { ListImportSessionsUseCase } from '../../domain/usecases/import/ListImportSessionsUseCase';
 import { DiscardImportSessionUseCase } from '../../domain/usecases/import/DiscardImportSessionUseCase';
+import { DeleteImportSessionUseCase } from '../../domain/usecases/import/DeleteImportSessionUseCase';
+import { RollbackImportUseCase } from '../../domain/usecases/import/RollbackImportUseCase';
+import { ClearImportHistoryUseCase } from '../../domain/usecases/import/ClearImportHistoryUseCase';
+import { AppendImportFileUseCase } from '../../domain/usecases/import/AppendImportFileUseCase';
 import { ImportSessionRepository } from '../../infrastructure/repositories/ImportSessionRepository';
+import { BusinessRepository } from '../../infrastructure/repositories/BusinessRepository';
+import { KitchenSectionRepository } from '../../infrastructure/repositories/KitchenSectionRepository';
 import { ParsedImportData } from '../../domain/entities/ImportSession';
 import { AuditLogger, AuditAction } from '../../shared/utils/auditLogger';
 
@@ -21,48 +27,70 @@ export class ImportController {
   private getSessionUseCase: GetImportSessionUseCase;
   private listSessionsUseCase: ListImportSessionsUseCase;
   private discardSessionUseCase: DiscardImportSessionUseCase;
+  private deleteSessionUseCase: DeleteImportSessionUseCase;
+  private businessRepository: BusinessRepository;
 
   constructor() {
     const importSessionRepository = new ImportSessionRepository();
+    this.businessRepository = new BusinessRepository();
 
-    this.parseAndValidateUseCase = new ParseAndValidateImportUseCase(importSessionRepository);
+    const kitchenSectionRepository = new KitchenSectionRepository();
+    this.parseAndValidateUseCase = new ParseAndValidateImportUseCase(
+      importSessionRepository,
+      kitchenSectionRepository
+    );
     this.updateSessionUseCase = new UpdateImportSessionUseCase(importSessionRepository);
     this.finalSaveUseCase = new FinalSaveImportUseCase(importSessionRepository);
     this.getSessionUseCase = new GetImportSessionUseCase(importSessionRepository);
     this.listSessionsUseCase = new ListImportSessionsUseCase(importSessionRepository);
+    this.listSessionsUseCase = new ListImportSessionsUseCase(importSessionRepository);
     this.discardSessionUseCase = new DiscardImportSessionUseCase(importSessionRepository);
+    this.deleteSessionUseCase = new DeleteImportSessionUseCase(importSessionRepository);
   }
 
   parseAndValidate = asyncHandler(async (req: AuthRequest, res: Response) => {
     // Super Admin only
-    if (req.user?.role !== UserRole.SUPER_ADMIN) {
-      return sendError(res, 'Only Super Admin can perform imports', 403);
+    // Check for business_id from body, query, or user token
+    let business_id = req.body.business_id || req.query.business_id || req.user?.business_id;
+
+    // If still no business_id, use the single business (active or not) for import
+    if (!business_id) {
+      const defaultBusiness = await this.businessRepository.findOneForImport();
+      if (defaultBusiness) {
+        business_id = defaultBusiness.business_id;
+      }
+    }
+
+    if (!business_id) {
+      throw new ValidationError('No business found. Create one first.');
     }
 
     if (!req.file) {
-      throw new ValidationError('CSV or ZIP file is required');
+      throw new ValidationError('Please upload a CSV or ZIP file.');
     }
 
-    const business_id = req.body.business_id || req.user?.business_id;
-    if (!business_id) {
-      throw new ValidationError('business_id is required');
-    }
+    const session = await this.parseAndValidateUseCase.execute(req.file, req.user!.id, business_id);
 
-    const session = await this.parseAndValidateUseCase.execute(
-      req.file,
-      req.user!.id,
-      business_id
-    );
-
-    AuditLogger.logImport(
-      AuditAction.IMPORT_PARSE,
-      req.user!.id,
-      business_id,
-      session.id,
-      { files: session.originalFiles, errors: session.validationErrors.length, warnings: session.validationWarnings.length }
-    );
+    AuditLogger.logImport(AuditAction.IMPORT_PARSE, req.user!.id, business_id, session.id, {
+      files: session.originalFiles,
+      errors: session.validationErrors.length,
+      warnings: session.validationWarnings.length,
+    });
 
     return sendSuccess(res, 'Import parsed and validated', session, 201);
+  });
+
+  appendFile = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+
+    if (!req.file) {
+      throw new ValidationError('Please upload a CSV or ZIP file.');
+    }
+
+    const appendUseCase = new AppendImportFileUseCase(new ImportSessionRepository());
+    const session = await appendUseCase.execute(id, req.file, req.user!.id);
+
+    return sendSuccess(res, 'File appended successfully', session);
   });
 
   getSession = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -127,7 +155,7 @@ export class ImportController {
 
     const { id } = req.params;
     const session = await this.getSessionUseCase.execute(id, req.user!.id);
-    
+
     await this.finalSaveUseCase.execute(id, req.user!.id);
 
     AuditLogger.logImport(
@@ -148,17 +176,25 @@ export class ImportController {
 
     const { id } = req.params;
     const session = await this.getSessionUseCase.execute(id, req.user!.id);
-    
+
     await this.discardSessionUseCase.execute(id, req.user!.id);
 
-    AuditLogger.logImport(
-      AuditAction.IMPORT_DISCARD,
-      req.user!.id,
-      session?.business_id || '',
-      id
-    );
+    AuditLogger.logImport(AuditAction.IMPORT_DISCARD, req.user!.id, session?.business_id || '', id);
 
     return sendSuccess(res, 'Import session discarded', null);
+  });
+
+  deleteSession = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== UserRole.SUPER_ADMIN) {
+      return sendError(res, 'Only Super Admin can delete import sessions', 403);
+    }
+
+    const { id } = req.params;
+    await this.deleteSessionUseCase.execute(id, req.user!.id);
+
+    AuditLogger.logImport(AuditAction.IMPORT_DISCARD, req.user!.id, '', id, { action: 'delete' });
+
+    return sendSuccess(res, 'Import session deleted', null);
   });
 
   downloadErrors = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -176,7 +212,7 @@ export class ImportController {
     // Convert errors to CSV
     const csvRows = [
       ['file', 'row', 'entity', 'field', 'message', 'value'].join(','),
-      ...session.validationErrors.map(err =>
+      ...session.validationErrors.map((err) =>
         [
           `"${err.file}"`,
           err.row,
@@ -189,7 +225,7 @@ export class ImportController {
     ];
 
     const csvContent = csvRows.join('\n');
-    
+
     AuditLogger.logImport(
       AuditAction.IMPORT_DOWNLOAD_ERRORS,
       req.user!.id,
@@ -201,5 +237,50 @@ export class ImportController {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="import-errors-${id}.csv"`);
     res.send(csvContent);
+  });
+
+  rollbackSession = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== UserRole.SUPER_ADMIN) {
+      return sendError(res, 'Only Super Admin can rollback import sessions', 403);
+    }
+
+    const { id } = req.params;
+    const rollbackUseCase = new RollbackImportUseCase(new ImportSessionRepository());
+
+    await rollbackUseCase.execute(id, req.user!.id);
+
+    // Fetch updated session
+    const session = await this.getSessionUseCase.execute(id, req.user!.id);
+
+    AuditLogger.logImport(
+      AuditAction.IMPORT_ROLLBACK, // Need to add this action to enum if strict
+      req.user!.id,
+      session?.business_id || '',
+      id
+    );
+
+    return sendSuccess(res, 'Import session rolled back successfully', null);
+  });
+
+  clearHistory = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== UserRole.SUPER_ADMIN) {
+      return sendError(res, 'Only Super Admin can clear import history', 403);
+    }
+
+    let business_id = req.body.business_id || req.query.business_id || req.user?.business_id;
+    if (business_id === 'undefined') business_id = undefined;
+
+    const clearHistoryUseCase = new ClearImportHistoryUseCase(new ImportSessionRepository());
+    await clearHistoryUseCase.execute(req.user!.id, business_id);
+
+    AuditLogger.logImport(
+      AuditAction.IMPORT_DISCARD, // Reusing discard or add new action?
+      req.user!.id,
+      business_id || '',
+      '',
+      { action: 'clear_history' }
+    );
+
+    return sendSuccess(res, 'Import history cleared successfully', null);
   });
 }

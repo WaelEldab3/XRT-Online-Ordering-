@@ -157,14 +157,37 @@ export class ModifierController {
       throw new ValidationError('items array is required');
     }
 
-    // Since IModifierRepository doesn't strictly have updateSortOrder on the interface yet if I used a strict type,
-    // but the concrete implementation does.
-    // Wait, I just added it to the interface in the previous tool call (simulated parallel).
-    // The controller uses `this.modifierRepository` which is typed as `IModifierRepository`.
-    // So it should be fine.
-
     await this.modifierRepository.updateSortOrder(items);
 
     return sendSuccess(res, 'Modifier sort order updated successfully');
+  });
+
+  exportModifiers = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const filters = {
+      modifier_group_id: req.query.modifier_group_id as string,
+      is_active: req.query.is_active !== undefined ? req.query.is_active === 'true' : undefined,
+    };
+
+    const modifiers = await this.modifierRepository.findAll(filters);
+
+    // Convert to CSV
+    const csvRows = [
+      ['modifier_group_name', 'name', 'display_order', 'is_active', 'max_quantity'].join(','),
+      ...modifiers.map((mod: any) =>
+        [
+          `"${(mod.modifier_group?.name || '').replace(/"/g, '""')}"`,
+          `"${(mod.name || '').replace(/"/g, '""')}"`,
+          mod.display_order,
+          mod.is_active,
+          mod.max_quantity || 0,
+        ].join(',')
+      ),
+    ];
+
+    const csvContent = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="modifiers-export.csv"`);
+    res.send(csvContent);
   });
 }

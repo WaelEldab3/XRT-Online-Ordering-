@@ -130,7 +130,13 @@ export default function CategoryItemsPage() {
 
                     <div className="flex items-center ms-auto md:ms-6">
                         <LinkButton
-                            href={shop ? `/${shop}${Routes.item.create}` : Routes.item.create}
+                            href={
+                                category?.business_id
+                                    ? `${Routes.item.create}?business_id=${category.business_id}`
+                                    : shop
+                                    ? `/${shop}${Routes.item.create}`
+                                    : Routes.item.create
+                            }
                             className="h-12 md:ms-4 md:h-12 me-4"
                             size="small"
                         >

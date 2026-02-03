@@ -27,7 +27,7 @@ import OpenAIButton from '@/components/openAI/openAI.button';
 import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
 import { CategoryDetailSuggestion } from '@/components/category/category-ai-prompt';
 import SwitchInput from '@/components/ui/switch-input';
-import edit from '@/pages/[shop]/edit';
+import { useKitchenSectionsQuery } from '@/data/kitchen-section';
 
 type FormValues = {
   name: string;
@@ -74,6 +74,7 @@ export default function CreateOrUpdateCategoriesForm({
     [t],
   );
 
+  /*
   const kitchenSectionOptions: { label: string; value: string }[] = useMemo(
     () => [
       {
@@ -84,35 +85,29 @@ export default function CreateOrUpdateCategoriesForm({
         ),
         value: 'KS_001',
       },
-      {
-        label: getFallback(
-          'kitchen-section-main-course',
-          'common:kitchen-section-main-course',
-          'Main Course',
-        ),
-        value: 'KS_002',
-      },
-      {
-        label: getFallback(
-          'kitchen-section-desserts',
-          'common:kitchen-section-desserts',
-          'Desserts',
-        ),
-        value: 'KS_003',
-      },
-      {
-        label: getFallback(
-          'kitchen-section-beverages',
-          'common:kitchen-section-beverages',
-          'Beverages',
-        ),
-        value: 'KS_004',
-      },
+      // ...
     ],
     [t],
   );
+  */
 
   const { locale } = router;
+
+  const { data: kitchenSectionsData, isLoading: loadingKitchenSections } =
+    useKitchenSectionsQuery({
+      language: locale,
+    });
+
+  const kitchenSectionOptions = useMemo(() => {
+    // The API response is likely { success: true, data: [...] }
+    const sections =
+      (kitchenSectionsData as any)?.data || kitchenSectionsData || [];
+    return (Array.isArray(sections) ? sections : []).map((section: any) => ({
+      label: section.name,
+      value: section.id,
+    }));
+  }, [kitchenSectionsData]);
+
   const {
     // @ts-ignore
     settings: { options },
@@ -154,7 +149,9 @@ export default function CreateOrUpdateCategoriesForm({
             ? typeof initialValues.icon === 'string'
               ? [
                   {
-                    id: 1,
+                    id:
+                      (initialValues as any).icon_public_id ??
+                      initialValues.icon,
                     thumbnail: initialValues.icon,
                     original: initialValues.icon,
                     file_name: initialValues.icon.split('/').pop(),
@@ -198,7 +195,7 @@ export default function CreateOrUpdateCategoriesForm({
         ? typeof initialValues.icon === 'string'
           ? [
               {
-                id: 1,
+                id: (initialValues as any).icon_public_id ?? initialValues.icon,
                 thumbnail: initialValues.icon,
                 original: initialValues.icon,
                 file_name: initialValues.icon.split('/').pop(),
@@ -333,10 +330,6 @@ export default function CreateOrUpdateCategoriesForm({
     // However, if we want to preserve the existing image, we just don't send anything for 'image' in FormData.
     // The backend won't update it if it's not provided in req.files and not in req.body.
 
-    console.log('--- CATEGORY SUBMIT PAYLOAD ---');
-    console.log(payload);
-    console.log('-------------------------------');
-
     if (
       !initialValues ||
       !initialValues.translated_languages?.includes(router.locale!)
@@ -354,40 +347,54 @@ export default function CreateOrUpdateCategoriesForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="flex flex-wrap pb-8 my-5 border-b border-dashed border-border-base sm:my-8">
-        <Description
-          title={t('form:input-label-image')}
-          details={t('form:category-image-helper-text')}
-          className="w-full px-0 pb-5 sm:w-4/12 sm:py-8 sm:pe-4 md:w-1/3 md:pe-5"
-        />
-
-        <Card className="w-full sm:w-8/12 md:w-2/3">
-          <FileInput
-            name="image"
-            control={control as any}
-            multiple={false}
-            section="categories"
-          />
-        </Card>
-      </div>
-
-      <div className="flex flex-wrap pb-8 my-5 border-b border-dashed border-border-base sm:my-8">
-        <Description
-          title={t('form:icon-title')}
-          details={t('form:icon-helper-text')}
-          className="w-full px-0 pb-5 sm:w-4/12 sm:py-8 sm:pe-4 md:w-1/3 md:pe-5"
-        />
-
-        <Card className="w-full sm:w-8/12 md:w-2/3">
-          <FileInput
-            name="icon"
-            control={control as any}
-            multiple={false}
-            accept="image/*"
-            helperText={t('form:upload-image-helper-text')}
-            section="categories"
-          />
-        </Card>
+      {/* Media: Image + Icon — side-by-side on larger screens */}
+      <div className="pb-8 my-5 border-b border-dashed border-border-base sm:my-8">
+        <div className="mb-5">
+          <h3 className="text-base font-semibold text-heading mb-1">
+            {t('form:input-label-image')} & {t('form:icon-title')}
+          </h3>
+          <p className="text-sm text-body">
+            {t('form:category-image-helper-text')} {t('form:icon-helper-text')}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card className="overflow-hidden rounded-xl border-2 border-dashed border-border-200 bg-gray-50/30 transition hover:border-accent/40 hover:bg-gray-50/50">
+            <div className="p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {t('form:input-label-image')}
+              </span>
+              <p className="mt-1 text-xs text-body mb-3">
+                {t('form:category-image-helper-text')}
+              </p>
+              <FileInput
+                name="image"
+                control={control as any}
+                multiple={false}
+                section="categories"
+                skipImmediateUpload
+              />
+            </div>
+          </Card>
+          <Card className="overflow-hidden rounded-xl border-2 border-dashed border-border-200 bg-gray-50/30 transition hover:border-accent/40 hover:bg-gray-50/50">
+            <div className="p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {t('form:icon-title')}
+              </span>
+              <p className="mt-1 text-xs text-body mb-3">
+                {t('form:icon-helper-text')} SVG, PNG, JPG.
+              </p>
+              <FileInput
+                name="icon"
+                control={control as any}
+                multiple={false}
+                accept="image/*"
+                helperText={t('form:upload-image-help-text')}
+                section="categories"
+                skipImmediateUpload
+              />
+            </div>
+          </Card>
+        </div>
       </div>
 
       <div className="flex flex-wrap my-5 sm:my-8">

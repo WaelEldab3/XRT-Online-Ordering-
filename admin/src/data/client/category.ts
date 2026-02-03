@@ -49,34 +49,30 @@ export const categoryClient = {
     const formData = new FormData();
     Object.keys(input).forEach((key) => {
       if (key === 'image' && input.image) {
-        formData.append('image', input.image);
+        formData.append('image', input.image instanceof File ? input.image : input.image);
       } else if (key === 'icon' && input.icon) {
-        formData.append('icon', input.icon);
+        formData.append('icon', input.icon instanceof File ? input.icon : input.icon);
       } else if (
         key === 'modifier_groups' &&
         (input as any).modifier_groups !== undefined
       ) {
-        // Serialize arrays/objects as JSON strings for FormData
         formData.append(key, JSON.stringify((input as any).modifier_groups));
-      } else if (input[key as keyof CreateCategoryInput] !== undefined) {
+      } else if (input[key as keyof CreateCategoryInput] !== undefined && input[key as keyof CreateCategoryInput] !== null) {
         const value = input[key as keyof CreateCategoryInput];
-        // Handle boolean values properly
         if (typeof value === 'boolean') {
           formData.append(key, String(value));
-        } else if (typeof value === 'object' && value !== null) {
-          // Serialize other objects as JSON
+        } else if (typeof value === 'object') {
           formData.append(key, JSON.stringify(value));
         } else {
           formData.append(key, String(value));
         }
       }
     });
+    // Do not set Content-Type so axios/browser sets multipart/form-data with boundary
     const response = await HttpClient.post<any>(
       API_ENDPOINTS.CATEGORIES,
       formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      },
+      { headers: { 'Content-Type': undefined } as any },
     );
     return response?.data || response;
   },
@@ -84,33 +80,29 @@ export const categoryClient = {
     const formData = new FormData();
     Object.keys(input).forEach((key) => {
       if (key === 'image' && input.image) {
-        formData.append('image', input.image);
+        formData.append('image', input.image instanceof File ? input.image : input.image);
       } else if (key === 'icon' && input.icon) {
-        formData.append('icon', input.icon);
+        formData.append('icon', input.icon instanceof File ? input.icon : input.icon);
       } else if (
         key === 'modifier_groups' &&
         input.modifier_groups !== undefined
       ) {
-        // Serialize arrays/objects as JSON strings for FormData
         formData.append(key, JSON.stringify(input.modifier_groups));
-      } else if (input[key] !== undefined) {
-        // Handle boolean values properly
+      } else if (input[key] !== undefined && input[key] !== null) {
         if (typeof input[key] === 'boolean') {
           formData.append(key, String(input[key]));
-        } else if (typeof input[key] === 'object' && input[key] !== null) {
-          // Serialize other objects as JSON
+        } else if (typeof input[key] === 'object') {
           formData.append(key, JSON.stringify(input[key]));
         } else {
           formData.append(key, String(input[key]));
         }
       }
     });
+    // Do not set Content-Type so axios/browser sets multipart/form-data with boundary
     const response = await HttpClient.put<any>(
       `${API_ENDPOINTS.CATEGORIES}/${id}`,
       formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      },
+      { headers: { 'Content-Type': undefined } as any },
     );
     return response?.data || response;
   },

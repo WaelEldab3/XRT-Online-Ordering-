@@ -6,6 +6,8 @@ import { GetModifierGroupUseCase } from '../../domain/usecases/modifier-groups/G
 import { GetModifierGroupsUseCase } from '../../domain/usecases/modifier-groups/GetModifierGroupsUseCase';
 import { DeleteModifierGroupUseCase } from '../../domain/usecases/modifier-groups/DeleteModifierGroupUseCase';
 import { ModifierGroupRepository } from '../../infrastructure/repositories/ModifierGroupRepository';
+import { UpdateModifierSortOrderUseCase } from '../../domain/usecases/modifiers/UpdateModifierSortOrderUseCase';
+import { ModifierRepository } from '../../infrastructure/repositories/ModifierRepository';
 import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { ValidationError } from '../../shared/errors/AppError';
@@ -17,6 +19,7 @@ export class ModifierGroupController {
   private getModifierGroupUseCase: GetModifierGroupUseCase;
   private updateModifierGroupUseCase: UpdateModifierGroupUseCase;
   private deleteModifierGroupUseCase: DeleteModifierGroupUseCase;
+  private updateModifierSortOrderUseCase: UpdateModifierSortOrderUseCase;
 
   constructor() {
     const modifierGroupRepository = new ModifierGroupRepository();
@@ -26,11 +29,15 @@ export class ModifierGroupController {
     this.getModifierGroupUseCase = new GetModifierGroupUseCase(modifierGroupRepository);
     this.updateModifierGroupUseCase = new UpdateModifierGroupUseCase(modifierGroupRepository);
     this.deleteModifierGroupUseCase = new DeleteModifierGroupUseCase(modifierGroupRepository);
+
+    const modifierRepository = new ModifierRepository();
+    this.updateModifierSortOrderUseCase = new UpdateModifierSortOrderUseCase(modifierRepository);
   }
 
   create = asyncHandler(async (req: AuthRequest, res: Response) => {
     const {
       name,
+      display_name,
       display_type,
       min_select,
       max_select,
@@ -48,6 +55,7 @@ export class ModifierGroupController {
     const modifierGroup = await this.createModifierGroupUseCase.execute({
       business_id: business_id!,
       name,
+      display_name,
       display_type,
       min_select: Number(min_select),
       max_select: Number(max_select),
@@ -110,6 +118,7 @@ export class ModifierGroupController {
     const { id } = req.params;
     const {
       name,
+      display_name,
       display_type,
       min_select,
       max_select,
@@ -127,6 +136,7 @@ export class ModifierGroupController {
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = name;
+    if (display_name !== undefined) updateData.display_name = display_name;
     if (display_type !== undefined) updateData.display_type = display_type;
     if (min_select !== undefined) updateData.min_select = Number(min_select);
     if (max_select !== undefined) updateData.max_select = Number(max_select);
@@ -168,5 +178,70 @@ export class ModifierGroupController {
     await repo.updateSortOrder(items);
 
     return sendSuccess(res, 'Modifier group sort order updated successfully');
+  });
+
+  updateModifiersSortOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      throw new ValidationError('items array is required');
+    }
+
+    await this.updateModifierSortOrderUseCase.execute(items);
+
+    return sendSuccess(res, 'Modifiers sort order updated successfully');
+  });
+
+  exportModifierGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const business_id = req.user?.business_id || req.query.business_id;
+
+    if (!business_id && req.user?.role !== UserRole.SUPER_ADMIN) {
+      throw new ValidationError('business_id is required');
+    }
+
+    const filters: any = {
+      business_id: business_id as string,
+      limit: 1000,
+      page: 1,
+    };
+
+    const result: any = await this.getModifierGroupsUseCase.execute(filters);
+    // Handle various result formats
+    let modifierGroups = result.data || result.modifierGroups || result;
+    if (!Array.isArray(modifierGroups)) {
+      modifierGroups = [];
+    }
+
+    // Convert to CSV
+    const csvRows = [
+      [
+        'group_key',
+        'name',
+        'display_name',
+        'display_type',
+        'min_select',
+        'max_select',
+        'is_active',
+        'sort_order',
+      ].join(','),
+      ...modifierGroups.map((group: any) =>
+        [
+          `"${(group.name || '').replace(/"/g, '""')}"`,
+          `"${(group.name || '').replace(/"/g, '""')}"`,
+          `"${(group.display_name || '').replace(/"/g, '""')}"`,
+          group.display_type || 'CHECKBOX',
+          group.min_select || 0,
+          group.max_select || 1,
+          group.is_active,
+          group.sort_order || 0,
+        ].join(',')
+      ),
+    ];
+
+    const csvContent = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="modifier-groups-export.csv"`);
+    res.send(csvContent);
   });
 }

@@ -6,7 +6,11 @@ import { BecomeSeller } from '@/types';
 import { becomeSellerClient } from '@/data/client/become-seller';
 
 export const useBecomeSellerQuery = ({ language }: { language: string }) => {
-  const { data, error, isPending: isLoading } = useQuery<BecomeSeller, Error>({
+  const {
+    data,
+    error,
+    isPending: isLoading,
+  } = useQuery<BecomeSeller, Error>({
     queryKey: [API_ENDPOINTS.BECAME_SELLER, { language }],
     queryFn: () => becomeSellerClient.all({ language }),
   });
@@ -24,15 +28,15 @@ export const useUpdateBecomeSellerMutation = () => {
 
   return useMutation({
     mutationFn: becomeSellerClient.update,
-    onError: (error) => {
-      console.log(error);
-    },
+    onError: (error) => {},
     onSuccess: async (data) => {
       toast.success(t('common:successfully-updated'));
     },
     // Always refetch after error or success:
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.BECAME_SELLER] });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.BECAME_SELLER],
+      });
     },
   });
 };

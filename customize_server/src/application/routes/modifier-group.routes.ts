@@ -12,6 +12,20 @@ router.use(requireAuth);
 // Sort order update - specific route before generic /:id routes
 router.post('/sort-order', requireAuth, modifierGroupController.updateSortOrder);
 
+// Modifiers sort order update within a group
+router.post(
+  '/:id/modifiers/sort-order',
+  requirePermission('modifiers:update'),
+  modifierGroupController.updateModifiersSortOrder
+);
+
+// Export modifier groups - requires modifier_groups:read permission
+router.get(
+  '/export',
+  requirePermission('modifier_groups:read'),
+  modifierGroupController.exportModifierGroups
+);
+
 // Get all modifier groups - requires modifier_groups:read permission
 router.get('/', requirePermission('modifier_groups:read'), modifierGroupController.getAll);
 

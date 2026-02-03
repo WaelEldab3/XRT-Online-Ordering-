@@ -72,6 +72,7 @@ export interface CreateItemDTO {
   is_sizeable?: boolean;
   is_customizable?: boolean;
   default_size_id?: string; // FK to ItemSize.id, nullable - only used when is_sizeable = true
+  sizes?: ItemSizeConfig[];
   modifier_groups?: ItemModifierGroupAssignment[];
 }
 
@@ -90,6 +91,7 @@ export interface UpdateItemDTO {
   is_sizeable?: boolean;
   is_customizable?: boolean;
   default_size_id?: string; // FK to ItemSize.id, nullable - only used when is_sizeable = true
+  sizes?: ItemSizeConfig[];
   modifier_groups?: ItemModifierGroupAssignment[];
 }
 

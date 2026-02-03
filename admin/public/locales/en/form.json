@@ -19,6 +19,7 @@
   "item-sizes-help-text": "Manage item sizes. Enable \"Sizeable\" in Basic Information to use sizes. At least one size is required, and you must select a default size.",
   "enable-sizeable-first": "Please enable \"Sizeable\" in the Basic Information tab to manage sizes.",
   "save-item-first-to-manage-sizes": "Please save the item first to manage sizes.",
+  "select-shop-or-save-first": "Choose a shop or open this form from a category so you can add sizes.",
 
 
 

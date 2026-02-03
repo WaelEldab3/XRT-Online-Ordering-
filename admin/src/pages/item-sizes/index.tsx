@@ -2,7 +2,7 @@ import Card from '@/components/common/card';
 import Layout from '@/components/layouts/admin';
 import Search from '@/components/common/search';
 import LinkButton from '@/components/ui/link-button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ErrorMessage from '@/components/ui/error-message';
 import Loader from '@/components/ui/loader/loader';
 import { useTranslation } from 'next-i18next';
@@ -14,6 +14,7 @@ import {
   hasPermission,
 } from '@/utils/auth-utils';
 import { useItemSizesQuery } from '@/data/item-size';
+import { useBusinessesQuery } from '@/data/business';
 import { useRouter } from 'next/router';
 import PageHeading from '@/components/common/page-heading';
 import { Table } from '@/components/ui/table';
@@ -48,49 +49,44 @@ import { API_ENDPOINTS } from '@/data/client/api-endpoints';
 import { HttpClient } from '@/data/client/http-client';
 
 export default function ItemSizes() {
-  const { locale } = useRouter();
+  const router = useRouter();
+  const { locale, query } = router;
   const [searchTerm, setSearchTerm] = useState('');
   const { t } = useTranslation(['common', 'form', 'table']);
 
-  const { sizes, isLoading, error } = useItemSizesQuery();
+  const { businesses, loading: businessesLoading } = useBusinessesQuery();
+  const businessId = (query.business_id as string) || businesses?.[0]?.id;
+  const { sizes, isLoading, error } = useItemSizesQuery(businessId);
   const { openModal } = useModalAction();
   const { mutate: deleteSize } = useDeleteItemSizeMutation();
 
   // Local state for optimistic updates
   const [itemsList, setItemsList] = useState<ItemSize[]>([]);
+  const sizesRef = useRef<ItemSize[] | undefined>(sizes);
+  sizesRef.current = sizes;
+
+  // Only sync from API when list content or search actually changes (avoids loop from unstable `sizes` reference)
+  const sizesSignature =
+    sizes?.map((s) => `${s.id}:${s.display_order ?? 0}`).join(',') ?? '';
 
   useEffect(() => {
-    // Filter and update itemsList when sizes or searchTerm changes
-    // If sizes change (fetch complete), update list.
-    // If searchTerm changes, we might want to disable dragging or just filter.
-    // Usually DnD is disabled when searching/filtering if the user intends to reorder the *full* list.
-    // But if we allow reordering the filtered view, we need to decide what that means.
-    // For now, let's only enable sorting if no search term (or handle search separately).
-    // The original code calculated `filteredSizes`.
-
-    // Actually, let's keep `filteredSizes` logic for display, but for DnD to work meaningfully,
-    // it usually assumes we are reordering the "current view".
-    // If we reorder a filtered list, we might send partial updates.
-    // The backend `updateSortOrder` accepts a list of {id, order}.
-    // If we only send a subset, other items' orders remain unchanged (or might collide if not careful).
-    // But our backend uses `bulkWrite` with `updateOne`. It won't re-index everything else automatically.
-    // So if I sway Item A (order 1) and Item B (order 5) in a filtered view, and set A=5, B=1... that works.
-
-    // Let's use `itemsList` as the state for the table.
-
-    if (sizes) {
-      if (searchTerm) {
-        const filtered = sizes.filter(
-          (size: ItemSize) =>
-            size.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            size.code?.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
-        setItemsList(filtered);
-      } else {
-        setItemsList(sizes);
-      }
+    const currentSizes = sizesRef.current;
+    if (!currentSizes?.length && !searchTerm) {
+      setItemsList([]);
+      return;
     }
-  }, [sizes, searchTerm]);
+    if (!currentSizes) return;
+    if (searchTerm) {
+      const filtered = currentSizes.filter(
+        (size: ItemSize) =>
+          size.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          size.code?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+      setItemsList(filtered);
+    } else {
+      setItemsList([...currentSizes]);
+    }
+  }, [sizesSignature, searchTerm]);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -152,7 +148,8 @@ export default function ItemSizes() {
     }
   };
 
-  if (isLoading) return <Loader text={t('common:text-loading')} />;
+  if (isLoading || businessesLoading)
+    return <Loader text={t('common:text-loading')} />;
   if (error) return <ErrorMessage message={error.message} />;
 
   function handleSearch({ searchText }: { searchText: string }) {
@@ -240,7 +237,11 @@ export default function ItemSizes() {
               getAuthCredentials().permissions,
             ) ? (
               <LinkButton
-                href={`${Routes.itemSize.create}`}
+                href={
+                  businessId
+                    ? `${Routes.itemSize.create}?business_id=${businessId}`
+                    : Routes.itemSize.create
+                }
                 className="h-12 w-full md:w-auto md:ms-6"
               >
                 <span className="block md:hidden xl:block">

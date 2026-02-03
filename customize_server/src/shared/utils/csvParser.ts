@@ -7,6 +7,7 @@ import {
   ParsedModifierGroupData,
   ParsedModifierData,
   ParsedItemModifierOverrideData,
+  ParsedCategoryData,
 } from '../../domain/entities/ImportSession';
 
 export class CSVParser {
@@ -26,33 +27,64 @@ export class CSVParser {
       itemModifierOverrides: [],
     };
 
-    // Check if file is ZIP
-    if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) {
-      const zip = new AdmZip(file.buffer);
-      const zipEntries = zip.getEntries();
+    if (!file.buffer || !Buffer.isBuffer(file.buffer)) {
+      throw new Error(
+        'File buffer is missing. Ensure the file is sent as multipart/form-data with field name "file".'
+      );
+    }
 
-      for (const entry of zipEntries) {
-        if (entry.entryName.endsWith('.csv') && !entry.isDirectory) {
-          files.push(entry.entryName);
-          const csvContent = entry.getData().toString('utf-8');
-          const fileData = this.parseCSVContent(csvContent, entry.entryName);
-          parsedData = this.mergeParsedData(parsedData, fileData);
+    // Check if file is ZIP
+    if (file.mimetype === 'application/zip' || file.originalname?.endsWith('.zip')) {
+      try {
+        const zip = new AdmZip(file.buffer);
+        const zipEntries = zip.getEntries();
+
+        for (const entry of zipEntries) {
+          if (entry.entryName.endsWith('.csv') && !entry.isDirectory) {
+            files.push(entry.entryName);
+            const csvContent = entry.getData().toString('utf-8');
+            const fileData = this.parseCSVContent(csvContent, entry.entryName);
+            parsedData = this.mergeParsedData(parsedData, fileData);
+          }
         }
+      } catch (err: any) {
+        const message = err?.message || 'Invalid or corrupt ZIP file.';
+        throw new Error(message);
       }
     } else {
       // Single CSV file
-      files.push(file.originalname);
-      const csvContent = file.buffer.toString('utf-8');
-      // Check if it's the new Type-based CSV
-      if (this.isTypeBasedCSV(csvContent)) {
-        parsedData = this.parseGenericCSV(csvContent, file.originalname);
-      } else {
-        const fileData = this.parseCSVContent(csvContent, file.originalname);
-        parsedData = this.mergeParsedData(parsedData, fileData);
+      try {
+        files.push(file.originalname || 'import.csv');
+        const csvContent = file.buffer.toString('utf-8');
+        if (this.isTypeBasedCSV(csvContent)) {
+          parsedData = this.parseGenericCSV(csvContent, file.originalname || 'import.csv');
+        } else {
+          const fileData = this.parseCSVContent(csvContent, file.originalname || 'import.csv');
+          parsedData = this.mergeParsedData(parsedData, fileData);
+        }
+      } catch (err: any) {
+        const message = err?.message || 'Invalid or corrupt file.';
+        throw new Error(message);
       }
     }
 
     return { data: parsedData, files };
+  }
+
+  /**
+   * Determine which entity type this file belongs to based on filename.
+   * Used to validate and route rows only to the matching data type.
+   */
+  private static getEntityTypeFromFilename(
+    filename: string
+  ): 'categories' | 'items' | 'sizes' | 'modifierGroups' | 'modifiers' | null {
+    const lower = filename.toLowerCase();
+    if (lower.includes('modifier') && lower.includes('group')) return 'modifierGroups';
+    if (lower.includes('modifier')) return 'modifiers';
+    if (lower.includes('category') || lower.includes('categories')) return 'categories';
+    if (lower.includes('size') || lower.includes('sizes')) return 'sizes';
+    if (lower.includes('item')) return 'items';
+    return null;
   }
 
   /**
@@ -107,43 +139,80 @@ export class CSVParser {
       itemModifierOverrides: [],
     };
 
-    // Identify entity type by filename or column presence
-    const lowerFilename = filename.toLowerCase();
+    // Use filename to determine which data type this file belongs to (validates and routes rows)
+    const entityFromFilename = this.getEntityTypeFromFilename(filename);
+    const looksLikeModifierGroup = (r: any) => this.rowLooksLikeModifierGroup(r);
+    const looksLikeModifierItem = (r: any) => this.rowLooksLikeModifierItem(r);
 
     for (const record of records) {
-      if (
-        lowerFilename.includes('item') &&
-        !lowerFilename.includes('size') &&
-        !lowerFilename.includes('override')
-      ) {
-        result.items.push(this.parseItem(record));
-      } else if (lowerFilename.includes('size') || (record.size_code && record.item_key)) {
-        result.itemSizes.push(this.parseItemSize(record));
-      } else if (lowerFilename.includes('modifier') && lowerFilename.includes('group')) {
-        result.modifierGroups.push(this.parseModifierGroup(record));
-      } else if (
-        lowerFilename.includes('modifier') &&
-        !lowerFilename.includes('group') &&
-        !lowerFilename.includes('override')
-      ) {
-        result.modifiers.push(this.parseModifier(record));
-      } else if (
-        lowerFilename.includes('override') ||
-        (record.item_key && record.group_key && record.modifier_key)
-      ) {
-        result.itemModifierOverrides.push(this.parseItemModifierOverride(record));
-      } else {
-        // Try to auto-detect by column presence
-        if (record.item_key && record.name && !record.size_code && !record.group_key) {
-          result.items.push(this.parseItem(record));
-        } else if (record.item_key && record.size_code) {
-          result.itemSizes.push(this.parseItemSize(record));
-        } else if (record.group_key && record.name && record.display_type) {
+      if (entityFromFilename === 'modifierGroups') {
+        const groupKeyVal =
+          record.group_key ?? record.groupKey ?? record['group key'] ?? record['Group Key'] ?? '';
+        const nameVal = record.name ?? record.Name ?? '';
+        const hasGroupKey = !!String(groupKeyVal).trim();
+        const hasName = !!String(nameVal).trim();
+        // For modifier groups files, if we have a name and it looks like a group (has display_type or min/max_select), accept it
+        // Use name as group_key if group_key is not present
+        if (
+          !looksLikeModifierItem(record) &&
+          hasName &&
+          (hasGroupKey || looksLikeModifierGroup(record))
+        ) {
+          // If no group_key, use name as the group_key
+          if (!hasGroupKey) {
+            record.group_key = nameVal;
+          }
           result.modifierGroups.push(this.parseModifierGroup(record));
-        } else if (record.group_key && record.modifier_key && record.name) {
+        }
+        continue;
+      }
+      if (entityFromFilename === 'modifiers') {
+        if (looksLikeModifierItem(record)) {
           result.modifiers.push(this.parseModifier(record));
-        } else if (record.item_key && record.group_key && record.modifier_key) {
-          result.itemModifierOverrides.push(this.parseItemModifierOverride(record));
+        } else if (looksLikeModifierGroup(record)) {
+          result.modifierGroups.push(this.parseModifierGroup(record));
+        }
+        continue;
+      }
+      if (entityFromFilename === 'categories') {
+        if (record.name && String(record.name).trim()) {
+          result.categories.push(this.parseCategory(record));
+        }
+        continue;
+      }
+      if (entityFromFilename === 'sizes') {
+        const hasItemRef = !!(record.item_name ?? record.item_key ?? record.itemKey ?? '')
+          .toString()
+          .trim();
+        const hasSizeCode = !!(record.size_code ?? record.sizeCode ?? record.name ?? '')
+          .toString()
+          .trim();
+        if (hasItemRef && hasSizeCode) {
+          result.itemSizes.push(this.parseItemSize(record));
+        }
+        continue;
+      }
+      if (entityFromFilename === 'items') {
+        if (record.name && String(record.name).trim()) {
+          result.items.push(this.parseItem(record));
+        }
+        continue;
+      }
+
+      // No entity from filename: auto-detect by column presence
+      if (record.name && !record.size_code && !record.group_key) {
+        result.items.push(this.parseItem(record));
+      } else if (looksLikeModifierGroup(record) && !looksLikeModifierItem(record)) {
+        result.modifierGroups.push(this.parseModifierGroup(record));
+      } else if (looksLikeModifierItem(record)) {
+        result.modifiers.push(this.parseModifier(record));
+      } else if (record.name && String(record.name).trim()) {
+        const groupKeyVal = record.group_key ?? record.groupKey ?? record['group key'] ?? '';
+        const hasGroupKey = !!String(groupKeyVal).trim();
+        if (hasGroupKey) {
+          result.modifierGroups.push(this.parseModifierGroup(record));
+        } else {
+          result.categories.push(this.parseCategory(record));
         }
       }
     }
@@ -228,7 +297,6 @@ export class CSVParser {
 
       if (type === 'ITEM') {
         result.items.push({
-          item_key: name, // Natural key
           business_id: '',
           name: name,
           description: record.description,
@@ -242,49 +310,32 @@ export class CSVParser {
       }
 
       if (type === 'SIZE') {
-        // If Parent is Item Name, it's an Item Size. Global sizes might be tricky.
-        // User said: "Type: SIZE... Parent: The Name of the parent entity"
-        // If Parent is an Item, it is ItemSize.
         if (parent) {
           result.itemSizes.push({
-            item_key: parent,
-            size_code: name, // 'S', 'M' etc.
-            name: name, // 'Small'
+            item_name: parent,
+            size_code: name,
+            name: name,
             price: record.price || record.value,
             is_active: record.active !== undefined ? record.active : true,
             is_default: record.is_default,
           });
-          // Also mark item as sizeable?
         }
       }
 
       if (type === 'MOD_GROUP') {
-        // Parent is usually Item (if specific) or Global?
-        // For now, let's treat them as Global groups, but maybe mapped to Item if Parent is present.
-        // Or just import them as Global Groups.
         result.modifierGroups.push({
           group_key: name,
           business_id: '',
           name: name,
+          display_name: record.display_name,
           display_type: (record.display_type || 'CHECKBOX').toUpperCase(),
           min_select: record.min_select || 0,
           max_select: record.max_select || 1,
           is_active: record.active !== undefined ? record.active : true,
         });
-
-        // If Parent is present (Item Name), we need to Create an ItemLink (ItemModifierOverride or just Assignment)
-        if (parent) {
-          // We need to link this group to the item.
-          // ParsedImportData has itemModifierOverrides, but also we can imply linkage.
-          // But ImportSaveService step 7 links items to groups.
-          // I'll add a way to represent this linkage.
-          // Maybe via itemModifierOverrides with empty modifier_key?
-          // Or better, add a new field to ParsedImportData: itemModifierGroups
-        }
       }
 
       if (type === 'MODIFIER') {
-        // Parent is Modifier Group Name
         if (parent) {
           result.modifiers.push({
             group_key: parent,
@@ -293,10 +344,6 @@ export class CSVParser {
             max_quantity: record.max_quantity,
             is_active: record.active !== undefined ? record.active : true,
             display_order: record.sort_order,
-            // Price? Modifiers have price overrides usually or base price?
-            // The Entity Modifier has prices_by_size (in group) or quantity_levels.
-            // If simple price:
-            // We might need to handle simple price for modifiers
           });
         }
       }
@@ -304,9 +351,22 @@ export class CSVParser {
 
     return result;
   }
+
+  private static parseCategory(record: Record<string, any>): ParsedCategoryData {
+    return {
+      business_id: record.business_id || record.businessId || '',
+      name: record.name || '',
+      description: record.description,
+      sort_order: record.sort_order ? parseInt(record.sort_order) : 0,
+      is_active:
+        record.is_active !== undefined
+          ? record.is_active === true || record.is_active === 'true'
+          : true,
+    };
+  }
+
   private static parseItem(record: Record<string, any>): ParsedItemData {
     return {
-      item_key: record.item_key || record.itemKey || '',
       business_id: record.business_id || record.businessId || '',
       name: record.name || '',
       description: record.description,
@@ -339,7 +399,8 @@ export class CSVParser {
 
   private static parseItemSize(record: Record<string, any>): ParsedItemSizeData {
     return {
-      item_key: record.item_key || record.itemKey || '',
+      item_name: record.item_name || record.itemName || record.item_key || record.itemKey || '',
+      item_category_name: record.item_category_name || record.itemCategoryName || undefined,
       size_code: record.size_code || record.sizeCode || '',
       name: record.name || '',
       price: parseFloat(record.price) || 0,
@@ -353,11 +414,49 @@ export class CSVParser {
     };
   }
 
+  /** Row has group_key, name, and display_type (or min/max_select) and no modifier_key */
+  private static rowLooksLikeModifierGroup(record: Record<string, any>): boolean {
+    const hasGroupKey = !!(record.group_key || record.groupKey);
+    const hasName = !!(record.name && String(record.name).trim());
+    const hasDisplayType = !!(
+      record.display_type ||
+      record.displayType ||
+      record.min_select !== undefined ||
+      record.minSelect !== undefined ||
+      record.max_select !== undefined ||
+      record.maxSelect !== undefined
+    );
+    return !!(hasGroupKey && hasName && hasDisplayType);
+  }
+
+  /** Row has group_key (or modifier_group_name), name, and modifier_key or max_quantity */
+  private static rowLooksLikeModifierItem(record: Record<string, any>): boolean {
+    const hasGroupRef = !!(
+      record.group_key ||
+      record.groupKey ||
+      record.modifier_group_name ||
+      record.modifierGroupName
+    );
+    const hasName = !!(record.name && String(record.name).trim());
+    // Only consider it a modifier if there's a non-empty modifier_key OR a positive max_quantity
+    const modifierKeyVal = record.modifier_key || record.modifierKey || '';
+    const hasModifierKey = !!String(modifierKeyVal).trim();
+    const maxQtyVal = record.max_quantity ?? record.maxQuantity;
+    const hasPositiveMaxQty =
+      maxQtyVal !== undefined && maxQtyVal !== null && maxQtyVal !== '' && Number(maxQtyVal) > 0;
+    const hasModifierKeyOrQty = hasModifierKey || hasPositiveMaxQty;
+    return !!(hasGroupRef && hasName && hasModifierKeyOrQty);
+  }
+
   private static parseModifierGroup(record: Record<string, any>): ParsedModifierGroupData {
+    const groupKey =
+      record.group_key ?? record.groupKey ?? record['group key'] ?? record['Group Key'] ?? '';
+    const name = record.name ?? record.Name ?? '';
     return {
-      group_key: record.group_key || record.groupKey || '',
+      group_key: String(groupKey).trim(),
       business_id: record.business_id || record.businessId || '',
-      name: record.name || '',
+      name: String(name).trim(),
+      display_name: record.display_name || record.displayName || undefined,
       display_type: (record.display_type || record.displayType || 'RADIO').toUpperCase() as
         | 'RADIO'
         | 'CHECKBOX',
@@ -377,8 +476,13 @@ export class CSVParser {
 
   private static parseModifier(record: Record<string, any>): ParsedModifierData {
     return {
-      group_key: record.group_key || record.groupKey || '',
-      modifier_key: record.modifier_key || record.modifierKey || '',
+      group_key:
+        record.group_key ||
+        record.groupKey ||
+        record.modifier_group_name ||
+        record.modifierGroupName ||
+        '',
+      modifier_key: record.modifier_key || record.modifierKey || record.name || '',
       name: record.name || '',
       is_default:
         record.is_default === true || record.is_default === 'true' || record.is_default === '1',
@@ -395,7 +499,8 @@ export class CSVParser {
     record: Record<string, any>
   ): ParsedItemModifierOverrideData {
     return {
-      item_key: record.item_key || record.itemKey || '',
+      item_name: record.item_name || record.itemName || record.item_key || record.itemKey || '',
+      item_category_name: record.item_category_name || record.itemCategoryName || undefined,
       group_key: record.group_key || record.groupKey || '',
       modifier_key: record.modifier_key || record.modifierKey || '',
       max_quantity: record.max_quantity ? parseInt(record.max_quantity) : undefined,

@@ -1,4 +1,4 @@
-export type ImportSessionStatus = 'draft' | 'validated' | 'confirmed' | 'discarded';
+export type ImportSessionStatus = 'draft' | 'validated' | 'confirmed' | 'discarded' | 'rolled_back';
 
 export interface ImportValidationError {
   file: string;
@@ -19,7 +19,6 @@ export interface ImportValidationWarning {
 }
 
 export interface ParsedItemData {
-  item_key: string;
   business_id: string;
   name: string;
   description?: string;
@@ -38,7 +37,8 @@ export interface ParsedItemData {
 }
 
 export interface ParsedItemSizeData {
-  item_key: string;
+  item_name: string;
+  item_category_name?: string;
   size_code: string;
   name: string;
   price: number;
@@ -51,6 +51,7 @@ export interface ParsedModifierGroupData {
   group_key: string;
   business_id: string;
   name: string;
+  display_name?: string;
   display_type: 'RADIO' | 'CHECKBOX';
   min_select: number;
   max_select: number;
@@ -82,7 +83,8 @@ export interface ParsedModifierData {
 }
 
 export interface ParsedItemModifierOverrideData {
-  item_key: string;
+  item_name: string;
+  item_category_name?: string;
   group_key: string;
   modifier_key: string;
   max_quantity?: number;
@@ -118,15 +120,23 @@ export interface ParsedImportData {
   itemModifierOverrides: ParsedItemModifierOverrideData[];
 }
 
+export interface RollbackOperation {
+  entityType: 'category' | 'item' | 'modifier_group' | 'modifier' | 'item_size';
+  action: 'create' | 'update';
+  id: string; // ID of the entity
+  previousData?: any; // Snapshot of data before update (null for create)
+}
+
 export interface ImportSession {
   id: string;
   user_id: string;
   business_id: string;
-  status: ImportSessionStatus;
+  status: ImportSessionStatus | 'rolled_back';
   parsedData: ParsedImportData;
   validationErrors: ImportValidationError[];
   validationWarnings: ImportValidationWarning[];
   originalFiles: string[]; // File names
+  rollbackData?: RollbackOperation[]; // Operations to reverse
   expires_at: Date;
   created_at: Date;
   updated_at: Date;
@@ -146,4 +156,6 @@ export interface UpdateImportSessionDTO {
   parsedData?: ParsedImportData;
   validationErrors?: ImportValidationError[];
   validationWarnings?: ImportValidationWarning[];
+  originalFiles?: string[];
+  rollbackData?: RollbackOperation[];
 }

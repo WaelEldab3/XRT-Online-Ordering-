@@ -18,6 +18,8 @@ interface FileInputProps {
   error?: string;
   accept?: string; // New prop for custom accept types
   section?: string; // New prop for folder organization
+  /** When true, file is stored in form state and sent with form submit (no immediate /attachments upload). Use for category icon. */
+  skipImmediateUpload?: boolean;
 }
 
 const FileInput = ({
@@ -35,6 +37,7 @@ const FileInput = ({
   error,
   accept,
   section,
+  skipImmediateUpload,
 }: FileInputProps) => {
   return (
     <>
@@ -52,6 +55,7 @@ const FileInput = ({
         render={({ field: { ref, ...rest } }) => (
           <Uploader
             {...rest}
+            name={name}
             multiple={multiple}
             acceptFile={acceptFile}
             helperText={helperText}
@@ -59,6 +63,7 @@ const FileInput = ({
             disabled={disabled}
             accept={accept}
             section={section}
+            skipImmediateUpload={skipImmediateUpload}
           />
         )}
       />

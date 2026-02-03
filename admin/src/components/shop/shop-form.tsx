@@ -171,7 +171,7 @@ const ShopForm = ({ initialValues }: { initialValues?: Shop }) => {
     name: 'settings.shopMaintenance.until',
     control,
   });
-  console.log({ startDate });
+
   const isMaintenanceMode = watch('settings.isShopUnderMaintenance');
 
   const today = new Date();

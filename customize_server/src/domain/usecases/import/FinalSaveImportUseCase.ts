@@ -7,6 +7,7 @@ import { ItemSizeRepository } from '../../../infrastructure/repositories/ItemSiz
 import { ModifierGroupRepository } from '../../../infrastructure/repositories/ModifierGroupRepository';
 import { ModifierRepository } from '../../../infrastructure/repositories/ModifierRepository';
 import { CategoryRepository } from '../../../infrastructure/repositories/CategoryRepository';
+import { KitchenSectionRepository } from '../../../infrastructure/repositories/KitchenSectionRepository';
 
 export class FinalSaveImportUseCase {
   private importSaveService: ImportSaveService;
@@ -17,13 +18,15 @@ export class FinalSaveImportUseCase {
     const modifierGroupRepository = new ModifierGroupRepository();
     const modifierRepository = new ModifierRepository();
     const categoryRepository = new CategoryRepository();
+    const kitchenSectionRepository = new KitchenSectionRepository();
 
     this.importSaveService = new ImportSaveService(
       itemRepository,
       itemSizeRepository,
       modifierGroupRepository,
       modifierRepository,
-      categoryRepository
+      categoryRepository,
+      kitchenSectionRepository
     );
   }
 
@@ -35,15 +38,21 @@ export class FinalSaveImportUseCase {
 
     // Re-validate before saving
     if (session.validationErrors.length > 0) {
-      throw new ValidationError('Cannot save import session with validation errors. Please fix all errors first.');
+      throw new ValidationError(
+        'Cannot save import session with validation errors. Please fix all errors first.'
+      );
     }
 
     // Save all data in transaction
-    await this.importSaveService.saveAll(session.parsedData, session.business_id);
+    const rollbackOps = await this.importSaveService.saveAll(
+      session.parsedData,
+      session.business_id
+    );
 
     // Mark session as confirmed
     await this.importSessionRepository.update(sessionId, user_id, {
       status: 'confirmed',
+      rollbackData: rollbackOps,
     });
   }
 }

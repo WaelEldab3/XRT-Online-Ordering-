@@ -171,8 +171,7 @@ export class UpdateItemUseCase {
       ...itemData,
       image: imageUrl,
       image_public_id: imagePublicId,
-      // Remove sizes array if provided (sizes are now managed separately)
-      sizes: undefined,
+      sizes: itemData.sizes && Array.isArray(itemData.sizes) ? itemData.sizes : undefined,
     };
 
     // Remove undefined fields

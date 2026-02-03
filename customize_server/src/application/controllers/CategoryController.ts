@@ -8,6 +8,7 @@ import { UpdateCategoryUseCase } from '../../domain/usecases/categories/UpdateCa
 import { DeleteCategoryUseCase } from '../../domain/usecases/categories/DeleteCategoryUseCase';
 import { CategoryRepository } from '../../infrastructure/repositories/CategoryRepository';
 import { ItemRepository } from '../../infrastructure/repositories/ItemRepository';
+import { KitchenSectionRepository } from '../../infrastructure/repositories/KitchenSectionRepository';
 import { CloudinaryStorage } from '../../infrastructure/cloudinary/CloudinaryStorage';
 import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
@@ -20,11 +21,13 @@ export class CategoryController {
   private updateCategoryUseCase: UpdateCategoryUseCase;
   private deleteCategoryUseCase: DeleteCategoryUseCase;
   private getCategoryByIdUseCase: GetCategoryByIdUseCase;
+  private kitchenSectionRepository: KitchenSectionRepository;
 
   constructor() {
     const categoryRepository = new CategoryRepository();
     const itemRepository = new ItemRepository();
     const imageStorage = new CloudinaryStorage();
+    this.kitchenSectionRepository = new KitchenSectionRepository();
 
     this.createCategoryUseCase = new CreateCategoryUseCase(categoryRepository, imageStorage);
     this.getCategoriesUseCase = new GetCategoriesUseCase(categoryRepository);
@@ -262,26 +265,13 @@ export class CategoryController {
 
     // Convert to CSV
     const csvRows = [
-      [
-        'name',
-        'description',
-        'details',
-        'is_active',
-        'sort_order',
-        'kitchen_section_id',
-        'language',
-        'icon',
-      ].join(','),
+      ['name', 'description', 'is_active', 'sort_order'].join(','),
       ...categories.map((cat: any) =>
         [
           `"${(cat.name || '').replace(/"/g, '""')}"`,
           `"${(cat.description || '').replace(/"/g, '""')}"`,
-          `"${(cat.details || '').replace(/"/g, '""')}"`,
           cat.is_active,
           cat.sort_order,
-          `"${cat.kitchen_section_id || ''}"`,
-          `"${cat.language || ''}"`,
-          `"${cat.icon || ''}"`,
         ].join(',')
       ),
     ];
@@ -335,14 +325,10 @@ export class CategoryController {
         const categoryData = {
           business_id: business_id!,
           name: record.name,
-          description: record.description || record.details, // Support both columns
-          details: record.details || record.description,
+          description: record.description,
           is_active:
             record.is_active === 'true' || record.is_active === true || record.is_active === '1',
           sort_order: parseInt(record.sort_order || '0'),
-          kitchen_section_id: record.kitchen_section_id,
-          language: record.language || 'en',
-          icon: record.icon,
         };
 
         const existingCategory = existingCategories.find(

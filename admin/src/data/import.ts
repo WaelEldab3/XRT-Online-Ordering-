@@ -3,7 +3,12 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import Router from 'next/router';
 import { API_ENDPOINTS } from './client/api-endpoints';
-import { importClient, ImportSession, ParseImportInput, UpdateImportSessionInput } from './client/import';
+import {
+  importClient,
+  ImportSession,
+  ParseImportInput,
+  UpdateImportSessionInput,
+} from './client/import';
 import { Routes } from '@/config/routes';
 
 export const useParseImportMutation = () => {
@@ -14,7 +19,10 @@ export const useParseImportMutation = () => {
     mutationFn: importClient.parse,
     onSuccess: (data) => {
       const session = (data as any)?.data || data;
-      queryClient.setQueryData([API_ENDPOINTS.IMPORT_SESSION, session.id], session);
+      queryClient.setQueryData(
+        [API_ENDPOINTS.IMPORT_SESSION, session.id],
+        session,
+      );
       toast.success(t('common:successfully-created'));
       Router.push(`${Routes.import.review.replace(':id', session.id)}`);
     },
@@ -25,8 +33,35 @@ export const useParseImportMutation = () => {
   });
 };
 
+export const useAppendImportFileMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      importClient.appendFile(id, file),
+    onSuccess: (data, variables) => {
+      const session = (data as any)?.data || data;
+      queryClient.setQueryData(
+        [API_ENDPOINTS.IMPORT_SESSION, variables.id],
+        session,
+      );
+      toast.success(t('common:append-file-success'));
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || t('common:append-file-failed'),
+      );
+    },
+  });
+};
+
 export const useImportSessionQuery = (id: string) => {
-  const { data, error, isPending: isLoading } = useQuery<ImportSession>({
+  const {
+    data,
+    error,
+    isPending: isLoading,
+  } = useQuery<ImportSession>({
     queryKey: [API_ENDPOINTS.IMPORT_SESSION, id],
     queryFn: () => importClient.getSession(id),
     enabled: !!id,
@@ -40,7 +75,11 @@ export const useImportSessionQuery = (id: string) => {
 };
 
 export const useImportSessionsQuery = (business_id?: string) => {
-  const { data, error, isPending: isLoading } = useQuery<ImportSession[]>({
+  const {
+    data,
+    error,
+    isPending: isLoading,
+  } = useQuery<ImportSession[]>({
     queryKey: [API_ENDPOINTS.IMPORT_SESSIONS, business_id],
     queryFn: () => importClient.listSessions(business_id),
   });
@@ -61,11 +100,16 @@ export const useUpdateImportSessionMutation = () => {
       importClient.updateSession(id, input),
     onSuccess: (data, variables) => {
       const session = (data as any)?.data || data;
-      queryClient.setQueryData([API_ENDPOINTS.IMPORT_SESSION, variables.id], session);
-      toast.success(t('common:successfully-updated'));
+      queryClient.setQueryData(
+        [API_ENDPOINTS.IMPORT_SESSION, variables.id],
+        session,
+      );
+      toast.success(t('common:draft-saved'));
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('common:update-failed'));
+      toast.error(
+        error?.response?.data?.message || t('common:draft-save-failed'),
+      );
     },
   });
 };
@@ -77,10 +121,14 @@ export const useFinalSaveImportMutation = () => {
   return useMutation({
     mutationFn: (id: string) => importClient.finalSave(id),
     onSuccess: (data, id) => {
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.IMPORT_SESSION, id] });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSION, id],
+      });
       queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ITEMS] });
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MODIFIER_GROUPS] });
-      toast.success(t('common:successfully-saved'));
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.MODIFIER_GROUPS],
+      });
+      toast.success(t('common:save-success'));
       Router.push(Routes.item.list);
     },
     onError: (error: any) => {
@@ -96,10 +144,35 @@ export const useDiscardImportSessionMutation = () => {
   return useMutation({
     mutationFn: (id: string) => importClient.discardSession(id),
     onSuccess: (data, id) => {
-      queryClient.removeQueries({ queryKey: [API_ENDPOINTS.IMPORT_SESSION, id] });
-      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.IMPORT_SESSIONS] });
-      toast.success(t('common:successfully-deleted'));
+      queryClient.removeQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSION, id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSIONS],
+      });
+      toast.success(t('common:discard-success'));
       Router.push(Routes.import.list);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t('common:discard-failed'));
+    },
+  });
+};
+
+export const useDeleteImportSessionMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: string) => importClient.deleteSession(id),
+    onSuccess: (data, id) => {
+      queryClient.removeQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSION, id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSIONS],
+      });
+      toast.success(t('common:successfully-deleted'));
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || t('common:delete-failed'));
@@ -123,10 +196,12 @@ export const useDownloadImportErrorsMutation = () => {
       window.URL.revokeObjectURL(url);
     },
     onSuccess: () => {
-      toast.success(t('common:download-successful'));
+      toast.success(t('common:download-errors-success'));
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || t('common:download-failed'));
+      toast.error(
+        error?.response?.data?.message || t('common:download-failed'),
+      );
     },
   });
 };
@@ -140,7 +215,10 @@ export const useImportAttributesMutation = () => {
       importClient.parse({ business_id: shop_id, file: csv }),
     onSuccess: (data) => {
       const session = (data as any)?.data || data;
-      queryClient.setQueryData([API_ENDPOINTS.IMPORT_SESSION, session.id], session);
+      queryClient.setQueryData(
+        [API_ENDPOINTS.IMPORT_SESSION, session.id],
+        session,
+      );
       toast.success(t('common:successfully-created'));
       Router.push(`${Routes.import.review.replace(':id', session.id)}`);
     },
@@ -152,3 +230,53 @@ export const useImportAttributesMutation = () => {
 
 export const useImportProductsMutation = useImportAttributesMutation;
 export const useImportVariationOptionsMutation = useImportAttributesMutation;
+
+export const useRollbackImportSessionMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (id: string) => importClient.rollbackSession(id),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSION, id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSIONS],
+      });
+      // Invalidate entities that might have been affected
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ITEMS] });
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.CATEGORIES] });
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.MODIFIER_GROUPS],
+      });
+
+      toast.success(t('common:rollback-success'));
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || t('common:rollback-failed'),
+      );
+    },
+  });
+};
+
+export const useClearImportHistoryMutation = () => {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (business_id: string) => importClient.clearHistory(business_id),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [API_ENDPOINTS.IMPORT_SESSIONS],
+      });
+      toast.success(t('common:clear-history-success'));
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || t('common:clear-history-failed'),
+      );
+    },
+  });
+};

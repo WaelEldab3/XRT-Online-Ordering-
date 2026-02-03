@@ -100,6 +100,7 @@ export default function Modifiers() {
         onPagination={handlePagination}
         onOrder={setOrder}
         onSort={setColumn}
+        enabledDnD={!searchTerm}
       />
     </>
   );

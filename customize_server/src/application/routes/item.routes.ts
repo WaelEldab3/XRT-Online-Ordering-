@@ -13,6 +13,9 @@ router.use(requireAuth);
 // Sort order update - specific route before generic /:id routes
 router.post('/sort-order', requireAuth, itemController.updateSortOrder);
 
+// Export items - requires items:read permission
+router.get('/export', requirePermission('items:read'), itemController.exportItems);
+
 // Get all items - requires items:read permission
 router.get('/', requirePermission('items:read'), itemController.getAll);
 

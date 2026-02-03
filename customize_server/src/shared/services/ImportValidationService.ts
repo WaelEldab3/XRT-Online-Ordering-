@@ -11,7 +11,8 @@ export class ImportValidationService {
   static validate(
     data: ParsedImportData,
     business_id: string,
-    filename: string = 'import.csv'
+    filename: string = 'import.csv',
+    existingKitchenSectionNames?: Set<string>
   ): {
     errors: ImportValidationError[];
     warnings: ImportValidationWarning[];
@@ -32,7 +33,7 @@ export class ImportValidationService {
             row,
             entity: 'Category',
             field: 'name',
-            message: 'name is required',
+            message: 'Name required',
             value: cat.name,
           });
         } else {
@@ -43,7 +44,7 @@ export class ImportValidationService {
               row,
               entity: 'Category',
               field: 'name',
-              message: `Duplicate category name: ${cat.name}`,
+              message: 'Duplicate name',
               value: cat.name,
             });
           } else {
@@ -58,40 +59,21 @@ export class ImportValidationService {
             row,
             entity: 'Category',
             field: 'business_id',
-            message: `business_id mismatch. Using session business_id: ${business_id}`,
+            message: 'Using current business',
             value: cat.business_id,
           });
         }
       });
     }
 
-    // Validate Items
+    // Helper: composite key for item (name + category_name)
+    const itemCompositeKey = (name: string, categoryName?: string) =>
+      `${(name || '').trim()}|${(categoryName || '').trim()}`;
+
+    // Validate Items (unique by name + category_name)
     const itemKeys = new Set<string>();
     data.items.forEach((item, index) => {
       const row = index + 2; // +2 because CSV has header and is 1-indexed
-
-      // item_key must be unique
-      if (!item.item_key) {
-        errors.push({
-          file: filename,
-          row,
-          entity: 'Item',
-          field: 'item_key',
-          message: 'item_key is required',
-          value: item.item_key,
-        });
-      } else if (itemKeys.has(item.item_key)) {
-        errors.push({
-          file: filename,
-          row,
-          entity: 'Item',
-          field: 'item_key',
-          message: `Duplicate item_key: ${item.item_key}`,
-          value: item.item_key,
-        });
-      } else {
-        itemKeys.add(item.item_key);
-      }
 
       // name is required
       if (!item.name || item.name.trim() === '') {
@@ -100,9 +82,23 @@ export class ImportValidationService {
           row,
           entity: 'Item',
           field: 'name',
-          message: 'name is required',
+          message: 'Name required',
           value: item.name,
         });
+      } else {
+        const key = itemCompositeKey(item.name, item.category_name);
+        if (itemKeys.has(key)) {
+          errors.push({
+            file: filename,
+            row,
+            entity: 'Item',
+            field: 'name',
+            message: 'Duplicate name in same category',
+            value: item.name,
+          });
+        } else {
+          itemKeys.add(key);
+        }
       }
 
       // Business rule: if is_sizeable = false → base_price is required
@@ -113,20 +109,24 @@ export class ImportValidationService {
             row,
             entity: 'Item',
             field: 'base_price',
-            message: 'base_price is required when is_sizeable is false',
+            message: 'Price required',
             value: item.base_price,
           });
         }
       } else {
         // if is_sizeable = true → at least one Item Size is required
-        const itemSizes = data.itemSizes.filter((s) => s.item_key === item.item_key);
+        const itemSizes = data.itemSizes.filter(
+          (s) =>
+            itemCompositeKey(s.item_name, s.item_category_name) ===
+            itemCompositeKey(item.name, item.category_name)
+        );
         if (itemSizes.length === 0) {
           errors.push({
             file: filename,
             row,
             entity: 'Item',
             field: 'is_sizeable',
-            message: `Item with is_sizeable=true must have at least one ItemSize. Found 0 sizes for item_key: ${item.item_key}`,
+            message: 'Add at least one size',
             value: item.is_sizeable,
           });
         }
@@ -140,7 +140,7 @@ export class ImportValidationService {
               row,
               entity: 'Item',
               field: 'default_size_code',
-              message: `default_size_code '${item.default_size_code}' does not exist in ItemSizes for item_key: ${item.item_key}`,
+              message: 'Default size not found',
               value: item.default_size_code,
             });
           }
@@ -154,27 +154,44 @@ export class ImportValidationService {
           row,
           entity: 'Item',
           field: 'business_id',
-          message: `business_id mismatch. Using session business_id: ${business_id}`,
+          message: 'Using current business',
           value: item.business_id,
         });
       }
     });
 
-    // Validate Item Sizes
-    const sizeKeys = new Map<string, Set<string>>(); // item_key -> Set<size_code>
-    const defaultSizes = new Map<string, number>(); // item_key -> count of default sizes
+    // Validate Item Sizes (link by item_name + item_category_name)
+    const sizeKeys = new Map<string, Set<string>>(); // item composite key -> Set<size_code>
+    const defaultSizes = new Map<string, number>(); // item composite key -> count of default sizes
 
     data.itemSizes.forEach((size, index) => {
       const row = index + 2;
 
-      if (!size.item_key) {
+      if (!size.item_name || size.item_name.trim() === '') {
         errors.push({
           file: filename,
           row,
           entity: 'ItemSize',
-          field: 'item_key',
-          message: 'item_key is required',
-          value: size.item_key,
+          field: 'item_name',
+          message: 'Item name required',
+          value: size.item_name,
+        });
+        return;
+      }
+
+      const sizeItemKey = itemCompositeKey(size.item_name, size.item_category_name);
+      // Optionally warn if no matching item in items list
+      const matchingItem = data.items.find(
+        (i) => itemCompositeKey(i.name, i.category_name) === sizeItemKey
+      );
+      if (!matchingItem) {
+        errors.push({
+          file: filename,
+          row,
+          entity: 'ItemSize',
+          field: 'item_name',
+          message: 'Item not found',
+          value: size.item_name,
         });
         return;
       }
@@ -185,24 +202,24 @@ export class ImportValidationService {
           row,
           entity: 'ItemSize',
           field: 'size_code',
-          message: 'size_code is required',
+          message: 'Size code required',
           value: size.size_code,
         });
         return;
       }
 
       // size_code unique per item
-      if (!sizeKeys.has(size.item_key)) {
-        sizeKeys.set(size.item_key, new Set());
+      if (!sizeKeys.has(sizeItemKey)) {
+        sizeKeys.set(sizeItemKey, new Set());
       }
-      const itemSizeCodes = sizeKeys.get(size.item_key)!;
+      const itemSizeCodes = sizeKeys.get(sizeItemKey)!;
       if (itemSizeCodes.has(size.size_code)) {
         errors.push({
           file: filename,
           row,
           entity: 'ItemSize',
           field: 'size_code',
-          message: `Duplicate size_code '${size.size_code}' for item_key: ${size.item_key}`,
+          message: 'Duplicate size code',
           value: size.size_code,
         });
       } else {
@@ -216,7 +233,7 @@ export class ImportValidationService {
           row,
           entity: 'ItemSize',
           field: 'price',
-          message: 'price must be greater than 0',
+          message: 'Enter a positive price',
           value: size.price,
         });
       }
@@ -228,30 +245,32 @@ export class ImportValidationService {
           row,
           entity: 'ItemSize',
           field: 'name',
-          message: 'name is required',
+          message: 'Name required',
           value: size.name,
         });
       }
 
       // Track default sizes
       if (size.is_default) {
-        const count = defaultSizes.get(size.item_key) || 0;
-        defaultSizes.set(size.item_key, count + 1);
+        const count = defaultSizes.get(sizeItemKey) || 0;
+        defaultSizes.set(sizeItemKey, count + 1);
       }
     });
 
     // Validate exactly ONE default size per item
-    defaultSizes.forEach((count, item_key) => {
+    defaultSizes.forEach((count, sizeItemKey) => {
       if (count === 0) {
-        const itemSizes = data.itemSizes.filter((s) => s.item_key === item_key);
+        const itemSizes = data.itemSizes.filter(
+          (s) => itemCompositeKey(s.item_name, s.item_category_name) === sizeItemKey
+        );
         if (itemSizes.length > 0) {
           warnings.push({
             file: filename,
             row: 0, // General warning
             entity: 'ItemSize',
             field: 'is_default',
-            message: `No default size set for item_key: ${item_key}. First size will be used as default.`,
-            value: item_key,
+            message: 'No default size; first will be used',
+            value: sizeItemKey,
           });
         }
       } else if (count > 1) {
@@ -260,8 +279,8 @@ export class ImportValidationService {
           row: 0,
           entity: 'ItemSize',
           field: 'is_default',
-          message: `Multiple default sizes found for item_key: ${item_key}. Exactly one default size is required.`,
-          value: item_key,
+          message: 'Set exactly one default size',
+          value: sizeItemKey,
         });
       }
     });
@@ -278,7 +297,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'group_key',
-          message: 'group_key is required',
+          message: 'Group key required',
           value: group.group_key,
         });
       } else if (groupKeys.has(group.group_key)) {
@@ -287,7 +306,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'group_key',
-          message: `Duplicate group_key: ${group.group_key}`,
+          message: 'Duplicate group key',
           value: group.group_key,
         });
       } else {
@@ -301,7 +320,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'name',
-          message: 'name is required',
+          message: 'Name required',
           value: group.name,
         });
       }
@@ -313,7 +332,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'min_select',
-          message: `min_select (${group.min_select}) must be less than or equal to max_select (${group.max_select})`,
+          message: 'Min must be ≤ max',
           value: group.min_select,
         });
       }
@@ -325,7 +344,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'display_type',
-          message: `display_type must be 'RADIO' or 'CHECKBOX'`,
+          message: 'Use RADIO or CHECKBOX',
           value: group.display_type,
         });
       }
@@ -338,7 +357,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'max_select',
-          message: `max_select (${group.max_select}) is greater than number of modifiers (${groupModifiers.length})`,
+          message: 'Max select exceeds modifier count',
           value: group.max_select,
         });
       }
@@ -350,7 +369,7 @@ export class ImportValidationService {
           row,
           entity: 'ModifierGroup',
           field: 'business_id',
-          message: `business_id mismatch. Using session business_id: ${business_id}`,
+          message: 'Using current business',
           value: group.business_id,
         });
       }
@@ -367,7 +386,7 @@ export class ImportValidationService {
           row,
           entity: 'Modifier',
           field: 'group_key',
-          message: 'group_key is required',
+          message: 'Group key required',
           value: modifier.group_key,
         });
         return;
@@ -385,7 +404,7 @@ export class ImportValidationService {
             row,
             entity: 'Modifier',
             field: 'modifier_key',
-            message: `Duplicate modifier_key '${modifier.modifier_key}' in group_key: ${modifier.group_key}`,
+            message: 'Duplicate modifier in group',
             value: modifier.modifier_key,
           });
         } else {
@@ -400,7 +419,7 @@ export class ImportValidationService {
           row,
           entity: 'Modifier',
           field: 'name',
-          message: 'name is required',
+          message: 'Name required',
           value: modifier.name,
         });
       }
@@ -412,7 +431,7 @@ export class ImportValidationService {
           row,
           entity: 'Modifier',
           field: 'max_quantity',
-          message: 'max_quantity must be greater than or equal to 1',
+          message: 'Max quantity at least 1',
           value: modifier.max_quantity,
         });
       }
@@ -425,7 +444,7 @@ export class ImportValidationService {
           row,
           entity: 'Modifier',
           field: 'group_key',
-          message: `ModifierGroup with group_key '${modifier.group_key}' not found`,
+          message: 'Group not found',
           value: modifier.group_key,
         });
       }
@@ -435,26 +454,30 @@ export class ImportValidationService {
     data.itemModifierOverrides.forEach((override, index) => {
       const row = index + 2;
 
-      if (!override.item_key) {
+      if (!override.item_name || override.item_name.trim() === '') {
         errors.push({
           file: filename,
           row,
           entity: 'ItemModifierOverride',
-          field: 'item_key',
-          message: 'item_key is required',
-          value: override.item_key,
+          field: 'item_name',
+          message: 'Item name required',
+          value: override.item_name,
         });
       } else {
         // Validate item exists
-        const itemExists = data.items.some((i) => i.item_key === override.item_key);
+        const itemExists = data.items.some(
+          (i) =>
+            itemCompositeKey(i.name, i.category_name) ===
+            itemCompositeKey(override.item_name, override.item_category_name)
+        );
         if (!itemExists) {
           errors.push({
             file: filename,
             row,
             entity: 'ItemModifierOverride',
-            field: 'item_key',
-            message: `Item with item_key '${override.item_key}' not found`,
-            value: override.item_key,
+            field: 'item_name',
+            message: 'Item not found',
+            value: override.item_name,
           });
         }
       }
@@ -465,7 +488,7 @@ export class ImportValidationService {
           row,
           entity: 'ItemModifierOverride',
           field: 'group_key',
-          message: 'group_key is required',
+          message: 'Group key required',
           value: override.group_key,
         });
       } else {
@@ -477,7 +500,7 @@ export class ImportValidationService {
             row,
             entity: 'ItemModifierOverride',
             field: 'group_key',
-            message: `ModifierGroup with group_key '${override.group_key}' not found`,
+            message: 'Group not found',
             value: override.group_key,
           });
         }
@@ -489,7 +512,7 @@ export class ImportValidationService {
           row,
           entity: 'ItemModifierOverride',
           field: 'modifier_key',
-          message: 'modifier_key is required',
+          message: 'Modifier key required',
           value: override.modifier_key,
         });
       } else {
@@ -503,7 +526,7 @@ export class ImportValidationService {
             row,
             entity: 'ItemModifierOverride',
             field: 'modifier_key',
-            message: `Modifier with modifier_key '${override.modifier_key}' not found in group_key: ${override.group_key}`,
+            message: 'Modifier not found in group',
             value: override.modifier_key,
           });
         }
@@ -511,7 +534,11 @@ export class ImportValidationService {
 
       // Validate size_code exists for item (if prices_by_size provided)
       if (override.prices_by_size && override.prices_by_size.length > 0) {
-        const itemSizes = data.itemSizes.filter((s) => s.item_key === override.item_key);
+        const itemSizes = data.itemSizes.filter(
+          (s) =>
+            itemCompositeKey(s.item_name, s.item_category_name) ===
+            itemCompositeKey(override.item_name, override.item_category_name)
+        );
         const itemSizeCodes = new Set(itemSizes.map((s) => s.size_code));
 
         override.prices_by_size.forEach((priceOverride) => {
@@ -521,7 +548,7 @@ export class ImportValidationService {
               row,
               entity: 'ItemModifierOverride',
               field: 'prices_by_size',
-              message: `sizeCode '${priceOverride.sizeCode}' does not exist in ItemSizes for item_key: ${override.item_key}`,
+              message: 'Size not found for item',
               value: priceOverride.sizeCode,
             });
           }

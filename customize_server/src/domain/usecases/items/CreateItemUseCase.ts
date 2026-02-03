@@ -138,8 +138,7 @@ export class CreateItemUseCase {
       is_active: itemData.is_active ?? true,
       is_available: itemData.is_available ?? true,
       is_signature: itemData.is_signature ?? false,
-      // Remove sizes array if provided (sizes are now managed separately)
-      sizes: undefined,
+      sizes: itemData.sizes && Array.isArray(itemData.sizes) ? itemData.sizes : undefined,
     };
 
     // Remove undefined fields

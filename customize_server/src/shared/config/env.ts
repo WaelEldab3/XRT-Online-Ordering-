@@ -57,12 +57,3 @@ export const env = {
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
-
-// if (process.env.NODE_ENV === 'production') {
-//   requiredEnvVars.forEach((varName) => {
-//     if (!process.env[varName] && !process.env[varName.replace('MONGO_URI', 'MONGODB_URI')]) {
-//       console.warn(`WARNING: Missing environment variable: ${varName}`);
-//       // throw new Error(`Missing required environment variable: ${varName}`);
-//     }
-//   });
-// }

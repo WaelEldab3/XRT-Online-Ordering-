@@ -18,12 +18,12 @@ export const ImportValidationError = {
           },
           field: {
             type: 'string',
-            example: 'item_key',
+            example: 'item_name',
             description: 'Field name with the error',
           },
           message: {
             type: 'string',
-            example: 'item_key is required',
+            example: 'Item name required',
             description: 'Error message',
           },
           value: {

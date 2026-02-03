@@ -20,6 +20,13 @@ const Axios = axios.create({
 Axios.interceptors.request.use((config) => {
   const { token } = getAuthCredentials();
 
+  // When sending FormData, let the browser set Content-Type with boundary (do not use application/json)
+  if (config.data instanceof FormData) {
+    const headers = { ...config.headers };
+    delete headers['Content-Type'];
+    config.headers = headers as any;
+  }
+
   // Don't add Authorization header for auth endpoints (login, register, etc.)
   const isAuthEndpoint =
     config.url?.includes('/auth/login') ||

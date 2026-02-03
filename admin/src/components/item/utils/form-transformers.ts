@@ -193,7 +193,10 @@ export const buildCreateItemInput = (
     is_sizeable: values.is_sizeable ?? false,
     is_customizable: values.is_customizable ?? false,
     default_size_id: values.is_sizeable ? values.default_size_id : null,
-    sizes: undefined,
+    sizes:
+      values.is_sizeable && values.sizes?.length
+        ? (values.sizes as any)
+        : undefined,
     modifier_groups: modifierGroupsForBackend || values.modifier_groups,
     image: values.image,
     business_id: shopId,

@@ -4,7 +4,7 @@ export interface ImportSession {
   id: string;
   user_id: string;
   business_id: string;
-  status: 'draft' | 'validated' | 'confirmed' | 'discarded';
+  status: 'draft' | 'validated' | 'confirmed' | 'discarded' | 'rolled_back';
   parsedData: {
     categories?: any[];
     items: any[];
@@ -52,13 +52,23 @@ export const importClient = {
     if (input.business_id) {
       formData.append('business_id', input.business_id);
     }
+    // Content-Type is omitted by http-client when data is FormData so browser sets multipart/form-data with boundary
     const response = await HttpClient.post<{
       success: boolean;
       data: ImportSession;
       message: string;
-    }>('import/parse', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    }>('import/parse', formData);
+    return response?.data || response;
+  },
+
+  appendFile: async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await HttpClient.post<{
+      success: boolean;
+      data: ImportSession;
+      message: string;
+    }>(`import/sessions/${id}/append`, formData);
     return response?.data || response;
   },
 
@@ -98,6 +108,14 @@ export const importClient = {
   },
 
   discardSession: async (id: string) => {
+    const response = await HttpClient.post<{
+      success: boolean;
+      message: string;
+    }>(`import/sessions/${id}/discard`, {});
+    return response;
+  },
+
+  deleteSession: async (id: string) => {
     const response = await HttpClient.delete<{
       success: boolean;
       message: string;
@@ -110,5 +128,21 @@ export const importClient = {
       responseType: 'blob',
     });
     return response as Blob;
+  },
+
+  rollbackSession: async (id: string) => {
+    const response = await HttpClient.post<{
+      success: boolean;
+      message: string;
+    }>(`import/sessions/${id}/rollback`, {});
+    return response;
+  },
+
+  clearHistory: async (business_id: string) => {
+    const response = await HttpClient.delete<{
+      success: boolean;
+      message: string;
+    }>(`import/sessions?business_id=${business_id}`);
+    return response;
   },
 };

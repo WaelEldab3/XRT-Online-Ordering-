@@ -46,6 +46,15 @@ export class BusinessRepository implements IBusinessRepository {
     return businessDoc ? this.toDomain(businessDoc) : null;
   }
 
+  /** First business by _id (bypasses isActive filter) - for import when system has one business */
+  async findOneForImport(): Promise<Business | null> {
+    const docs = await BusinessModel.aggregate([{ $sort: { _id: 1 } }, { $limit: 1 }]);
+    const raw = docs[0];
+    if (!raw) return null;
+    const businessDoc = { ...raw, owner: raw.owner?.toString?.() ?? raw.owner };
+    return this.toDomain(businessDoc as BusinessDocument);
+  }
+
   async update(id: string, businessData: UpdateBusinessDTO): Promise<Business> {
     const businessDoc = await BusinessModel.findOneAndUpdate({ _id: id }, businessData, {
       new: true,

@@ -11,6 +11,9 @@ router.use(requireAuth);
 // Sort order update - specific route before generic /:id routes
 router.post('/sort-order', requireAuth, itemSizeController.updateSortOrder);
 
+// Export sizes - requires items:read permission
+router.get('/export', requirePermission('items:read'), itemSizeController.exportSizes);
+
 // Get all sizes (Global per business)
 router.get(
   '/', // Was /:itemId/sizes - now mounted at /api/sizes likely, or need to check mount point

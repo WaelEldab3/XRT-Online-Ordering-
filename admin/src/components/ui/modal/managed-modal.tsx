@@ -42,6 +42,15 @@ const CategoryDeleteView = dynamic(
 const ImportCategories = dynamic(
   () => import('@/components/category/import-categories'),
 );
+const ImportSessionDeleteView = dynamic(
+  () => import('@/components/import/import-session-delete-view'),
+);
+const RollbackImportSessionView = dynamic(
+  () => import('@/components/import/import-session-rollback-view'),
+);
+const ClearImportHistoryView = dynamic(
+  () => import('@/components/import/import-history-clear-view'),
+);
 const CouponDeleteView = dynamic(
   () => import('@/components/coupon/coupon-delete-view'),
 );
@@ -235,6 +244,12 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <CategoryDeleteView />;
     case 'IMPORT_CATEGORIES':
       return <ImportCategories />;
+    case 'DELETE_IMPORT_SESSION':
+      return <ImportSessionDeleteView />;
+    case 'ROLLBACK_IMPORT_SESSION':
+      return <RollbackImportSessionView />;
+    case 'CLEAR_IMPORT_HISTORY':
+      return <ClearImportHistoryView />;
     case 'TOGGLE_CATEGORY_STATUS':
       return <CategoryToggleView />;
     case 'DELETE_MODIFIER_GROUP':

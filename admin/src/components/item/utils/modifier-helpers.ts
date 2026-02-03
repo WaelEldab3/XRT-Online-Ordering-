@@ -75,17 +75,6 @@ export const filterSizeRelatedGroups = (modifierGroupsRaw: any[]): any[] => {
     const isSizeGroup = isSizeGroupByName || isSizeGroupByModifiers;
 
     if (isSizeGroup) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          '🚫 Filtered out size-related modifier group:',
-          group.name,
-          {
-            byName: isSizeGroupByName,
-            byModifiers: isSizeGroupByModifiers,
-            modifiers: group.modifiers?.map((m: any) => m.name),
-          },
-        );
-      }
       return false;
     }
 
@@ -150,15 +139,6 @@ export const filterGroupsByModifiers = (
       });
 
       if (allModifiersAreSizes && groupModifiers.length >= 2) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(
-            '🚫 Filtered out size-related modifier group (by modifiers):',
-            group.name,
-            {
-              modifiers: groupModifiers.map((m: any) => m.name),
-            },
-          );
-        }
         return false;
       }
     }

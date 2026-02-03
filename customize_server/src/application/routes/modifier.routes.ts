@@ -16,6 +16,13 @@ router.post(
   modifierController.updateSortOrder
 );
 
+// Export modifiers
+router.get(
+  '/modifiers/export',
+  requirePermission('modifiers:read'),
+  modifierController.exportModifiers
+);
+
 // Get all modifiers - requires modifiers:read permission
 router.get('/modifiers', requirePermission('modifiers:read'), modifierController.index);
 

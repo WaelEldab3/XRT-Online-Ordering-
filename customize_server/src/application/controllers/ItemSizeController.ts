@@ -54,10 +54,14 @@ export class ItemSizeController {
   });
 
   getAll = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const business_id = req.user?.business_id;
+    // Use user's business_id when set, otherwise allow query param (e.g. admin sending business_id)
+    const business_id =
+      (req.user as any)?.business_id ||
+      (req.query.business_id as string) ||
+      undefined;
 
     const filters: ItemSizeFilters = {
-      business_id: business_id,
+      business_id: business_id || undefined,
       is_active: req.query.is_active ? req.query.is_active === 'true' : undefined,
     };
 
@@ -121,5 +125,35 @@ export class ItemSizeController {
     await repo.updateSortOrder(items);
 
     return sendSuccess(res, 'Item size sort order updated successfully');
+  });
+
+  exportSizes = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const business_id = req.user?.business_id;
+
+    const filters: ItemSizeFilters = {
+      business_id: business_id,
+    };
+
+    const result = await this.getItemSizesUseCase.execute(filters);
+    const sizes = Array.isArray(result) ? result : [];
+
+    // Convert to CSV
+    const csvRows = [
+      ['name', 'code', 'display_order', 'is_active'].join(','),
+      ...sizes.map((size: any) =>
+        [
+          `"${(size.name || '').replace(/"/g, '""')}"`,
+          `"${(size.code || '').replace(/"/g, '""')}"`,
+          size.display_order || 0,
+          size.is_active,
+        ].join(',')
+      ),
+    ];
+
+    const csvContent = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="sizes-export.csv"`);
+    res.send(csvContent);
   });
 }

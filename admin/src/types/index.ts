@@ -275,6 +275,15 @@ export interface Category {
   modifier_groups?: any[];
 }
 
+export interface KitchenSection {
+  id: string;
+  name: string;
+  business_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Attribute {
   id: string;
   name: string;

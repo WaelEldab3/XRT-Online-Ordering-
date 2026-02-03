@@ -17,39 +17,33 @@ router.post(
 );
 
 // Get import session
-router.get(
-  '/sessions/:id',
-  importController.getSession
-);
+router.get('/sessions/:id', importController.getSession);
 
 // List import sessions
-router.get(
-  '/sessions',
-  importController.listSessions
-);
+router.get('/sessions', importController.listSessions);
 
 // Update import session (save draft)
-router.put(
-  '/sessions/:id',
-  importController.updateSession
-);
+router.put('/sessions/:id', importController.updateSession);
+
+// Append file to session
+router.post('/sessions/:id/append', upload.single('file'), importController.appendFile);
 
 // Final save to database
-router.post(
-  '/sessions/:id/save',
-  importController.finalSave
-);
+router.post('/sessions/:id/save', importController.finalSave);
 
 // Discard import session
-router.delete(
-  '/sessions/:id',
-  importController.discardSession
-);
+router.post('/sessions/:id/discard', importController.discardSession);
+
+// Delete import session
+router.delete('/sessions/:id', importController.deleteSession);
 
 // Download errors as CSV
-router.get(
-  '/sessions/:id/errors',
-  importController.downloadErrors
-);
+router.get('/sessions/:id/errors', importController.downloadErrors);
+
+// Rollback import session
+router.post('/sessions/:id/rollback', importController.rollbackSession);
+
+// Clear import history
+router.delete('/sessions', importController.clearHistory);
 
 export default router;

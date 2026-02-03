@@ -14,6 +14,7 @@ import {
 import { Routes } from '@/config/routes';
 import SwitchInput from '@/components/ui/switch-input';
 import { ItemSize } from '@/data/client/item-size';
+import { toast } from 'react-toastify';
 
 interface FormValues {
   name: string;
@@ -31,9 +32,10 @@ const itemSizeValidationSchema = yup.object().shape({
 
 type Props = {
   initialValues?: ItemSize;
+  businessId?: string | null;
 };
 
-export default function ItemSizeForm({ initialValues }: Props) {
+export default function ItemSizeForm({ initialValues, businessId }: Props) {
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -73,11 +75,15 @@ export default function ItemSizeForm({ initialValues }: Props) {
         },
       );
     } else {
-      // Create - need business_id from settings or default
+      // Create - use business_id from URL/first business
+      if (!businessId) {
+        toast.error(t('form:select-shop-or-save-first') || 'Create a business first to add global sizes.');
+        return;
+      }
       createItemSize(
         {
           ...values,
-          business_id: 'default', // This should come from settings
+          business_id: businessId,
         },
         {
           onSuccess: () => {

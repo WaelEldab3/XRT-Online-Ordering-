@@ -51,6 +51,7 @@ import { SortableList } from '@/components/ui/sortable-list';
 import { useMutation } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/data/client/api-endpoints';
 import { HttpClient } from '@/data/client/http-client';
+import { toast } from 'react-toastify';
 
 export type IProps = {
   modifiers: Modifier[] | undefined;
@@ -134,6 +135,9 @@ const ModifierList = ({
       // Construct URL
       const url = `${API_ENDPOINTS.MODIFIER_GROUPS}/${groupId}/modifiers/sort-order`;
       return HttpClient.post(url, { items: newItems });
+    },
+    onSuccess: () => {
+      toast.success(t('common:successfully-updated'));
     },
     onError: (error) => {
       console.error('Failed to update sort order', error);

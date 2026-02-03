@@ -171,7 +171,8 @@ export default function CreateOrUpdateModifierForm({
     formState: { errors },
   } = methods;
 
-  const { sizes: itemSizes } = useItemSizesQuery();
+  const businessId = (modifierGroup as any)?.business_id;
+  const { sizes: itemSizes } = useItemSizesQuery(businessId);
 
   const {
     fields: quantityLevelFields,

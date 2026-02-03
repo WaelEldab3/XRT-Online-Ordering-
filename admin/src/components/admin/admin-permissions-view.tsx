@@ -9,21 +9,17 @@ const AdminPermissionsView = () => {
   const { data: user, isLoading } = useUserQuery({ id: userId });
   const userData = user as any;
 
-  console.log('AdminPermissionsView - userId:', userId);
-  console.log('AdminPermissionsView - user data:', user);
-  console.log('AdminPermissionsView - isLoading:', isLoading);
-
   if (isLoading) return <Loader text={t('common:text-loading')} />;
 
   // Get permissions from user data
   const directPermissions = userData?.permissions || [];
 
-  console.log('AdminPermissionsView - directPermissions:', directPermissions);
-
   // Handle both string permissions and object permissions with name property
   const normalizePermissions = (permissions: any[]) => {
-    const normalized = permissions.map(p => typeof p === 'string' ? p : (p as any)?.name).filter(Boolean);
-    console.log('AdminPermissionsView - normalized permissions:', normalized);
+    const normalized = permissions
+      .map((p) => (typeof p === 'string' ? p : (p as any)?.name))
+      .filter(Boolean);
+
     return normalized;
   };
 

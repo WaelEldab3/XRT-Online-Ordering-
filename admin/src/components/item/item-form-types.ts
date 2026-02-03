@@ -14,6 +14,8 @@ export const DEFAULT_QUANTITY_LEVELS = [
 
 export type ItemFormProps = {
   initialValues?: Item | null;
+  /** When creating from a page that already has shop context (e.g. create item page), pass so sizes can be managed immediately. */
+  initialShopId?: string | null;
 };
 
 export type FormValues = {

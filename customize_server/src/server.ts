@@ -26,6 +26,7 @@ import itemSizeRoutes from './application/routes/item-size.routes';
 import importRoutes from './application/routes/import.routes';
 import permissionRoutes from './application/routes/permission.routes';
 import priceRoutes from './application/routes/price.routes';
+import kitchenSectionRoutes from './application/routes/kitchen-section.routes';
 import { env } from './shared/config/env';
 import { logger } from './shared/utils/logger';
 // Import swagger config - using relative path from src to config directory
@@ -37,8 +38,26 @@ const app: Express = express();
 // Database connection will be established in startServer function
 
 // Global middlewares
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Skip body parsing for attachments and import routes so Multer can handle multipart/form-data
+const skipBodyParsing = (req: express.Request) =>
+  req.path.startsWith('/attachments') ||
+  req.originalUrl.includes('/attachments') ||
+  req.path.startsWith('/import') ||
+  req.originalUrl.includes('/import');
+
+app.use((req, res, next) => {
+  if (skipBodyParsing(req)) {
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (skipBodyParsing(req)) {
+    return next();
+  }
+  express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+});
 app.use(cookieParser());
 app.use(corsMiddleware);
 app.use(securityMiddleware);
@@ -102,12 +121,19 @@ app.use(`${env.API_BASE_URL}/settings`, settingsRoutes);
 app.use(`${env.API_BASE_URL}/roles`, roleRoutes);
 app.use(`${env.API_BASE_URL}/permissions`, permissionRoutes);
 app.use(`${env.API_BASE_URL}/withdraws`, withdrawRoutes);
-app.use(`${env.API_BASE_URL}/attachments`, attachmentRoutes);
+app.use(
+  `${env.API_BASE_URL}/attachments`,
+  (req, res, next) => {
+    next();
+  },
+  attachmentRoutes
+);
 app.use(`${env.API_BASE_URL}/items`, itemRoutes);
 app.use(`${env.API_BASE_URL}/sizes`, itemSizeRoutes); // Nested routes for item sizes
 app.use(`${env.API_BASE_URL}/customers`, customerRoutes);
 app.use(`${env.API_BASE_URL}/modifier-groups`, modifierGroupRoutes);
 app.use(`${env.API_BASE_URL}/import`, importRoutes);
+app.use(`${env.API_BASE_URL}/kitchen-sections`, kitchenSectionRoutes);
 app.use(`${env.API_BASE_URL}`, modifierRoutes);
 app.use(`${env.API_BASE_URL}/prices`, priceRoutes);
 app.use(`${env.API_BASE_URL}`, mockRoutes);

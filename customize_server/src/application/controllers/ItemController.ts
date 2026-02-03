@@ -60,6 +60,7 @@ export class ItemController {
       is_sizeable,
       is_customizable,
       default_size_id,
+      sizes,
       modifier_groups,
     } = req.body;
 
@@ -75,6 +76,16 @@ export class ItemController {
           typeof modifier_groups === 'string' ? JSON.parse(modifier_groups) : modifier_groups;
       } catch (error) {
         throw new ValidationError('Invalid modifier_groups format. Expected JSON array.');
+      }
+    }
+
+    // Parse sizes if it's a string (common in form data)
+    let parsedSizes = undefined;
+    if (sizes) {
+      try {
+        parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+      } catch (error) {
+        throw new ValidationError('Invalid sizes format. Expected JSON array.');
       }
     }
 
@@ -99,6 +110,7 @@ export class ItemController {
               ? is_customizable === 'true' || is_customizable === true
               : undefined,
           default_size_id: default_size_id || undefined,
+          sizes: Array.isArray(parsedSizes) ? parsedSizes : undefined,
           modifier_groups: parsedModifierGroups,
         },
         req.files as { [fieldname: string]: Express.Multer.File[] }
@@ -209,6 +221,15 @@ export class ItemController {
     }
     if (default_size_id !== undefined) updateData.default_size_id = default_size_id || null;
     if (parsedModifierGroups !== undefined) updateData.modifier_groups = parsedModifierGroups;
+    if (req.body.sizes !== undefined) {
+      try {
+        const parsed =
+          typeof req.body.sizes === 'string' ? JSON.parse(req.body.sizes) : req.body.sizes;
+        updateData.sizes = Array.isArray(parsed) ? parsed : undefined;
+      } catch {
+        updateData.sizes = undefined;
+      }
+    }
 
     const item = await this.updateItemUseCase.execute(
       id,
@@ -256,5 +277,59 @@ export class ItemController {
     await repo.updateSortOrder(items);
 
     return sendSuccess(res, 'Item sort order updated successfully');
+  });
+
+  exportItems = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const category_id = req.query.category_id as string | undefined;
+
+    // Get all items without business filter for now since items are linked via category
+    const filters: any = {
+      page: 1,
+      limit: 1000,
+      orderBy: 'sort_order',
+      sortedBy: 'asc' as const,
+      category_id,
+    };
+
+    const result = await this.getItemsUseCase.execute(filters);
+    const items = result.items || [];
+
+    // Convert to CSV
+    const csvRows = [
+      [
+        'name',
+        'description',
+        'base_price',
+        'is_active',
+        'is_available',
+        'is_signature',
+        'is_sizeable',
+        'is_customizable',
+        'sort_order',
+        'category_name',
+        'max_per_order',
+      ].join(','),
+      ...items.map((item: any) =>
+        [
+          `"${(item.name || '').replace(/"/g, '""')}"`,
+          `"${(item.description || '').replace(/"/g, '""')}"`,
+          item.base_price || 0,
+          item.is_active,
+          item.is_available,
+          item.is_signature,
+          item.is_sizeable,
+          item.is_customizable,
+          item.sort_order,
+          `"${item.category?.name || ''}"`,
+          item.max_per_order || '',
+        ].join(',')
+      ),
+    ];
+
+    const csvContent = csvRows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="items-export.csv"`);
+    res.send(csvContent);
   });
 }

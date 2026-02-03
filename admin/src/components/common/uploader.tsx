@@ -1,5 +1,5 @@
 import { UploadIcon } from '@/components/icons/upload-icon';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Attachment } from '@/types';
 import { CloseIcon } from '@/components/icons/close-icon';
@@ -31,11 +31,42 @@ export default function Uploader({
   accept,
   section,
   name,
+  skipImmediateUpload = false,
 }: any) {
   const { t } = useTranslation();
-  const [files, setFiles] = useState<Attachment[]>(getPreviewImage(value));
+  const [files, setFiles] = useState<Attachment[]>(() => {
+    if (skipImmediateUpload && value instanceof File) {
+      return [{ thumbnail: URL.createObjectURL(value), original: URL.createObjectURL(value), id: 'local', file: value }];
+    }
+    return getPreviewImage(value);
+  });
+  const objectUrlRef = useRef<string[]>([]);
   const { mutate: upload, isPending: loading } = useUploadMutation();
   const [error, setError] = useState<string | null>(null);
+
+  // Sync value from form (existing URL from API or File when skipImmediateUpload)
+  useEffect(() => {
+    if (value instanceof File) {
+      const url = URL.createObjectURL(value);
+      objectUrlRef.current.push(url);
+      setFiles([{ thumbnail: url, original: url, id: 'local', file_name: value.name, file: value } as any]);
+      return () => {
+        URL.revokeObjectURL(url);
+        objectUrlRef.current = objectUrlRef.current.filter((u) => u !== url);
+      };
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof File)) {
+      setFiles(getPreviewImage(value));
+      return;
+    }
+    if (Array.isArray(value) && value.length > 0) {
+      setFiles(getPreviewImage(value));
+      return;
+    }
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      setFiles([]);
+    }
+  }, [value, skipImmediateUpload]);
 
   // Helper to convert HTML accept string to react-dropzone object
   const resolveAccept = () => {
@@ -65,92 +96,85 @@ export default function Uploader({
     multiple,
     onDrop: async (acceptedFiles) => {
       if (acceptedFiles.length) {
+        if (skipImmediateUpload) {
+          setError(null);
+          const file = acceptedFiles[0];
+          const url = URL.createObjectURL(file);
+          objectUrlRef.current.push(url);
+          setFiles([{ thumbnail: url, original: url, id: 'local', file_name: file.name, file } as any]);
+          onChange(multiple ? acceptedFiles : file);
+          return;
+        }
         upload(
-          { files: acceptedFiles, section, field: name }, // Pass name as field to identify 'icon'
+          { files: acceptedFiles, section, field: name },
           {
             onSuccess: (data: any) => {
-              // Handle response structure - data might be in data.data or just data
-              const filesData = data?.data || data || [];
-              
-              // Process Digital File Name section
-              filesData &&
-                filesData?.map((file: any, idx: any) => {
-                  // Ensure we have the correct structure
-                  if (!file.thumbnail && !file.original) {
-                    console.warn('Upload response missing thumbnail/original:', file);
-                    return;
-                  }
-                  
-                  // Extract filename from URL - Cloudinary URLs might have format like:
-                  // https://res.cloudinary.com/.../v1234567890/folder/filename.ext
-                  // or just the filename without extension
-                  let filename = '';
-                  let fileType = '';
-                  
-                  // Use original URL for extraction, fallback to thumbnail
-                  const urlToParse = file.original || file.thumbnail || '';
-                  
-                  if (urlToParse) {
-                    const urlParts = urlToParse.split('/');
-                    const lastPart = urlParts[urlParts.length - 1];
-                    
-                    // Check if last part has extension
-                    if (lastPart.includes('.')) {
-                      const parts = lastPart.split('.');
-                      fileType = parts.pop()?.toLowerCase() || '';
-                      filename = parts.join('.');
-                    } else {
-                      // No extension in URL, try to get from public_id or use a default
-                      filename = lastPart || file.id || 'uploaded-file';
-                      // Try to detect type from URL path
-                      const urlLower = urlToParse.toLowerCase();
-                      if (urlLower.includes('.svg') || urlLower.includes('/svg')) {
-                        fileType = 'svg';
-                      } else if (urlLower.includes('.png') || urlLower.includes('/png')) {
-                        fileType = 'png';
-                      } else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('/jpg') || urlLower.includes('/jpeg')) {
-                        fileType = 'jpg';
-                      } else if (urlLower.includes('.webp') || urlLower.includes('/webp')) {
-                        fileType = 'webp';
-                      } else if (urlLower.includes('.gif') || urlLower.includes('/gif')) {
-                        fileType = 'gif';
-                      }
-                    }
-                  }
-                  
-                  // Set file_name if we have both filename and type
-                  if (filename && fileType) {
-                    filesData[idx]['file_name'] = `${filename}.${fileType}`;
-                  } else if (filename) {
-                    filesData[idx]['file_name'] = filename;
-                  } else if (file.id) {
-                    filesData[idx]['file_name'] = file.id;
-                  }
-                  
-                  // Ensure thumbnail and original are set (use original if thumbnail is missing)
-                  if (!filesData[idx]['thumbnail'] && filesData[idx]['original']) {
-                    filesData[idx]['thumbnail'] = filesData[idx]['original'];
-                  }
-                  if (!filesData[idx]['original'] && filesData[idx]['thumbnail']) {
-                    filesData[idx]['original'] = filesData[idx]['thumbnail'];
-                  }
-                });
+              // Normalize response: backend may return { data: [...] } or { data: {...} } or [...]
+              const raw = data?.data !== undefined ? data.data : data;
+              const filesData = Array.isArray(raw)
+                ? raw
+                : raw && typeof raw === 'object' && (raw.thumbnail || raw.original || raw.path)
+                  ? [raw]
+                  : [];
 
-              let mergedData;
-              if (multiple) {
-                mergedData = files.concat(filesData);
-                setFiles(files.concat(filesData));
-              } else {
-                mergedData = filesData[0] || filesData;
-                setFiles(Array.isArray(filesData) ? filesData : [filesData]);
+              if (filesData.length === 0) {
+                console.warn('Upload response had no attachment data:', data);
+                return;
               }
+
+              // Process each file: ensure thumbnail/original/id and file_name
+              const processed = filesData.map((file: any) => {
+                const thumbnail = file.thumbnail || file.original || file.path;
+                const original = file.original || file.thumbnail || file.path;
+                if (!thumbnail && !original) {
+                  console.warn('Upload response missing thumbnail/original:', file);
+                  return null;
+                }
+                let filename = '';
+                let fileType = '';
+                const urlToParse = original || thumbnail || '';
+                if (urlToParse) {
+                  const urlParts = urlToParse.split('/');
+                  const lastPart = urlParts[urlParts.length - 1] || '';
+                  if (lastPart.includes('.')) {
+                    const parts = lastPart.split('.');
+                    fileType = parts.pop()?.toLowerCase() || '';
+                    filename = parts.join('.');
+                  } else {
+                    filename = lastPart || file.id || 'uploaded-file';
+                    const urlLower = urlToParse.toLowerCase();
+                    if (urlLower.includes('.svg') || urlLower.includes('/svg')) fileType = 'svg';
+                    else if (urlLower.includes('.png') || urlLower.includes('/png')) fileType = 'png';
+                    else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('/jpg') || urlLower.includes('/jpeg')) fileType = 'jpg';
+                    else if (urlLower.includes('.webp') || urlLower.includes('/webp')) fileType = 'webp';
+                    else if (urlLower.includes('.gif') || urlLower.includes('/gif')) fileType = 'gif';
+                  }
+                }
+                const file_name = filename && fileType ? `${filename}.${fileType}` : filename || file.id;
+                return {
+                  id: file.id || file.filename || file.public_id,
+                  thumbnail: thumbnail || original,
+                  original: original || thumbnail,
+                  ...(file_name && { file_name }),
+                };
+              }).filter(Boolean);
+
+              if (processed.length === 0) return;
+
+              const mergedData = multiple ? files.concat(processed) : processed[0];
+              setFiles(multiple ? files.concat(processed) : processed);
               if (onChange) {
                 onChange(mergedData);
               }
             },
             onError: (error: any) => {
               console.error('Upload error:', error);
-              const errorMessage = error?.response?.data?.message || error?.message || t('error-upload-failed');
+              const errorMessage =
+                error?.response?.data?.message ||
+                error?.message ||
+                t('error-upload-failed');
+              // Alert the user to the specific error message for debugging
+              alert(`Upload Failed: ${errorMessage}`);
               setError(errorMessage);
             },
           },
@@ -173,10 +197,14 @@ export default function Uploader({
   });
 
   const handleDelete = (image: string) => {
+    if (skipImmediateUpload && objectUrlRef.current.includes(image)) {
+      URL.revokeObjectURL(image);
+      objectUrlRef.current = objectUrlRef.current.filter((u) => u !== image);
+    }
     const images = files.filter((file) => file.thumbnail !== image);
     setFiles(images);
     if (onChange) {
-      onChange(images);
+      onChange(multiple ? images : undefined);
     }
   };
   const thumbs = files?.map((file: any, idx) => {
@@ -198,7 +226,7 @@ export default function Uploader({
       // Extract file type and filename
       let fileType: string | undefined;
       let filename: string = '';
-      
+
       // Try to get file type from file_name first
       if (file?.file_name) {
         const parts = file.file_name.split('.');
@@ -208,7 +236,7 @@ export default function Uploader({
         } else {
           filename = file.file_name;
         }
-      } 
+      }
       // Fallback to extracting from thumbnail URL
       else if (file?.thumbnail) {
         const urlParts = file.thumbnail.split('/');
@@ -233,16 +261,18 @@ export default function Uploader({
           filename = lastPart;
         }
       }
-      
+
       // Check if it's an image type
       // Also check if thumbnail/original URL suggests it's an image (has image extension or cloudinary URL)
-      const hasImageUrl = file?.thumbnail?.includes('cloudinary') || 
-                         file?.original?.includes('cloudinary') ||
-                         file?.thumbnail?.match(/\.(svg|png|jpg|jpeg|gif|webp)(\?|$)/i) ||
-                         file?.original?.match(/\.(svg|png|jpg|jpeg|gif|webp)(\?|$)/i);
-      
-      const isImage = (file?.thumbnail || file?.original) && 
-                     (fileType && imgTypes.includes(fileType) || hasImageUrl);
+      const hasImageUrl =
+        file?.thumbnail?.includes('cloudinary') ||
+        file?.original?.includes('cloudinary') ||
+        file?.thumbnail?.match(/\.(svg|png|jpg|jpeg|gif|webp)(\?|$)/i) ||
+        file?.original?.match(/\.(svg|png|jpg|jpeg|gif|webp)(\?|$)/i);
+
+      const isImage =
+        (file?.thumbnail || file?.original) &&
+        ((fileType && imgTypes.includes(fileType)) || hasImageUrl);
 
       // Old Code *******
 
@@ -265,7 +295,13 @@ export default function Uploader({
           {isImage ? (
             // Use regular img tag for SVG files or external URLs to avoid Next.js Image optimization issues
             // Always use thumbnail if available, fallback to original
-            (fileType === 'svg' || file.thumbnail?.includes('cloudinary') || file.thumbnail?.startsWith('http') || file.original?.includes('cloudinary') || file.original?.startsWith('http')) ? (
+            fileType === 'svg' ||
+            file.thumbnail?.includes('cloudinary') ||
+            file.thumbnail?.startsWith('http') ||
+            file.thumbnail?.startsWith('blob:') ||
+            file.original?.includes('cloudinary') ||
+            file.original?.startsWith('http') ||
+            file.original?.startsWith('blob:') ? (
               <div className="flex items-center justify-center w-16 h-16 min-w-0 overflow-hidden bg-gray-50 rounded">
                 <img
                   src={file.thumbnail || file.original}
@@ -310,7 +346,11 @@ export default function Uploader({
             <div className="flex flex-col items-center">
               <div className="flex items-center justify-center min-w-0 overflow-hidden h-14 w-14">
                 <img
-                  src={typeof zipPlaceholder === 'string' ? zipPlaceholder : zipPlaceholder.src}
+                  src={
+                    typeof zipPlaceholder === 'string'
+                      ? zipPlaceholder
+                      : zipPlaceholder.src
+                  }
                   width={56}
                   height={56}
                   alt="upload placeholder"

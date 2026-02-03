@@ -50,17 +50,15 @@ export class ImportSessionRepository implements IImportSessionRepository {
     if (business_id) {
       query.business_id = business_id;
     }
-    const sessionDocs = await ImportSessionModel.find(query)
-      .sort({ created_at: -1 });
+    const sessionDocs = await ImportSessionModel.find(query).sort({ created_at: -1 });
     return sessionDocs.map((doc) => this.toDomain(doc));
   }
 
   async update(id: string, user_id: string, data: UpdateImportSessionDTO): Promise<ImportSession> {
-    const sessionDoc = await ImportSessionModel.findOneAndUpdate(
-      { _id: id, user_id },
-      data,
-      { new: true, runValidators: true }
-    );
+    const sessionDoc = await ImportSessionModel.findOneAndUpdate({ _id: id, user_id }, data, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!sessionDoc) {
       throw new Error('Import session not found');
@@ -74,6 +72,14 @@ export class ImportSessionRepository implements IImportSessionRepository {
     if (!result) {
       throw new Error('Import session not found');
     }
+  }
+
+  async deleteAll(user_id: string, business_id?: string): Promise<void> {
+    const query: any = { user_id };
+    if (business_id) {
+      query.business_id = business_id;
+    }
+    await ImportSessionModel.deleteMany(query);
   }
 
   async deleteExpired(): Promise<number> {

@@ -25,10 +25,24 @@ export const storage = createCloudinaryStorage({
       const urlParts = req.baseUrl ? req.baseUrl.split('/') : [];
       // Usually url is like /api/v1/categories, so taking the last part is a good heuristic
       // If baseUrl is empty, try originalUrl
-      const pathSegments = req.baseUrl ? req.baseUrl.split('/').filter(Boolean) : (req.originalUrl ? req.originalUrl.split('/').filter(Boolean) : []);
+      const pathSegments = req.baseUrl
+        ? req.baseUrl.split('/').filter(Boolean)
+        : req.originalUrl
+          ? req.originalUrl.split('/').filter(Boolean)
+          : [];
 
       // Look for known entities or default to 'misc'
-      const knownEntities = ['categories', 'products', 'shops', 'coupons', 'attributes', 'groups', 'tags', 'users', 'auth'];
+      const knownEntities = [
+        'categories',
+        'products',
+        'shops',
+        'coupons',
+        'attributes',
+        'groups',
+        'tags',
+        'users',
+        'auth',
+      ];
       section = pathSegments.find((segment: string) => knownEntities.includes(segment)) || 'misc';
     }
 
@@ -102,4 +116,3 @@ export class CloudinaryStorage implements IImageStorage {
     }
   }
 }
-

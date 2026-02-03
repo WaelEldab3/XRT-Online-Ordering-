@@ -16,7 +16,7 @@ interface SizesSectionProps {
   errors: FieldErrors<FormValues>;
   setValue: UseFormSetValue<FormValues>;
   isSizeable?: boolean;
-  shopId: string;
+  shopId: string | undefined;
   itemId?: string;
   defaultSizeId: string | null | undefined;
 }
@@ -44,39 +44,32 @@ export default function SizesSection({
           <Alert message={t('form:enable-sizeable-first')} variant="info" />
         ) : (
           <>
-            {itemId || shopId ? (
-              <Controller
-                name="sizes"
-                control={control}
-                render={({ field }) => (
-                  <ItemSizesManager
-                    businessId={shopId}
-                    value={field.value}
-                    onChange={field.onChange}
-                    defaultSizeId={defaultSizeId || undefined}
-                    onDefaultSizeChange={(sizeId) => {
-                      setValue('default_size_id', sizeId, {
-                        shouldValidate: true,
-                      });
-                      // Also set default flag in the config array
-                      if (sizeId) {
-                        const currentSizes = field.value || [];
-                        const newSizes = currentSizes.map((s: any) => ({
-                          ...s,
-                          is_default: s.size_id === sizeId,
-                        }));
-                        field.onChange(newSizes);
-                      }
-                    }}
-                  />
-                )}
-              />
-            ) : (
-              <Alert
-                message={t('form:save-item-first-to-manage-sizes')}
-                variant="info"
-              />
-            )}
+            <Controller
+              name="sizes"
+              control={control}
+              render={({ field }) => (
+                <ItemSizesManager
+                  businessId={shopId}
+                  value={field.value}
+                  onChange={field.onChange}
+                  defaultSizeId={defaultSizeId || undefined}
+                  onDefaultSizeChange={(sizeId) => {
+                    setValue('default_size_id', sizeId, {
+                      shouldValidate: true,
+                    });
+                    // Also set default flag in the config array
+                    if (sizeId) {
+                      const currentSizes = field.value || [];
+                      const newSizes = currentSizes.map((s: any) => ({
+                        ...s,
+                        is_default: s.size_id === sizeId,
+                      }));
+                      field.onChange(newSizes);
+                    }
+                  }}
+                />
+              )}
+            />
             {errors.default_size_id && (
               <p className="mt-2 text-xs text-red-500">
                 {t(errors.default_size_id.message!)}

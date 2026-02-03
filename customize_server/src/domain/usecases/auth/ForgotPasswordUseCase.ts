@@ -36,7 +36,6 @@ export class ForgotPasswordUseCase {
 
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Development mode: OTP for', user.email, 'is:', otp);
         return {
           message: 'OTP sent to email! (Development mode - check console)',
           otp, // Only in development
@@ -61,4 +60,3 @@ export class ForgotPasswordUseCase {
     }
   }
 }
-

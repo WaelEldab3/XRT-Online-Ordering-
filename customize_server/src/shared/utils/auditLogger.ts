@@ -6,6 +6,7 @@ export enum AuditAction {
   IMPORT_DISCARD = 'import.discard',
   IMPORT_FINAL_SAVE = 'import.final_save',
   IMPORT_DOWNLOAD_ERRORS = 'import.download_errors',
+  IMPORT_ROLLBACK = 'import.rollback',
 }
 
 export interface AuditLogEntry {
@@ -29,7 +30,13 @@ export class AuditLogger {
     });
   }
 
-  static logImport(action: AuditAction, user_id: string, business_id: string, session_id?: string, details?: any): void {
+  static logImport(
+    action: AuditAction,
+    user_id: string,
+    business_id: string,
+    session_id?: string,
+    details?: any
+  ): void {
     this.log({
       action,
       user_id,

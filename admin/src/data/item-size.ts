@@ -2,10 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'next-i18next';
 import { API_ENDPOINTS } from './client/api-endpoints';
-import { itemSizeClient, ItemSize, CreateItemSizeInput, UpdateItemSizeInput } from './client/item-size';
+import {
+  itemSizeClient,
+  ItemSize,
+  CreateItemSizeInput,
+  UpdateItemSizeInput,
+} from './client/item-size';
 
-export const useItemSizesQuery = (businessId?: string, options?: { enabled?: boolean }) => {
-  const { data, error, isPending: isLoading } = useQuery<ItemSize[]>({
+export const useItemSizesQuery = (
+  businessId?: string,
+  options?: { enabled?: boolean },
+) => {
+  const {
+    data,
+    error,
+    isPending: isLoading,
+  } = useQuery<ItemSize[]>({
     queryKey: ['item-sizes', businessId],
     queryFn: () => itemSizeClient.getAll(businessId),
     enabled: options?.enabled !== false,
@@ -19,7 +31,11 @@ export const useItemSizesQuery = (businessId?: string, options?: { enabled?: boo
 };
 
 export const useItemSizeQuery = (id: string) => {
-  const { data, error, isPending: isLoading } = useQuery<ItemSize>({
+  const {
+    data,
+    error,
+    isPending: isLoading,
+  } = useQuery<ItemSize>({
     queryKey: ['item-size', id],
     queryFn: async () => {
       const response = await itemSizeClient.get(id);

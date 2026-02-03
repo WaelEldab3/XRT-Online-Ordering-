@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getErrorMessage } from '@/utils/form-error';
 import { useCreateItemMutation, useUpdateItemMutation } from '@/data/item';
 import { useMeQuery } from '@/data/user';
+import { useBusinessesQuery } from '@/data/business';
 import StickyFooterPanel from '@/components/ui/sticky-footer-panel';
 import { LongArrowPrev } from '@/components/icons/long-arrow-prev';
 import { EditIcon } from '@/components/icons/edit';
@@ -64,6 +65,7 @@ import ModifiersSection from './sections/ModifiersSection';
 
 export default function CreateOrUpdateItemForm({
   initialValues,
+  initialShopId,
 }: ItemFormProps) {
   const router = useRouter();
   const { locale } = router;
@@ -72,18 +74,24 @@ export default function CreateOrUpdateItemForm({
   const [isInitialized, setIsInitialized] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
 
-  // Shop data
+  // Shop data: prefer prop (create page), then URL business_id, then shop slug, then initial values, then me, then default first business
+  const businessIdFromUrl = router.query.business_id as string | undefined;
   const { data: shopData } = useShopQuery(
     { slug: router.query.shop as string },
-    { enabled: !!router.query.shop },
+    { enabled: !!router.query.shop && !businessIdFromUrl && !initialShopId },
   );
   const { data: me } = useMeQuery();
+  const { businesses } = useBusinessesQuery();
   const authCredentials = getAuthCredentials();
   const shopId =
-    (shopData as any)?.id! ||
+    initialShopId ||
+    businessIdFromUrl ||
+    (shopData as any)?.id ||
     initialValues?.business_id ||
+    (me as any)?.business_id ||
     me?.managed_shop?.id ||
-    me?.shops?.[0]?.id;
+    me?.shops?.[0]?.id ||
+    businesses?.[0]?.id;
 
   // Form caching
   const {

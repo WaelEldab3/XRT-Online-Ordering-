@@ -147,7 +147,6 @@ export class PermissionRepository implements IPermissionRepository {
 
     if (newPermissions.length > 0) {
       await this.createMany(newPermissions);
-      newPermissions.forEach((p) => console.log(`  ➕ New permission registered: ${p.key}`));
     }
 
     return {

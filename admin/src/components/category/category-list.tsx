@@ -42,6 +42,7 @@ import { SortableRow } from '@/components/ui/sortable-row';
 import { useMutation } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/data/client/api-endpoints';
 import { HttpClient } from '@/data/client/http-client';
+import { toast } from 'react-toastify';
 
 export type IProps = {
   categories: Category[] | undefined | null;
@@ -110,6 +111,9 @@ const CategoryList = ({
       return HttpClient.post(API_ENDPOINTS.CATEGORIES + '/sort-order', {
         items: newItems,
       });
+    },
+    onSuccess: () => {
+      toast.success(t('common:successfully-updated'));
     },
     onError: (error) => {
       console.error('Failed to update sort order', error);
