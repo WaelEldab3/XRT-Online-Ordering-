@@ -13,12 +13,18 @@ router.post(
   (req, res, next) => {
     uploadImage.any()(req, res, (err) => {
       if (err) {
-        console.error('Multer Middleware Error:', err);
-        // Return 400 with the specific error message from Multer/Storage
+        console.error('Multer Upload Error:', err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'File too large. Maximum size is 5MB.',
+            error: 'LIMIT_FILE_SIZE',
+          });
+        }
         return res.status(400).json({
           success: false,
-          message: `Upload Error: ${err.message}`,
-          error: err,
+          message: err.message || 'Error uploading file',
+          error: err.name || 'UploadError',
         });
       }
       next();

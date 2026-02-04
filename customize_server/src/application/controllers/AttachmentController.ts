@@ -15,11 +15,16 @@ export class AttachmentController {
       });
     }
 
-    const attachments = files.map((file: any) => ({
-      id: file.filename || file.public_id || file.originalname,
-      thumbnail: file.path || file.secure_url || file.url,
-      original: file.path || file.secure_url || file.url,
-    }));
+    const attachments = files.map((file: any) => {
+      // Prioritize Cloudinary secure_url, fall back to path or url
+      const url = file.secure_url || file.path || file.url;
+      return {
+        id: file.filename || file.public_id || file.originalname, // use public_id for Cloudinary
+        thumbnail: url,
+        original: url,
+        file_name: file.originalname, // Standardize return of original filename
+      };
+    });
 
     return sendSuccess(res, 'Files uploaded successfully', attachments);
   });

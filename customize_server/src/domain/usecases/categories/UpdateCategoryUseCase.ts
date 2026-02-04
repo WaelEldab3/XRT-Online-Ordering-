@@ -17,6 +17,7 @@ export class UpdateCategoryUseCase {
     categoryData: UpdateCategoryDTO,
     files?: { [fieldname: string]: Express.Multer.File[] }
   ): Promise<Category> {
+    console.log(`[UpdateCategoryUseCase] Executing for ID: ${id}`);
     const existingCategory = await this.categoryRepository.findById(id, business_id);
 
     if (!existingCategory) {
@@ -39,14 +40,17 @@ export class UpdateCategoryUseCase {
     if (files && files['image'] && files['image'][0]) {
       // Delete old image if exists
       if (existingCategory.image_public_id) {
-        try {
-          await this.imageStorage.deleteImage(existingCategory.image_public_id);
-        } catch (error) {
-          // Log but don't fail if deletion fails
-          console.error('Failed to delete old image:', error);
-        }
+        // Fire and forget delete
+        console.log(
+          '[UpdateCategory] Triggering delete for old image:',
+          existingCategory.image_public_id
+        );
+        this.imageStorage
+          .deleteImage(existingCategory.image_public_id)
+          .catch((err) => console.error('Background delete failed for image:', err));
       }
 
+      console.log('[UpdateCategory] Uploading new image');
       const uploadResult = await this.imageStorage.uploadImage(
         files['image'][0],
         `xrttech/categories/${business_id}`
@@ -58,19 +62,37 @@ export class UpdateCategoryUseCase {
     if (files && files['icon'] && files['icon'][0]) {
       // Delete old icon if exists
       if (existingCategory.icon_public_id) {
-        try {
-          await this.imageStorage.deleteImage(existingCategory.icon_public_id);
-        } catch (error) {
-          console.error('Failed to delete old icon:', error);
-        }
+        // Fire and forget delete
+        console.log(
+          '[UpdateCategory] Triggering delete for old icon:',
+          existingCategory.icon_public_id
+        );
+        this.imageStorage
+          .deleteImage(existingCategory.icon_public_id)
+          .catch((err) => console.error('Background delete failed for icon:', err));
       }
 
+      console.log('[UpdateCategory] Uploading new icon');
       const uploadResult = await this.imageStorage.uploadImage(
         files['icon'][0],
         `xrttech/categories/${business_id}/icons`
       );
       iconUrl = uploadResult.secure_url;
       iconPublicId = uploadResult.public_id;
+    } else if ((categoryData as any).delete_icon) {
+      // Explicit deletion requested
+      if (existingCategory.icon_public_id) {
+        console.log(
+          '[UpdateCategory] Explicit delete requested for icon:',
+          existingCategory.icon_public_id
+        );
+        this.imageStorage
+          .deleteImage(existingCategory.icon_public_id)
+          .catch((err) => console.error('Background delete failed for icon:', err));
+      }
+      // Set to null/empty to update DB
+      iconUrl = '';
+      iconPublicId = '';
     }
 
     const updatedLanguages = [...(existingCategory.translated_languages || [])];
@@ -82,7 +104,7 @@ export class UpdateCategoryUseCase {
     const finalCategoryData: any = {
       ...categoryData,
       ...(imageUrl && { image: imageUrl, image_public_id: imagePublicId }),
-      ...(iconUrl && { icon: iconUrl, icon_public_id: iconPublicId }),
+      ...(iconUrl !== undefined && { icon: iconUrl, icon_public_id: iconPublicId }),
       translated_languages: updatedLanguages,
     };
 

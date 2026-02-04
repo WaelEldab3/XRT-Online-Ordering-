@@ -66,13 +66,14 @@ export const storage = createCloudinaryStorage({
     // This works correctly for SVG files and other image types
     return {
       folder: folder,
-      resource_type: 'auto',
+      resource_type: 'image',
     };
   },
 });
 
 export class CloudinaryStorage implements IImageStorage {
   async uploadImage(file: Express.Multer.File, folder?: string): Promise<ImageUploadResult> {
+    console.log(`[Cloudinary] Starting upload for ${file.originalname}`);
     if ((file as any).path) {
       return {
         url: (file as any).path,
@@ -87,32 +88,49 @@ export class CloudinaryStorage implements IImageStorage {
         folder: folder ? (folder.startsWith('xrttech') ? folder : `xrttech/${folder}`) : 'xrttech',
       };
 
-      cloudinary.uploader
-        .upload_stream(uploadOptions, (error, result) => {
-          if (error) {
-            return reject(error);
-          }
+      const timeoutId = setTimeout(() => {
+        console.error(`[Cloudinary] Upload timed out for ${file.originalname}`);
+        reject(new Error('Cloudinary upload timed out'));
+      }, 10000);
 
-          if (!result) {
-            return reject(new Error('Upload failed: No result from Cloudinary'));
-          }
+      const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+        clearTimeout(timeoutId);
+        if (error) {
+          console.error(`[Cloudinary] Upload failed for ${file.originalname}:`, error);
+          return reject(error);
+        }
 
-          resolve({
-            url: result.url,
-            public_id: result.public_id,
-            secure_url: result.secure_url,
-          });
-        })
-        .end(file.buffer);
+        if (!result) {
+          console.error(`[Cloudinary] No result for ${file.originalname}`);
+          return reject(new Error('Upload failed: No result from Cloudinary'));
+        }
+
+        console.log(`[Cloudinary] Upload success for ${file.originalname}: ${result.public_id}`);
+        resolve({
+          url: result.url,
+          public_id: result.public_id,
+          secure_url: result.secure_url,
+        });
+      });
+
+      stream.on('error', (err) => {
+        clearTimeout(timeoutId);
+        console.error(`[Cloudinary] Stream error for ${file.originalname}:`, err);
+        reject(err);
+      });
+
+      stream.end(file.buffer);
     });
   }
 
   async deleteImage(public_id: string): Promise<void> {
     try {
+      console.log(`[Cloudinary] Deleting image ${public_id}`);
       await cloudinary.uploader.destroy(public_id);
+      console.log(`[Cloudinary] Deleted image ${public_id}`);
     } catch (error) {
       console.error('Error deleting image from Cloudinary:', error);
-      throw error;
+      // Do not throw error to avoid blocking flow
     }
   }
 }

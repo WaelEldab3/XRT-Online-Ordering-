@@ -75,15 +75,11 @@ export default function ItemSizeForm({ initialValues, businessId }: Props) {
         },
       );
     } else {
-      // Create - use business_id from URL/first business
-      if (!businessId) {
-        toast.error(t('form:select-shop-or-save-first') || 'Create a business first to add global sizes.');
-        return;
-      }
+      // Create - use business_id from URL, first business, or default
       createItemSize(
         {
           ...values,
-          business_id: businessId,
+          business_id: businessId || 'default',
         },
         {
           onSuccess: () => {

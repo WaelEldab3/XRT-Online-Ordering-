@@ -116,13 +116,29 @@ export const transformInitialModifierAssignment = (
 
   const defaultModifierIds: string[] = [];
   const pricingData: any = {
+    modifier_prices: {},
     modifier_prices_by_size: {},
     modifier_prices_by_size_and_quantity: {},
+    pricing_mode: {},
   };
 
   // Extract default modifiers and pricing overrides
   initialValues.modifier_groups.forEach((mg: any) => {
-    if (mg.modifier_overrides && Array.isArray(mg.modifier_overrides)) {
+    const groupId =
+      typeof mg.modifier_group_id === 'object'
+        ? mg.modifier_group_id.id ||
+          mg.modifier_group_id._id ||
+          String(mg.modifier_group_id)
+        : mg.modifier_group_id;
+
+    if (
+      mg.modifier_overrides &&
+      Array.isArray(mg.modifier_overrides) &&
+      mg.modifier_overrides.length > 0
+    ) {
+      // If there are overrides, set mode to override
+      pricingData.pricing_mode[groupId] = 'override';
+
       mg.modifier_overrides.forEach((override: any) => {
         const modifierId =
           typeof override.modifier_id === 'object'
@@ -134,6 +150,11 @@ export const transformInitialModifierAssignment = (
         // Extract default modifier
         if (override.is_default) {
           defaultModifierIds.push(modifierId);
+        }
+
+        // Extract flat price
+        if (override.price !== undefined && override.price !== null) {
+          pricingData.modifier_prices[modifierId] = override.price;
         }
 
         // Extract prices_by_size
@@ -159,23 +180,44 @@ export const transformInitialModifierAssignment = (
         ) {
           const qtyPrices: any = {};
           override.quantity_levels.forEach((qtyLevel: any) => {
-            const sizeCode = qtyLevel.sizeCode || 'M';
-            if (!qtyPrices[sizeCode]) {
-              qtyPrices[sizeCode] = {};
-            }
+            // Handle new structure: prices_by_size inside quantity_level
             if (
-              qtyLevel.quantity !== undefined &&
-              qtyLevel.price !== undefined
+              qtyLevel.prices_by_size &&
+              Array.isArray(qtyLevel.prices_by_size)
             ) {
-              qtyPrices[sizeCode][qtyLevel.quantity] = qtyLevel.price;
+              qtyLevel.prices_by_size.forEach((pbs: any) => {
+                if (pbs.sizeCode && pbs.priceDelta !== undefined) {
+                  if (!qtyPrices[pbs.sizeCode]) {
+                    qtyPrices[pbs.sizeCode] = {};
+                  }
+                  qtyPrices[pbs.sizeCode][qtyLevel.quantity] = pbs.priceDelta;
+                }
+              });
+            }
+            // Handle legacy structure (if any) or fallback
+            else {
+              const sizeCode = qtyLevel.sizeCode || 'M'; // Fallback
+              if (!qtyPrices[sizeCode]) {
+                qtyPrices[sizeCode] = {};
+              }
+              if (
+                qtyLevel.quantity !== undefined &&
+                qtyLevel.price !== undefined
+              ) {
+                qtyPrices[sizeCode][qtyLevel.quantity] = qtyLevel.price;
+              }
             }
           });
+
           if (Object.keys(qtyPrices).length > 0) {
             pricingData.modifier_prices_by_size_and_quantity[modifierId] =
               qtyPrices;
           }
         }
       });
+    } else {
+      // Default to inherit
+      pricingData.pricing_mode[groupId] = 'inherit';
     }
   });
 
@@ -183,8 +225,10 @@ export const transformInitialModifierAssignment = (
     modifier_groups: modifierGroupIds,
     default_modifiers: defaultModifierIds,
     assignment_scope: 'ITEM' as const,
+    modifier_prices: pricingData.modifier_prices,
     modifier_prices_by_size: pricingData.modifier_prices_by_size,
     modifier_prices_by_size_and_quantity:
       pricingData.modifier_prices_by_size_and_quantity,
+    pricing_mode: pricingData.pricing_mode,
   };
 };

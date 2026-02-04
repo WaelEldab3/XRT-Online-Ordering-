@@ -6,6 +6,10 @@ export interface Category {
   name: string;
   description?: string;
   kitchen_section_id?: string;
+  kitchen_section_data?: {
+    id: string;
+    name: string;
+  };
   sort_order: number;
   is_active: boolean;
   image?: string;
@@ -47,6 +51,7 @@ export interface UpdateCategoryDTO {
   language?: string;
   modifier_groups?: ItemModifierGroupAssignment[];
   apply_modifier_groups_to_items?: boolean;
+  delete_icon?: boolean;
 }
 
 export interface CategoryFilters {

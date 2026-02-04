@@ -12,9 +12,9 @@ export interface ModifierGroupDocument extends Omit<ModifierGroup, 'id'>, Docume
 
 const PricesBySizeSchema = new Schema(
   {
-    size_id: {
-      type: Schema.Types.ObjectId,
-      ref: 'ItemSize',
+    sizeCode: {
+      type: String,
+      enum: ['S', 'M', 'L', 'XL', 'XXL'],
       required: true,
     },
     priceDelta: {

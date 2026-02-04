@@ -271,6 +271,10 @@ export interface Category {
   created_at: string;
   updated_at: string;
   kitchen_section_id?: string;
+  kitchen_section_data?: {
+    id: string;
+    name: string;
+  };
   is_active?: boolean;
   modifier_groups?: any[];
 }
@@ -362,6 +366,7 @@ export interface Attachment {
   thumbnail: string;
   original: string;
   id?: string;
+  file_name?: string;
 }
 
 export interface AttachmentInput {
@@ -2676,8 +2681,10 @@ export interface ItemModifierOverride {
 
 export interface ItemModifierGroupAssignment {
   modifier_group_id: string;
+  modifier_group?: ModifierGroup;
   display_order: number;
   modifier_overrides?: ItemModifierOverride[]; // Item-level overrides for individual modifiers
+  modifiers?: Modifier[];
 }
 
 export interface ItemModifierAssignment {

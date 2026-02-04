@@ -87,36 +87,121 @@ export default function ModifiersSection({
     return grouped;
   }, [selectedModifierGroups, allModifiersList]);
 
+  // Helper to find price by size in an array - handles legacy data formats
+  const findPriceBySize = (
+    pricesArray: any[],
+    sizeCode: string,
+    sizeId?: string,
+  ) => {
+    if (!pricesArray || !Array.isArray(pricesArray)) return undefined;
+
+    // Try matching by sizeCode first
+    let match = pricesArray.find((pbs: any) => pbs.sizeCode === sizeCode);
+    if (match?.priceDelta !== undefined) return match.priceDelta;
+
+    // Try matching by size_id (legacy ObjectId format - match as string)
+    if (sizeId) {
+      match = pricesArray.find(
+        (pbs: any) =>
+          pbs.size_id?.toString() === sizeId || pbs.size_id === sizeId,
+      );
+      if (match?.priceDelta !== undefined) return match.priceDelta;
+    }
+
+    // Try matching by sizeName or name
+    match = pricesArray.find(
+      (pbs: any) => pbs.sizeName === sizeCode || pbs.name === sizeCode,
+    );
+    if (match?.priceDelta !== undefined) return match.priceDelta;
+
+    // Try matching by index-based approach (first = Small, second = Medium, etc.)
+    // This handles cases where sizes are stored by array position
+    const sizeOrder = [
+      'S',
+      'M',
+      'L',
+      'XL',
+      'XXL',
+      'Small',
+      'Medium',
+      'Large',
+      'Extra Large',
+    ];
+    const sizeIndex = sizeOrder.findIndex(
+      (s) => s.toLowerCase() === sizeCode.toLowerCase(),
+    );
+    if (sizeIndex >= 0 && pricesArray[sizeIndex]?.priceDelta !== undefined) {
+      return pricesArray[sizeIndex].priceDelta;
+    }
+
+    return undefined;
+  };
+
   const getInheritedPrice = (
     modifier: any,
     group: any,
     sizeCode: string,
     quantity: number,
+    sizeId?: string,
   ) => {
-    // 1. Check Modifier Level
-    if (modifier.quantity_levels) {
+    // 1. Check Modifier Level - quantity_levels with prices_by_size
+    if (modifier.quantity_levels && modifier.quantity_levels.length > 0) {
       const modQtyLevel = modifier.quantity_levels.find(
         (ql: any) => ql.quantity === quantity,
       );
-      if (modQtyLevel?.prices_by_size) {
-        const modPrice = modQtyLevel.prices_by_size.find(
-          (pbs: any) => pbs.sizeCode === sizeCode,
-        )?.priceDelta;
+      if (
+        modQtyLevel?.prices_by_size &&
+        modQtyLevel.prices_by_size.length > 0
+      ) {
+        const modPrice = findPriceBySize(
+          modQtyLevel.prices_by_size,
+          sizeCode,
+          sizeId,
+        );
         if (modPrice !== undefined) return modPrice;
       }
+      // Check for base price in quantity level
+      if (modQtyLevel?.price !== undefined) return modQtyLevel.price;
     }
 
-    // 2. Check Group Level
-    if (group.quantity_levels) {
+    // 2. Check Modifier Level - direct prices_by_size (no quantity levels)
+    if (modifier.prices_by_size && modifier.prices_by_size.length > 0) {
+      const directPrice = findPriceBySize(
+        modifier.prices_by_size,
+        sizeCode,
+        sizeId,
+      );
+      if (directPrice !== undefined) return directPrice;
+    }
+
+    // 3. Check Group Level - quantity_levels with prices_by_size
+    if (group.quantity_levels && group.quantity_levels.length > 0) {
       const groupQtyLevel = group.quantity_levels.find(
         (ql: any) => ql.quantity === quantity,
       );
-      if (groupQtyLevel?.prices_by_size) {
-        const groupPrice = groupQtyLevel.prices_by_size.find(
-          (pbs: any) => pbs.sizeCode === sizeCode,
-        )?.priceDelta;
+      if (
+        groupQtyLevel?.prices_by_size &&
+        groupQtyLevel.prices_by_size.length > 0
+      ) {
+        const groupPrice = findPriceBySize(
+          groupQtyLevel.prices_by_size,
+          sizeCode,
+          sizeId,
+        );
         if (groupPrice !== undefined) return groupPrice;
       }
+      // Check for base price in quantity level
+      if (groupQtyLevel?.price !== undefined) return groupQtyLevel.price;
+    }
+
+    // 4. Check Group Level - direct prices_by_size (no quantity levels)
+    if (group.prices_by_size && group.prices_by_size.length > 0) {
+      const groupDirectPrice = findPriceBySize(
+        group.prices_by_size,
+        sizeCode,
+        sizeId,
+      );
+      if (groupDirectPrice !== undefined) return groupDirectPrice;
     }
 
     return 0;
@@ -154,6 +239,13 @@ export default function ModifiersSection({
             {selectedModifierGroups.map((group: any) => {
               const groupId = getGroupId(group);
               if (!groupId) return null;
+
+              // Look up full group data from modifierGroupsFiltered to get pricing info
+              const fullGroupData =
+                modifierGroupsFiltered?.find(
+                  (g: any) => g.id === groupId || g._id === groupId,
+                ) || group;
+
               const isOverride = pricingMode[groupId] === 'override';
               const groupModifiers = modifiersByGroup[groupId] || [];
 
@@ -205,9 +297,10 @@ export default function ModifiersSection({
                                       DEFAULT_QUANTITY_LEVELS.forEach((qty) => {
                                         const price = getInheritedPrice(
                                           modifier,
-                                          group,
+                                          fullGroupData,
                                           size.code || size.name,
                                           qty.quantity,
+                                          size.id,
                                         );
                                         setValue(
                                           `modifier_assignment.modifier_prices_by_size_and_quantity.${modifier.id}.${size.code || size.name}.${qty.quantity}` as any,
@@ -216,8 +309,30 @@ export default function ModifiersSection({
                                       });
                                     });
                                   } else {
-                                    // Non-sizeable population?
-                                    // Leaving simplistic for now as request focused on sizes
+                                    // Non-sizeable population
+                                    const defaultQtyLevel =
+                                      modifier.quantity_levels?.find(
+                                        (ql: any) => ql.quantity === 1,
+                                      ) || modifier.quantity_levels?.[0];
+
+                                    const groupDefaultQtyLevel =
+                                      fullGroupData.quantity_levels?.find(
+                                        (ql: any) => ql.quantity === 1,
+                                      ) || fullGroupData.quantity_levels?.[0];
+
+                                    const modPrice =
+                                      defaultQtyLevel?.price ??
+                                      groupDefaultQtyLevel?.price ??
+                                      modifier.prices_by_size?.[0]
+                                        ?.priceDelta ??
+                                      fullGroupData.prices_by_size?.[0]
+                                        ?.priceDelta ??
+                                      0;
+
+                                    setValue(
+                                      `modifier_assignment.modifier_prices.${modifier.id}` as any,
+                                      modPrice,
+                                    );
                                   }
                                 });
                               }
@@ -334,18 +449,23 @@ export default function ModifiersSection({
                                   <Label className="flex-1 text-sm">
                                     {modifier.name}
                                   </Label>
-                                  <Input
-                                    {...register(
-                                      `modifier_assignment.modifier_prices.${modifier.id}` as any,
-                                      { valueAsNumber: true },
-                                    )}
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    className="w-24 text-sm"
-                                    variant="outline"
-                                  />
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500 font-medium">
+                                      {t('form:input-label-price') || 'Price'}:
+                                    </span>
+                                    <Input
+                                      {...register(
+                                        `modifier_assignment.modifier_prices.${modifier.id}` as any,
+                                        { valueAsNumber: true },
+                                      )}
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      placeholder="0.00"
+                                      className="w-24 text-sm"
+                                      variant="outline"
+                                    />
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -354,13 +474,120 @@ export default function ModifiersSection({
                       )}
                     </div>
                   ) : (
-                    <div className="px-4 py-3 bg-blue-50 text-blue-700 text-sm">
-                      <span className="font-medium">
-                        {t('form:pricing-inherited-from-group')}
-                      </span>
-                      <span className="text-blue-600 ms-1">
-                        {t('form:pricing-will-use-group-config')}
-                      </span>
+                    <div className="p-4">
+                      <div className="mb-2 text-sm text-blue-600 font-medium">
+                        {t('form:pricing-inherited-from-modifier')}
+                      </div>
+                      {groupModifiers.length === 0 ? (
+                        <p className="text-sm text-gray-500 italic">
+                          {t('form:no-modifiers-in-group')}
+                        </p>
+                      ) : isSizeable &&
+                        activeItemSizes &&
+                        activeItemSizes.length > 0 ? (
+                        // Show inherited pricing table (read-only)
+                        groupModifiers.map((modifier: any) => (
+                          <div
+                            key={modifier.id}
+                            className="border border-gray-100 rounded-lg overflow-hidden mb-3"
+                          >
+                            <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
+                              <span className="text-sm font-medium">
+                                {modifier.name}
+                              </span>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                      {t('form:input-label-quantity-level')}
+                                    </th>
+                                    {activeItemSizes.map((size: any) => (
+                                      <th
+                                        key={size.code || size.name}
+                                        className="px-3 py-2 text-center text-xs font-medium text-gray-500"
+                                      >
+                                        {size.name || size.code}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {DEFAULT_QUANTITY_LEVELS.map((qtyLevel) => (
+                                    <tr
+                                      key={qtyLevel.quantity}
+                                      className="border-t border-gray-100"
+                                    >
+                                      <td className="px-3 py-2 font-medium text-gray-700">
+                                        {t(
+                                          `form:quantity-level-${qtyLevel.name.toLowerCase()}`,
+                                        )}{' '}
+                                        ({qtyLevel.quantity})
+                                      </td>
+                                      {activeItemSizes.map((size: any) => {
+                                        const inheritedPrice =
+                                          getInheritedPrice(
+                                            modifier,
+                                            fullGroupData,
+                                            size.code || size.name,
+                                            qtyLevel.quantity,
+                                            size.id,
+                                          );
+                                        return (
+                                          <td
+                                            key={size.code || size.name}
+                                            className="px-3 py-2 text-center text-gray-600"
+                                          >
+                                            ${inheritedPrice.toFixed(2)}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Non-sizeable: show flat inherited price
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                          {groupModifiers.map((modifier: any) => {
+                            // Get modifier's base price from quantity level 1 (default) or first pbs
+                            const defaultQtyLevel =
+                              modifier.quantity_levels?.find(
+                                (ql: any) => ql.quantity === 1,
+                              ) || modifier.quantity_levels?.[0];
+
+                            const groupDefaultQtyLevel =
+                              fullGroupData.quantity_levels?.find(
+                                (ql: any) => ql.quantity === 1,
+                              ) || fullGroupData.quantity_levels?.[0];
+
+                            const modPrice =
+                              defaultQtyLevel?.price ??
+                              groupDefaultQtyLevel?.price ??
+                              modifier.prices_by_size?.[0]?.priceDelta ??
+                              fullGroupData.prices_by_size?.[0]?.priceDelta ??
+                              0;
+
+                            return (
+                              <div
+                                key={modifier.id}
+                                className="flex items-center justify-between p-2 rounded bg-gray-50/50 border border-gray-100"
+                              >
+                                <span className="text-sm font-medium text-gray-700">
+                                  {modifier.name}
+                                </span>
+                                <span className="text-sm font-bold text-accent">
+                                  ${modPrice.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -11,8 +11,10 @@ export default function CreateItemSizePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { businesses, loading } = useBusinessesQuery();
+
+  // Use business_id from query, first available business, or default for single-tenant
   const businessId =
-    (router.query.business_id as string) || businesses?.[0]?.id;
+    (router.query.business_id as string) || businesses?.[0]?.id || 'default';
 
   if (loading) return <Loader text={t('common:text-loading')} />;
 

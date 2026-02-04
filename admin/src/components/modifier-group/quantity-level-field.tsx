@@ -110,6 +110,25 @@ export default function QuantityLevelField({
           />
         </div>
 
+        {/* Base Price (for non-sizeable items) */}
+        <div className="lg:col-span-2">
+          <Input
+            label={t('form:input-label-delta-price') || 'Price (Delta)'}
+            labelClassName="lg:sr-only"
+            {...register(`quantity_levels.${index}.price` as const, {
+              valueAsNumber: true,
+            })}
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            error={t(errors.quantity_levels?.[index]?.price?.message!)}
+            variant="outline"
+            className="w-full"
+            inputClassName="bg-white"
+          />
+        </div>
+
         {/* Toggles */}
         <div className="lg:col-span-3 flex flex-row items-center gap-4 py-2 lg:py-0">
           <SwitchInput
@@ -229,14 +248,20 @@ function SizePriceInput({ size, nestIndex, control }: any) {
         prices.remove(idx);
       }
     } else {
+      // Save both size_id (for legacy) and sizeCode (for new schema)
+      const priceEntry = {
+        size_id: size.id,
+        sizeCode: size.code,
+        priceDelta: numVal,
+      };
       if (idx >= 0) {
         const currentPrice =
           currentFields[idx].priceDelta || currentFields[idx].price;
         if (currentPrice !== numVal) {
-          prices.update(idx, { size_id: size.id, priceDelta: numVal });
+          prices.update(idx, priceEntry);
         }
       } else {
-        prices.append({ size_id: size.id, priceDelta: numVal });
+        prices.append(priceEntry);
       }
     }
   };

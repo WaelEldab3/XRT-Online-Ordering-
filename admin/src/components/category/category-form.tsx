@@ -149,9 +149,7 @@ export default function CreateOrUpdateCategoriesForm({
             ? typeof initialValues.icon === 'string'
               ? [
                   {
-                    id:
-                      (initialValues as any).icon_public_id ??
-                      initialValues.icon,
+                    id: 1,
                     thumbnail: initialValues.icon,
                     original: initialValues.icon,
                     file_name: initialValues.icon.split('/').pop(),
@@ -159,9 +157,18 @@ export default function CreateOrUpdateCategoriesForm({
                 ]
               : [initialValues.icon]
             : [],
-          kitchen_section_id: kitchenSectionOptions.find(
-            (opt: any) => opt.value === initialValues.kitchen_section_id,
-          ),
+          kitchen_section_id: initialValues.kitchen_section_data
+            ? {
+                label: initialValues.kitchen_section_data.name,
+                value: initialValues.kitchen_section_data.id,
+              }
+            : initialValues.kitchen_section_id
+              ? {
+                  // Fallback if we only have ID but no populated data (shouldn't happen with recent fix, but safe)
+                  label: initialValues.kitchen_section_id,
+                  value: initialValues.kitchen_section_id,
+                }
+              : null,
           modifier_groups: initialValues.modifier_groups?.map((bg: any) => ({
             label: bg.modifier_group_id?.name || bg.modifier_group_id, // Handle populated vs string ID if needed, though usually populated in detailed view
             value: {
@@ -195,10 +202,10 @@ export default function CreateOrUpdateCategoriesForm({
         ? typeof initialValues.icon === 'string'
           ? [
               {
-                id: (initialValues as any).icon_public_id ?? initialValues.icon,
+                id: 1,
                 thumbnail: initialValues.icon,
                 original: initialValues.icon,
-                file_name: initialValues.icon.split('/').pop(),
+                file_name: (initialValues.icon as any).split('/').pop(),
               },
             ]
           : [initialValues.icon]
@@ -323,12 +330,23 @@ export default function CreateOrUpdateCategoriesForm({
     if (!iconFile && iconValue?.original) {
       payload.icon = iconValue.original;
       payload.icon_public_id = iconValue.id;
+    } else if (
+      (initialValues?.icon && !iconFile && !iconValue) ||
+      (initialValues?.icon &&
+        !iconFile &&
+        Array.isArray(iconValue) &&
+        iconValue.length === 0)
+    ) {
+      // Icon was explicitly removed
+      payload.delete_icon = true;
     }
 
     // If we are updating and haven't provided a new file, we don't want to send the "existing" image object
     // as it would be serialized to string incorrectly.
     // However, if we want to preserve the existing image, we just don't send anything for 'image' in FormData.
     // The backend won't update it if it's not provided in req.files and not in req.body.
+
+    // usage of 'delete_icon' flag
 
     if (
       !initialValues ||

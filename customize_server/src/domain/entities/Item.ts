@@ -1,3 +1,6 @@
+import { ModifierGroup } from './ModifierGroup';
+import { Modifier } from './Modifier';
+
 export interface ItemModifierPriceOverride {
   sizeCode: 'S' | 'M' | 'L' | 'XL' | 'XXL';
   priceDelta: number;
@@ -16,12 +19,17 @@ export interface ItemModifierOverride {
   modifier_id: string;
   prices_by_size?: ItemModifierPriceOverride[];
   quantity_levels?: ItemModifierQuantityLevelOverride[];
+  is_default?: boolean;
 }
 
 export interface ItemModifierGroupAssignment {
   modifier_group_id: string;
+  // Previously partial { name: string }, now allow full internal ModifierGroup for rich responses
+  modifier_group?: ModifierGroup | { name: string };
   display_order: number;
-  modifier_overrides?: ItemModifierOverride[]; // Item-level overrides for individual modifiers
+  modifier_overrides?: ItemModifierOverride[];
+  // List of Modifiers belonging to this group (fetched dynamically)
+  modifiers?: Modifier[];
 }
 
 export interface ItemSizeConfig {

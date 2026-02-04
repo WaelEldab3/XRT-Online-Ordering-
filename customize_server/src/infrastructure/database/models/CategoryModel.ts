@@ -22,7 +22,8 @@ const CategorySchema = new Schema<CategoryDocument>(
       trim: true,
     },
     kitchen_section_id: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'KitchenSection',
       index: true,
     },
     sort_order: {

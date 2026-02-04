@@ -14,7 +14,18 @@ export class CategoryRepository implements ICategoryRepository {
       business_id: document.business_id,
       name: document.name,
       description: document.description,
-      kitchen_section_id: document.kitchen_section_id,
+      kitchen_section_id: document.kitchen_section_id
+        ? typeof document.kitchen_section_id === 'object'
+          ? (document.kitchen_section_id as any)._id.toString()
+          : document.kitchen_section_id.toString()
+        : undefined,
+      kitchen_section_data:
+        document.kitchen_section_id && typeof document.kitchen_section_id === 'object'
+          ? {
+              id: (document.kitchen_section_id as any)._id.toString(),
+              name: (document.kitchen_section_id as any).name,
+            }
+          : undefined,
       sort_order: document.sort_order,
       is_active: document.is_active,
       image: document.image,
@@ -28,6 +39,10 @@ export class CategoryRepository implements ICategoryRepository {
               typeof mg.modifier_group_id === 'string'
                 ? mg.modifier_group_id
                 : (mg.modifier_group_id?._id || mg.modifier_group_id).toString(),
+            modifier_group:
+              mg.modifier_group_id && typeof mg.modifier_group_id === 'object'
+                ? { name: mg.modifier_group_id.name }
+                : undefined,
             display_order: mg.display_order || 0,
             modifier_overrides: mg.modifier_overrides
               ? mg.modifier_overrides.map((mo: any) => ({
@@ -59,7 +74,9 @@ export class CategoryRepository implements ICategoryRepository {
     if (business_id) {
       query.business_id = business_id;
     }
-    const categoryDoc = await CategoryModel.findOne(query);
+    const categoryDoc = await CategoryModel.findOne(query)
+      .populate('kitchen_section_id')
+      .populate('modifier_groups.modifier_group_id');
     return categoryDoc ? this.toDomain(categoryDoc) : null;
   }
 
@@ -79,7 +96,10 @@ export class CategoryRepository implements ICategoryRepository {
       query.kitchen_section_id = filters.kitchen_section_id;
     }
 
-    const categoryDocs = await CategoryModel.find(query).sort({ sort_order: 1 });
+    const categoryDocs = await CategoryModel.find(query)
+      .populate('kitchen_section_id')
+      .populate('modifier_groups.modifier_group_id')
+      .sort({ sort_order: 1 });
     return categoryDocs.map((doc) => this.toDomain(doc));
   }
 

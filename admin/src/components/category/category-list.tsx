@@ -140,7 +140,13 @@ const CategoryList = ({
 
         updateSortOrder.mutate(payload);
 
-        return newItems;
+        // Crucial: Update the sort_order in the local state immediately
+        // so that if the user clicks "Disable" (or Edit) before a refetch,
+        // we send the correct updated sort_order.
+        return newItems.map((item, index) => ({
+          ...item,
+          sort_order: startOrder + index,
+        }));
       });
     }
   };
@@ -223,8 +229,18 @@ const CategoryList = ({
       key: 'icon',
       align: 'center',
       width: 80,
-      render: (icon: string) => {
-        if (!icon) return null;
+      render: (icon: string, record: Category) => {
+        if (!icon) {
+          return (
+            <div className="flex items-center justify-center">
+              <img
+                src={siteSettings.product.placeholder}
+                alt={record.name || 'Category Icon'}
+                className="w-5 h-5 max-h-full max-w-full opacity-50 grayscale"
+              />
+            </div>
+          );
+        }
         if (
           icon.startsWith('http') ||
           icon.startsWith('/') ||
@@ -234,7 +250,7 @@ const CategoryList = ({
             <div className="flex items-center justify-center">
               <img
                 src={icon}
-                alt="Category Icon"
+                alt={record.name || 'Category Icon'}
                 className="w-5 h-5 max-h-full max-w-full"
               />
             </div>
@@ -271,6 +287,21 @@ const CategoryList = ({
           const val = t(accessKey);
           return val === key || val === accessKey ? fallback : val;
         };
+
+        // If we have populated data, use it!
+        if (record.kitchen_section_data?.name) {
+          return (
+            <button
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                router.push(`/categories/${record.id}/items`);
+              }}
+              className="cursor-pointer hover:text-accent transition-colors"
+            >
+              {record.kitchen_section_data.name}
+            </button>
+          );
+        }
 
         const sections: any = {
           KS_001: getFallback(
@@ -409,7 +440,11 @@ const CategoryList = ({
 
   return (
     <>
-      <div className="mb-6 overflow-hidden rounded shadow">
+      <div
+        className={`mb-6 overflow-hidden rounded shadow ${
+          updateSortOrder.isPending ? 'opacity-50 pointer-events-none' : ''
+        }`}
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

@@ -33,6 +33,9 @@ export class ModifierRepository implements IModifierRepository {
             allowed_sides: document.sides_config.allowed_sides || [],
           }
         : undefined,
+      // Add modifier-level pricing fields
+      quantity_levels: document.quantity_levels || [],
+      prices_by_size: document.prices_by_size || [],
       created_at: document.created_at,
       updated_at: document.updated_at,
       deleted_at: document.deleted_at,

@@ -1,9 +1,11 @@
 import Input from '@/components/ui/input';
+import { Switch } from '@headlessui/react';
 import {
   useForm,
   useWatch,
   useFieldArray,
   FormProvider,
+  Controller,
 } from 'react-hook-form';
 import Button from '@/components/ui/button';
 import Card from '@/components/common/card';
@@ -201,24 +203,14 @@ export default function CreateOrUpdateModifierForm({
     let quantityLevels = values.quantity_levels || [];
     let pricesBySize = values.prices_by_size || [];
 
-    // If inheriting pricing, use data from Modifier Group
-    if (values.inherit_pricing && modifierGroup) {
-      if (modifierGroup.quantity_levels) {
-        quantityLevels = modifierGroup.quantity_levels.map((ql) => ({
-          ...ql,
-          // Ensure optional fields are handled correctly
-          name: ql.name ?? undefined,
-          price: ql.price ?? 0,
-          is_default: ql.is_default ?? false,
-          display_order: ql.display_order ?? 0,
-          is_active: ql.is_active ?? true,
-          prices_by_size: ql.prices_by_size || [],
-        }));
-      }
-
-      if (modifierGroup.prices_by_size) {
-        pricesBySize = modifierGroup.prices_by_size;
-      }
+    // If inheriting pricing, explicitly clear overrides so backend knows to inherit
+    if (values.inherit_pricing) {
+      quantityLevels = [];
+      pricesBySize = [];
+    } else if (!values.inherit_pricing && modifierGroup) {
+      // If NOT inheriting (Override), ensuring we are sending valid data is handled by form validation
+      // But we might want to ensure we don't accidentally send empty arrays if user just toggled and didn't touch anything,
+      // although pre-fill logic should handle that.
     }
 
     const input: any = {
@@ -380,21 +372,169 @@ export default function CreateOrUpdateModifierForm({
               />
               <Card className="w-full sm:w-8/12 md:w-2/3">
                 <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                  <div className="mb-2">
-                    <SwitchInput
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-semibold mb-1">
+                        {t('form:input-label-inherit-pricing')}
+                      </Label>
+                      <p className="text-xs text-body text-gray-500">
+                        {t('form:inherit-pricing-helper')}
+                      </p>
+                    </div>
+                    <Controller
                       name="inherit_pricing"
                       control={control}
-                      label={t('form:input-label-inherit-pricing')}
+                      render={({ field: { value, onChange } }) => (
+                        <Switch
+                          checked={value ?? true}
+                          onChange={(checked: boolean) => {
+                            onChange(checked);
+                            if (!checked && modifierGroup) {
+                              // Switching to Override: Pre-fill with group data
+                              const groupQtyLevels =
+                                modifierGroup.quantity_levels || [];
+                              const groupPricesBySize =
+                                modifierGroup.prices_by_size || [];
+
+                              // Clear current fields first (optional, but cleaner)
+                              setValue('quantity_levels', []);
+
+                              // We need to set the value. Since we are using useFieldArray,
+                              // simply setting the value in the form might not update the fields if we don't use the append/replace methods.
+                              // However, react-hook-form setValue works if we re-mount or if we update the array fields.
+                              // Best way with useFieldArray is to replace the fields.
+                              // But we can just use setValue for the whole array and RHF should handle it if we trigger a re-render.
+
+                              setValue(
+                                'quantity_levels',
+                                groupQtyLevels.map((ql: any) => ({
+                                  ...ql,
+                                  is_default: ql.is_default ?? false,
+                                  is_active: ql.is_active ?? true,
+                                  prices_by_size: ql.prices_by_size || [],
+                                })),
+                              );
+                              setValue('prices_by_size', groupPricesBySize);
+                            }
+                          }}
+                          className={`${
+                            value ? 'bg-accent' : 'bg-gray-300'
+                          } relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none`}
+                        >
+                          <span className="sr-only">
+                            {t('form:input-label-inherit-pricing')}
+                          </span>
+                          <span
+                            className={`${
+                              value ? 'translate-x-6' : 'translate-x-1'
+                            } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                          />
+                        </Switch>
+                      )}
                     />
-                    <p className="text-xs text-body mt-1">
-                      {t('form:inherit-pricing-helper')}
-                    </p>
                   </div>
                 </div>
 
                 {inheritPricing ? (
-                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg text-blue-700 text-sm">
-                    {t('form:pricing-inherited-text')}
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+                      <div className="text-blue-500 mt-0.5">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-blue-700">
+                        <p className="font-semibold mb-1">
+                          {t('form:pricing-inherited-text')}
+                        </p>
+                        <p>{t('form:modifier-inherited-view-help')}</p>
+                      </div>
+                    </div>
+
+                    {/* Read-Only View of Group Pricing */}
+                    {modifierGroup?.quantity_levels &&
+                    modifierGroup.quantity_levels.length > 0 ? (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            {t('form:group-pricing-configuration')}
+                          </h4>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                          {modifierGroup.quantity_levels.map(
+                            (ql: any, idx: number) => (
+                              <div key={idx} className="p-4 bg-white/50">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-medium text-sm">
+                                    {ql.quantity}x {ql.name || ''}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {ql.price !== undefined &&
+                                      ql.price !== 0 && (
+                                        <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium border border-blue-200">
+                                          {t('form:base-price') || 'Base'}: $
+                                          {ql.price.toFixed(2)}
+                                        </span>
+                                      )}
+                                    {ql.is_default && (
+                                      <span className="text-[11px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium border border-green-200">
+                                        {t('form:text-default') || 'Default'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {ql.prices_by_size &&
+                                ql.prices_by_size.length > 0 ? (
+                                  <div className="mt-2 grid grid-cols-2 gap-2">
+                                    {ql.prices_by_size.map(
+                                      (pbs: any, pIdx: number) => {
+                                        // Helper to find size name if possible, otherwise use code
+                                        const sizeName =
+                                          itemSizes?.find(
+                                            (s: any) =>
+                                              s.id === pbs.size_id ||
+                                              s.code === pbs.sizeCode,
+                                          )?.name || pbs.sizeCode;
+                                        return (
+                                          <div
+                                            key={pIdx}
+                                            className="text-xs bg-gray-50 px-2 py-1 rounded border border-gray-100 text-gray-600 flex justify-between"
+                                          >
+                                            <span>{sizeName}:</span>
+                                            <span className="font-mono">
+                                              {pbs.priceDelta > 0 ? '+' : ''}
+                                              {pbs.priceDelta?.toFixed(2)}
+                                            </span>
+                                          </div>
+                                        );
+                                      },
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400 italic">
+                                    No size pricing configured
+                                  </p>
+                                )}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic p-4 text-center bg-gray-50 rounded border border-gray-100">
+                        {t('form:no-group-pricing-configured')}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="mb-5 animate-fadeIn">

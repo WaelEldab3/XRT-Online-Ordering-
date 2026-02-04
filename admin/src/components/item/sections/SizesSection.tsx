@@ -10,6 +10,7 @@ import Description from '@/components/ui/description';
 import Alert from '@/components/ui/alert';
 import ItemSizesManager from '../item-sizes-manager';
 import { FormValues } from '../item-form-types';
+import { ItemSize } from '@/data/client/item-size';
 
 interface SizesSectionProps {
   control: Control<FormValues, any, any>;
@@ -19,6 +20,7 @@ interface SizesSectionProps {
   shopId: string | undefined;
   itemId?: string;
   defaultSizeId: string | null | undefined;
+  sizes?: ItemSize[];
 }
 
 export default function SizesSection({
@@ -29,6 +31,7 @@ export default function SizesSection({
   shopId,
   itemId,
   defaultSizeId,
+  sizes,
 }: SizesSectionProps) {
   const { t } = useTranslation();
 
@@ -52,6 +55,7 @@ export default function SizesSection({
                   businessId={shopId}
                   value={field.value}
                   onChange={field.onChange}
+                  sizes={sizes}
                   defaultSizeId={defaultSizeId || undefined}
                   onDefaultSizeChange={(sizeId) => {
                     setValue('default_size_id', sizeId, {

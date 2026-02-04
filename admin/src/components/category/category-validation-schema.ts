@@ -10,9 +10,9 @@ export const categoryValidationSchema = yup.object().shape({
     .number()
     .transform((value) => (isNaN(value) ? undefined : value))
     .required('form:error-sort-order-required'),
-  icon: yup.mixed(),
+  icon: yup.mixed().nullable().optional(),
   details: yup.string(),
-  image: yup.mixed(),
+  image: yup.mixed().nullable().optional(),
   is_active: yup.boolean(),
   modifier_groups: yup.array().nullable(),
 });

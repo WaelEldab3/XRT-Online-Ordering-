@@ -1,0 +1,35 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BusinessController = void 0;
+const CreateBusinessUseCase_1 = require("../../domain/usecases/businesses/CreateBusinessUseCase");
+const GetBusinessUseCase_1 = require("../../domain/usecases/businesses/GetBusinessUseCase");
+const UpdateBusinessUseCase_1 = require("../../domain/usecases/businesses/UpdateBusinessUseCase");
+const BusinessRepository_1 = require("../../infrastructure/repositories/BusinessRepository");
+const BusinessSettingsRepository_1 = require("../../infrastructure/repositories/BusinessSettingsRepository");
+const response_1 = require("../../shared/utils/response");
+const asyncHandler_1 = require("../../shared/utils/asyncHandler");
+class BusinessController {
+    constructor() {
+        this.createBusiness = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const business = await this.createBusinessUseCase.execute({
+                ...req.body,
+                owner: req.user.id,
+            });
+            return (0, response_1.sendSuccess)(res, 'Business created successfully', { business }, 201);
+        });
+        this.getBusiness = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const business = await this.getBusinessUseCase.execute();
+            return (0, response_1.sendSuccess)(res, 'Business retrieved successfully', { business });
+        });
+        this.updateBusiness = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+            const business = await this.updateBusinessUseCase.execute(req.body);
+            return (0, response_1.sendSuccess)(res, 'Business updated successfully', { business });
+        });
+        const businessRepository = new BusinessRepository_1.BusinessRepository();
+        const businessSettingsRepository = new BusinessSettingsRepository_1.BusinessSettingsRepository();
+        this.createBusinessUseCase = new CreateBusinessUseCase_1.CreateBusinessUseCase(businessRepository, businessSettingsRepository);
+        this.getBusinessUseCase = new GetBusinessUseCase_1.GetBusinessUseCase(businessRepository);
+        this.updateBusinessUseCase = new UpdateBusinessUseCase_1.UpdateBusinessUseCase(businessRepository);
+    }
+}
+exports.BusinessController = BusinessController;

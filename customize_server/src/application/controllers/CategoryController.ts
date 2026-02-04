@@ -140,10 +140,12 @@ export class CategoryController {
       icon_public_id,
       language,
       modifier_groups,
+      delete_icon, // Extract flag
     } = req.body;
 
     console.log('--- UPDATE CATEGORY REQUEST ---');
     console.log('Payload Body Keys:', Object.keys(req.body));
+    console.log('Files:', req.files);
     console.log('Modifier Groups (Raw):', modifier_groups);
     // @ts-ignore
     console.log('Apply to Items Flag (Raw):', req.body.apply_modifier_groups_to_items);
@@ -173,7 +175,7 @@ export class CategoryController {
         name,
         description: description || details,
         kitchen_section_id,
-        sort_order: sort_order ? parseInt(sort_order as string) : 0,
+        ...(sort_order !== undefined && { sort_order: Number(sort_order) }),
         is_active: is_active === 'true' || is_active === true,
         image,
         image_public_id,
@@ -184,6 +186,7 @@ export class CategoryController {
         apply_modifier_groups_to_items:
           req.body.apply_modifier_groups_to_items === 'true' ||
           req.body.apply_modifier_groups_to_items === true,
+        delete_icon: delete_icon === 'true' || delete_icon === true,
       },
       req.files as { [fieldname: string]: Express.Multer.File[] }
     );

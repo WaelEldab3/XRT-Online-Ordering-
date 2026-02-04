@@ -256,7 +256,7 @@ export default function CreateOrUpdateItemForm({
     useModifiersQuery({ limit: 1000, language: locale, is_active: true });
 
   const { sizes: itemSizes } = useItemSizesQuery(shopId, {
-    enabled: !!shopId && isSizeable,
+    enabled: isSizeable,
   });
 
   // Filter modifier groups
@@ -448,6 +448,7 @@ export default function CreateOrUpdateItemForm({
                 shopId={shopId}
                 itemId={initialValues?.id}
                 defaultSizeId={defaultSizeId}
+                sizes={itemSizes}
               />
             </TabPanel>
 

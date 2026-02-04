@@ -1,9 +1,10 @@
 import { IItemRepository, PaginatedItems } from '../../domain/repositories/IItemRepository';
 import { Item, CreateItemDTO, UpdateItemDTO, ItemFilters } from '../../domain/entities/Item';
 import { ItemModel, ItemDocument } from '../database/models/ItemModel';
+import { ModifierModel } from '../database/models/ModifierModel';
 
 export class ItemRepository implements IItemRepository {
-  private toDomain(document: ItemDocument): Item {
+  private toDomain(document: ItemDocument, allModifiers: any[] = []): Item {
     return {
       id: document._id.toString(),
       name: document.name,
@@ -11,6 +12,16 @@ export class ItemRepository implements IItemRepository {
       sort_order: document.sort_order,
       is_active: document.is_active,
       base_price: document.base_price,
+      sizes: document.sizes
+        ? document.sizes
+            .filter((s: any) => s && s.size_id) // Filter out invalid entries
+            .map((s: any) => ({
+              size_id: s.size_id.toString(),
+              price: s.price,
+              is_default: s.is_default,
+              is_active: s.is_active,
+            }))
+        : [],
       category_id: document.category_id
         ? (document.category_id as any)._id
           ? (document.category_id as any)._id.toString()
@@ -38,25 +49,70 @@ export class ItemRepository implements IItemRepository {
             : document.default_size_id.toString()
         : undefined,
       modifier_groups: document.modifier_groups
-        ? document.modifier_groups.map((mg: any) => ({
-            modifier_group_id:
+        ? document.modifier_groups.map((mg: any) => {
+            const groupId =
               typeof mg.modifier_group_id === 'string'
                 ? mg.modifier_group_id
-                : (mg.modifier_group_id?._id || mg.modifier_group_id).toString(),
-            display_order: mg.display_order || 0,
-            modifier_overrides: mg.modifier_overrides
-              ? mg.modifier_overrides.map((mo: any) => ({
-                  modifier_id:
-                    typeof mo.modifier_id === 'string'
-                      ? mo.modifier_id
-                      : (mo.modifier_id?._id || mo.modifier_id).toString(),
-                  max_quantity: mo.max_quantity,
-                  is_default: mo.is_default,
-                  prices_by_size: mo.prices_by_size || undefined,
-                  quantity_levels: mo.quantity_levels || undefined,
-                }))
-              : undefined,
-          }))
+                : (mg.modifier_group_id?._id || mg.modifier_group_id).toString();
+
+            // Map full Modifier Group data if populated
+            let modifierGroupData = undefined;
+            if (mg.modifier_group_id && typeof mg.modifier_group_id === 'object') {
+              const g = mg.modifier_group_id;
+              modifierGroupData = {
+                id: g._id ? g._id.toString() : groupId,
+                name: g.name,
+                display_name: g.display_name,
+                min_select: g.min_select,
+                max_select: g.max_select,
+                quantity_levels: g.quantity_levels,
+                prices_by_size: g.prices_by_size, // Important for inheritance
+                display_type: g.display_type,
+                business_id: g.business_id,
+              };
+            }
+
+            // Find modifiers for this group
+            const groupModifiers = allModifiers
+              .filter((m: any) => {
+                const mGroupId =
+                  typeof m.modifier_group_id === 'object'
+                    ? m.modifier_group_id._id.toString()
+                    : m.modifier_group_id.toString();
+                return mGroupId === groupId;
+              })
+              .map((m: any) => ({
+                id: m._id.toString(),
+                name: m.name,
+                modifier_group_id: groupId,
+                display_order: m.display_order,
+                is_active: m.is_active,
+                prices_by_size: m.prices_by_size,
+                quantity_levels: m.quantity_levels,
+                sides_config: m.sides_config,
+                created_at: m.created_at,
+                updated_at: m.updated_at,
+              }));
+
+            return {
+              modifier_group_id: groupId,
+              modifier_group: modifierGroupData,
+              display_order: mg.display_order || 0,
+              modifier_overrides: mg.modifier_overrides
+                ? mg.modifier_overrides.map((mo: any) => ({
+                    modifier_id:
+                      typeof mo.modifier_id === 'string'
+                        ? mo.modifier_id
+                        : (mo.modifier_id?._id || mo.modifier_id).toString(),
+                    max_quantity: mo.max_quantity,
+                    is_default: mo.is_default,
+                    prices_by_size: mo.prices_by_size || undefined,
+                    quantity_levels: mo.quantity_levels || undefined,
+                  }))
+                : undefined,
+              modifiers: groupModifiers,
+            };
+          })
         : [],
       created_at: document.created_at,
       updated_at: document.updated_at,
@@ -66,7 +122,18 @@ export class ItemRepository implements IItemRepository {
   async create(itemData: CreateItemDTO): Promise<Item> {
     const itemDoc = new ItemModel(itemData);
     await itemDoc.save();
-    return this.toDomain(itemDoc);
+
+    // Fetch modifiers for the new item's groups
+    const groupIds = (itemDoc.modifier_groups || [])
+      .map((mg: any) => mg.modifier_group_id)
+      .filter(Boolean);
+
+    const modifiers =
+      groupIds.length > 0
+        ? await ModifierModel.find({ modifier_group_id: { $in: groupIds }, is_active: true })
+        : [];
+
+    return this.toDomain(itemDoc, modifiers);
   }
 
   async findById(id: string): Promise<Item | null> {
@@ -76,7 +143,20 @@ export class ItemRepository implements IItemRepository {
       .populate('default_size_id')
       .populate('modifier_groups.modifier_group_id')
       .populate('modifier_groups.modifier_overrides.modifier_id');
-    return itemDoc ? this.toDomain(itemDoc) : null;
+
+    if (!itemDoc) return null;
+
+    // Fetch relevant modifiers
+    const groupIds = (itemDoc.modifier_groups || [])
+      .map((mg: any) => mg.modifier_group_id && (mg.modifier_group_id._id || mg.modifier_group_id))
+      .filter(Boolean);
+
+    const modifiers =
+      groupIds.length > 0
+        ? await ModifierModel.find({ modifier_group_id: { $in: groupIds }, is_active: true })
+        : [];
+
+    return this.toDomain(itemDoc, modifiers);
   }
 
   async findAll(filters: ItemFilters): Promise<PaginatedItems> {
@@ -125,8 +205,31 @@ export class ItemRepository implements IItemRepository {
       ItemModel.countDocuments(query),
     ]);
 
+    // Optimize: Collect all group IDs to fetch modifiers in one query
+    const allGroupIds = new Set<string>();
+    itemDocs.forEach((doc) => {
+      if (doc.modifier_groups) {
+        doc.modifier_groups.forEach((mg: any) => {
+          if (mg.modifier_group_id) {
+            const gid = mg.modifier_group_id._id
+              ? mg.modifier_group_id._id.toString()
+              : mg.modifier_group_id.toString();
+            allGroupIds.add(gid);
+          }
+        });
+      }
+    });
+
+    const allModifiers =
+      allGroupIds.size > 0
+        ? await ModifierModel.find({
+            modifier_group_id: { $in: Array.from(allGroupIds) },
+            is_active: true,
+          })
+        : [];
+
     return {
-      items: itemDocs.map((doc) => this.toDomain(doc)),
+      items: itemDocs.map((doc) => this.toDomain(doc, allModifiers)),
       total,
       page,
       limit,
@@ -148,7 +251,17 @@ export class ItemRepository implements IItemRepository {
       throw new Error('Item not found');
     }
 
-    return this.toDomain(itemDoc);
+    // Fetch modifiers
+    const groupIds = (itemDoc.modifier_groups || [])
+      .map((mg: any) => mg.modifier_group_id && (mg.modifier_group_id._id || mg.modifier_group_id))
+      .filter(Boolean);
+
+    const modifiers =
+      groupIds.length > 0
+        ? await ModifierModel.find({ modifier_group_id: { $in: groupIds }, is_active: true })
+        : [];
+
+    return this.toDomain(itemDoc, modifiers);
   }
 
   async delete(id: string): Promise<void> {

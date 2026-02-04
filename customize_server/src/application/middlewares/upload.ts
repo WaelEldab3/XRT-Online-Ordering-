@@ -4,15 +4,17 @@ import { Request } from 'express';
 import { storage } from '../../infrastructure/cloudinary/CloudinaryStorage';
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  if (file.fieldname === 'icon' || file.mimetype.startsWith('image/')) {
+  if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
     cb(new Error('Only image files are allowed'));
   }
 };
 
+const memoryStorage = multer.memoryStorage();
+
 export const uploadImage = multer({
-  storage,
+  storage: memoryStorage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
@@ -20,7 +22,6 @@ export const uploadImage = multer({
 });
 
 // Memory storage for CSV/ZIP imports (no need to save to cloud)
-const memoryStorage = multer.memoryStorage();
 
 const importFileFilter = (
   req: Request,

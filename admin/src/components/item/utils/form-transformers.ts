@@ -14,11 +14,14 @@ export const transformModifierAssignment = (
   const selectedGroups = values.modifier_assignment.modifier_groups || [];
   const selectedDefaultModifiers =
     values.modifier_assignment.default_modifiers || [];
+  const modifierPrices =
+    (values.modifier_assignment as any).modifier_prices || {};
   const modifierPricesBySize =
     (values.modifier_assignment as any).modifier_prices_by_size || {};
   const modifierPricesBySizeAndQuantity =
     (values.modifier_assignment as any).modifier_prices_by_size_and_quantity ||
     {};
+  const pricingMode = (values.modifier_assignment as any).pricing_mode || {};
 
   if (selectedGroups.length === 0) return undefined;
 
@@ -31,18 +34,33 @@ export const transformModifierAssignment = (
 
   // Build modifier_groups with modifier_overrides
   return selectedGroups.map((group: any, index: number) => {
-    const groupId = typeof group === 'string' ? group : group.id;
+    const groupId = typeof group === 'string' ? group : group.id || group._id;
+
+    // Check pricing mode for this group - default to inherit if not set
+    const groupPricingMode = pricingMode[groupId] || 'inherit';
+
+    // If inheriting, we do NOT send any overrides for pricing.
+    // However, we might still need to send default modifier overrides if the user picked different defaults?
+    // The current backend logic likely replaces ALL overrides for a modifier group assignment.
+    // So if we send NO overrides, it might revert everything to group defaults.
+    // But the request is specific to pricing.
+    // If successful implementation requires 'inherit' mode to NOT send price overrides,
+    // we should filter out price-related data here.
 
     // Find all modifiers in this group
     const groupModifiers = allModifiersList.filter(
-      (m: any) => m.modifier_group_id === groupId,
+      (m: any) =>
+        (m.modifier_group_id?.id ||
+          m.modifier_group_id?._id ||
+          m.modifier_group_id) === groupId,
     );
 
     // Build modifier_overrides for this group
     const modifierOverrides: any[] = [];
 
     groupModifiers.forEach((modifier: any) => {
-      const modifierId = modifier.id;
+      const modifierId = modifier.id || modifier._id;
+      const isDefault = defaultModifierIds.includes(modifierId);
 
       // Check if this modifier has pricing overrides
       const hasSizePricing =
@@ -51,14 +69,29 @@ export const transformModifierAssignment = (
       const hasQuantityPricing =
         modifierPricesBySizeAndQuantity[modifierId] &&
         Object.keys(modifierPricesBySizeAndQuantity[modifierId]).length > 0;
+      const flatPrice = modifierPrices[modifierId];
+      const hasFlatPricing =
+        flatPrice !== undefined && flatPrice !== null && flatPrice !== '';
+
+      const isOverrideMode = groupPricingMode === 'override';
 
       // Only create override if there's something to override
-      if (hasSizePricing || hasQuantityPricing) {
-        const override: any = {
-          modifier_id: modifierId,
-        };
+      // If Inherit Mode: Only override "is_default" status (if changed? - simplifying to always send if default)
+      // If Override Mode: Override prices if set
 
-        // Add is_default if it's a default modifier
+      // Construct override object
+      const override: any = {
+        modifier_id: modifierId,
+      };
+
+      if (isDefault) {
+        override.is_default = true;
+      }
+
+      if (isOverrideMode) {
+        if (hasFlatPricing) {
+          override.price = Number(flatPrice);
+        }
 
         // Build prices_by_size array
         if (
@@ -102,48 +135,61 @@ export const transformModifierAssignment = (
           itemSizes.length > 0
         ) {
           const qtyPriceData = modifierPricesBySizeAndQuantity[modifierId];
-          const quantityLevelMap = new Map<
+          const quantitiesDataMap = new Map<
             number,
-            { prices: number[]; count: number }
+            { sizeCode: string; price: number }[]
           >();
 
           // Collect all prices for each quantity level across all sizes
-          Object.keys(qtyPriceData).forEach((sizeName) => {
-            const sizeQtyPrices = qtyPriceData[sizeName];
+          Object.keys(qtyPriceData).forEach((sizeIdentifier) => {
+            const sizeQtyPrices = qtyPriceData[sizeIdentifier];
             if (sizeQtyPrices && typeof sizeQtyPrices === 'object') {
-              Object.keys(sizeQtyPrices).forEach((quantity) => {
-                const price = sizeQtyPrices[quantity];
-                if (price !== undefined && price !== null && price !== '') {
-                  const numPrice = Number(price);
-                  if (!isNaN(numPrice)) {
-                    const qty = Number(quantity);
-                    if (!quantityLevelMap.has(qty)) {
-                      quantityLevelMap.set(qty, { prices: [], count: 0 });
+              // Resolve size code
+              const size = itemSizes.find(
+                (s: any) =>
+                  s.name === sizeIdentifier || s.code === sizeIdentifier,
+              );
+
+              if (size && size.code) {
+                Object.keys(sizeQtyPrices).forEach((quantity) => {
+                  const price = sizeQtyPrices[quantity];
+                  if (price !== undefined && price !== null && price !== '') {
+                    const numPrice = Number(price);
+                    if (!isNaN(numPrice)) {
+                      const qty = Number(quantity);
+                      if (!quantitiesDataMap.has(qty)) {
+                        quantitiesDataMap.set(qty, []);
+                      }
+                      quantitiesDataMap.get(qty)!.push({
+                        sizeCode: size.code,
+                        price: numPrice,
+                      });
                     }
-                    const levelData = quantityLevelMap.get(qty)!;
-                    levelData.prices.push(numPrice);
-                    levelData.count++;
                   }
-                }
-              });
+                });
+              }
             }
           });
 
-          // Build quantity_levels array (using average price if multiple sizes)
+          // Build quantity_levels array with prices_by_size
           const quantityLevels: any[] = [];
-          quantityLevelMap.forEach((levelData, quantity) => {
+
+          quantitiesDataMap.forEach((sizePrices, quantity) => {
             const qtyLevel = DEFAULT_QUANTITY_LEVELS.find(
               (q: any) => q.quantity === quantity,
             );
 
-            if (qtyLevel && levelData.prices.length > 0) {
-              const avgPrice =
-                levelData.prices.reduce((sum, p) => sum + p, 0) /
-                levelData.prices.length;
+            if (qtyLevel && sizePrices.length > 0) {
+              const pricesBySize = sizePrices.map((sp) => ({
+                sizeCode: sp.sizeCode,
+                priceDelta: sp.price,
+              }));
+
               quantityLevels.push({
                 quantity: quantity,
                 name: qtyLevel.name,
-                price: avgPrice,
+                prices_by_size: pricesBySize,
+                // Note: We are NOT setting a base 'price' here anymore as it's size specific
               });
             }
           });
@@ -152,11 +198,12 @@ export const transformModifierAssignment = (
             override.quantity_levels = quantityLevels;
           }
         }
+      }
 
-        // Only add override if it has at least one property
-        if (Object.keys(override).length > 1) {
-          modifierOverrides.push(override);
-        }
+      // Only add override if it has interesting data (price overrides or is_default)
+      // modifier_id is always present (length 1)
+      if (Object.keys(override).length > 1) {
+        modifierOverrides.push(override);
       }
     });
 

@@ -24,6 +24,7 @@ interface ItemSizesManagerProps {
   defaultSizeId?: string | null;
   onDefaultSizeChange?: (sizeId: string | null) => void;
   disabled?: boolean;
+  sizes?: ItemSize[];
 }
 
 interface CreateGlobalSizeForm {
@@ -39,13 +40,17 @@ export default function ItemSizesManager({
   defaultSizeId,
   onDefaultSizeChange,
   disabled = false,
+  sizes: propSizes,
 }: ItemSizesManagerProps) {
   const { t } = useTranslation();
   const {
-    sizes: globalSizes,
+    sizes: fetchedSizes,
     isLoading,
     error,
-  } = useItemSizesQuery(businessId, { enabled: !!businessId });
+  } = useItemSizesQuery(businessId, { enabled: !!businessId && !propSizes });
+
+  const globalSizes = propSizes || fetchedSizes;
+
   const { mutate: createGlobalSize, isPending: creating } =
     useCreateItemSizeMutation();
   const [showAddForm, setShowAddForm] = useState(false);

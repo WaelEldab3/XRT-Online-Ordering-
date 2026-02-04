@@ -80,6 +80,9 @@ export const useUpdateCategoryMutation = () => {
       });
     },
     onError: (error: any) => {
+      console.error('❌ Update Category Error:', error);
+      console.error('❌ Error Response:', error?.response);
+      console.error('❌ Error Data:', error?.response?.data);
       toast.error(error?.response?.data?.message || t('common:update-failed'));
     },
     // Always refetch after error or success to ensure data consistency

@@ -2,16 +2,27 @@ import { HttpClient } from './http-client';
 import { API_ENDPOINTS } from './api-endpoints';
 import { Attachment } from '@/types';
 
-export const uploadClient = {
-  upload: async (variables: any) => {
-    let formData = new FormData();
+export interface UploadVariables {
+  files: File[];
+  section?: string;
+  field?: string;
+}
 
-    // Handle both old (array only) and new ({ files, section }) signatures
-    const files = Array.isArray(variables) ? variables : variables.files;
-    const section =
-      !Array.isArray(variables) && variables.section ? variables.section : null;
-    const field =
-      !Array.isArray(variables) && variables.field ? variables.field : null;
+export const uploadClient = {
+  upload: async (variables: UploadVariables | File[]) => {
+    const formData = new FormData();
+
+    let files: File[];
+    let section: string | undefined;
+    let field: string | undefined;
+
+    if (Array.isArray(variables)) {
+      files = variables;
+    } else {
+      files = variables.files;
+      section = variables.section;
+      field = variables.field;
+    }
 
     if (section) {
       formData.append('section', section);
@@ -21,35 +32,27 @@ export const uploadClient = {
       formData.append('field', field);
     }
 
-    files.forEach((attachment: any) => {
-      // If the field name is 'icon', use it as the key so the backend fileFilter can detect it.
-      // Otherwise use the default 'attachment[]' which the backend controller handles as a list.
-      // (Note: Backend route now uses .any() to accept this)
+    files.forEach((file) => {
+      // Backend uses .any() so field name is flexible, but keeping 'icon' or 'attachment[]'
+      // helps with logical separation if needed in future
       if (field === 'icon') {
-        formData.append('icon', attachment);
+        formData.append('icon', file);
       } else {
-        formData.append('attachment[]', attachment);
+        formData.append('attachment[]', file);
       }
     });
 
-    // Inspect FormData (browser only)
-    try {
-      // @ts-ignore
-      for (var pair of formData.entries()) {
-      }
-    } catch (e) {}
-
     const options = {
       headers: {
-        'Content-Type': undefined, // Let Axios/browser set multipart/form-data with boundary
+        'Content-Type': 'multipart/form-data',
       },
-      timeout: 300000, // 5 minutes
     };
-    const response = await HttpClient.post<any>(
+
+    const response = await HttpClient.post<Attachment[]>(
       API_ENDPOINTS.ATTACHMENTS,
       formData,
       options,
     );
-    return response?.data || response;
+    return response;
   },
 };
