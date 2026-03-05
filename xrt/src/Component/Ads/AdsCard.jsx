@@ -3,7 +3,7 @@ import React from "react";
 const AdsCard = ({ item }) => {
   return (
     <div
-      className="bg-no-repeat p-8 rounded-[10px]  pb-[60px] relative group/card md:w-[70%] md:h-[100%] xl:w-[88%] xl:h-[100%] "
+      className="bg-no-repeat p-8 rounded-[10px] pb-[60px] relative group/card w-full h-full"
       style={{ backgroundImage: `url(${item.src})` }}
     >
       <div className="absolute xl:w-[100%] xl:h-[100%] inset-0 bg-black opacity-0 group-hover/card:opacity-50  duration-300 rounded-[10px]"></div>

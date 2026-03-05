@@ -37,7 +37,7 @@ export default function Content(props) {
       className="
         relative
         w-full
-        h-[520px] md:h-[650px]
+        h-[620px] md:h-[650px]
         bg-cover
         bg-center
         bg-no-repeat

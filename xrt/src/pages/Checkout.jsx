@@ -3,14 +3,16 @@ import { useCart } from '../context/CartContext';
 import { COLORS } from '../config/colors';
 import { ArrowLeft, Plus, Minus, ShoppingBag, Ticket, Trash2, MapPin, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { restaurantLocation } from '@/constants/business';
 
 const TAX_RATE = 0.1; // 10% mock tax
 const TIP_OPTIONS = [10, 15, 20, 25];
 
 const Checkout = () => {
-  const { cartItems, updateQuantity, removeFromCart, cartTotal, orderType, deliveryDetails } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, cartTotal, orderType: contextOrderType, deliveryDetails, setShowDeliveryModal } = useCart();
   const navigate = useNavigate();
 
+  const [orderType, setOrderType] = useState(contextOrderType || 'delivery');
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -113,6 +115,32 @@ const Checkout = () => {
                 Contact Information
               </h2>
 
+              <div className="mb-6">
+                <p className="text-sm font-medium text-gray-700 mb-2">Order Type</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setOrderType('delivery')}
+                    className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${
+                      orderType === 'delivery'
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    Delivery
+                  </button>
+                  <button
+                    onClick={() => setOrderType('pickup')}
+                    className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${
+                      orderType === 'pickup'
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    Pick Up
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -171,6 +199,29 @@ const Checkout = () => {
                   />
                 </div>
               </div>
+
+              <div className="mt-6 p-4 bg-gray-100 rounded-lg flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">
+                    Location ({orderType === 'delivery' ? 'Delivery' : 'Pick Up'})
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {orderType === 'delivery'
+                      ? deliveryAddress
+                      : restaurantLocation
+                    }
+                  </p>
+                </div>
+
+                {orderType === 'delivery' && (
+                  <button
+                    onClick={() => setShowDeliveryModal(true)}
+                    className="text-green-600 text-sm font-medium hover:underline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
             </section>
 
             {/* Promo Code */}
@@ -222,18 +273,7 @@ const Checkout = () => {
                 </span>
               </h2>
 
-              {/* Delivery Location */}
-              {orderType === 'delivery' && deliveryAddress && (
-                <div className="mb-5 p-4 bg-green-50/60 rounded-xl border border-green-100">
-                  <div className="flex items-start gap-2.5">
-                    <MapPin size={16} className="text-[var(--primary)] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-700 mb-0.5">Delivery Location</p>
-                      <p className="text-sm text-gray-600 leading-relaxed">{deliveryAddress}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               {/* Cart Items */}
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">

@@ -11,9 +11,9 @@ export default function TopRated() {
 
   return (
     <>
-      <div className="flex py-[30px] px-[70px]" style={styleVars}>
+      <div className="flex flex-col lg:flex-row py-[30px] px-4 md:px-[70px]" style={styleVars}>
         <div
-          className="flex justify-start items-center h-[457px] w-[300px] flex-col group/card relative rounded-[10px]"
+          className="flex justify-start items-center h-[457px] w-full lg:w-[300px] flex-col group/card relative rounded-[10px] mb-8 lg:mb-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${coupons.src})` }}
         >
           <div className="bg-black opacity-0 group-hover/card:opacity-40 absolute inset-0 duration-400 rounded-[10px]"></div>
@@ -31,12 +31,12 @@ export default function TopRated() {
           </p>
         </div>
 
-        <div className="ml-[30px] w-[75%]">
+        <div className="ml-0 lg:ml-[30px] w-full lg:w-[75%]">
           <h2 className="text-3xl font-[700] text-[var(--text-primary)] mb-3">Top Rated</h2>
           <div className="relative  h-[2px] bg-gray-200">
             <div className="absolute left-0 top-0 h-full w-16 bg-green-600" />
           </div>
-          <div className="grid grid-cols-3 gap-4 grid-rows-3 mt-8">
+          <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-8">
             {
               Top_Rated_Items.map((item, index) => (
                 <Items key={index} item={item} />

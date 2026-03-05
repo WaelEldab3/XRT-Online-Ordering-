@@ -10,7 +10,7 @@ export default function Categories({ categories: propCategories }) {
 
   if (loading && !propCategories) {
     return (
-      <div className="grid xl:grid-cols-8 lg:grid-cols-6 md:grid-cols-4 sm:grid-cols-2 gap-x-[50px] gap-y-[100px] lg:px-[45px] px-[38px] py-[60px] pb-[80px] place-items-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
         {[...Array(8)].map((_, i) => (
           <CategorySkeleton key={i} />
         ))}
@@ -22,7 +22,7 @@ export default function Categories({ categories: propCategories }) {
 
   return (
     <>
-      <div className="grid  xl:grid-cols-8 lg:grid-cols-6 md:grid-cols-4 sm:grid-cols-2 gap-x-[50px] gap-y-[100px] lg:px-[45px] px-[38px] py-[60px] pb-[80px] place-items-center">
+      <div className="gap-y-16 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 py-[45px] px-[38px]  pb-[10px] place-items-center">
         {categories.map((item, i) => {
           return <CatCard key={item._id || i} item={item} index={i} />;
         })}

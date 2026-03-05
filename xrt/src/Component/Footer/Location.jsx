@@ -8,7 +8,7 @@ export default function Location() {
 
   return (
     <>
-      <li className="text-[#E1E1E1] mt-3 text-[17px] ">
+      <li className="text-[#E1E1E1] mt-3 text-[17px] text-center md:text-left">
         {[
           contactDetails?.location?.street_address,
           contactDetails?.location?.city,
@@ -17,7 +17,7 @@ export default function Location() {
           .filter(Boolean)
           .join(", ")}
       </li>
-      <li className="flex mt-4">
+      <li className="flex mt-4 justify-center md:justify-start items-center">
         <div className=" mr-[8px] mt-[4px] w-[28px] md:w-[32px] lg:w-[35px] h-[28px] md:h-[32px] lg:h-[35px] background_icon">
           <i className="fa-regular fa-envelope   text-[#5C9963]"></i>
         </div>
@@ -25,7 +25,7 @@ export default function Location() {
           {contactDetails?.emailAddress}
         </span>
       </li>
-      <li className="flex mt-4">
+      <li className="flex mt-4 justify-center md:justify-start items-center">
         <div className=" mr-[8px] mt-[4px] w-[28px] md:w-[32px] lg:w-[35px] h-[28px] md:h-[32px] lg:h-[35px] background_icon">
           <Phone strokeWidth={3} className="text-[#5C9963]" size={18} />
         </div>
@@ -55,7 +55,7 @@ export default function Location() {
         };
 
         return (
-          <li className="flex mt-4 flex-col">
+          <li className="flex mt-4 flex-col items-center md:items-start">
              <h4 className="text-[#FFA900] font-bold text-[17px] mb-2">OPENING HOURS</h4>
              <div className="text-[#E1E1E1] text-[15px]">
                {todaySlot.is_closed ? (

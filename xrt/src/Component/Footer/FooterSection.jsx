@@ -12,7 +12,7 @@ export default function FooterSection() {
   return (
     <>
       <div
-        className="bg-[#3D6642] grid grid-cols-4 gap-4 px-[70px] py-[70px]  gap-x-[90px]"
+        className="bg-[#3D6642] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 px-4 py-12 md:px-8 lg:px-[70px]"
         style={{
           backgroundImage: `url(${footer_image.bg})`,
           backgroundSize: "cover",
@@ -20,38 +20,38 @@ export default function FooterSection() {
           backgroundRepeat: "no-repeat",
         }}
       >
-        <div className="text-[#E1E1E1]">
+        <div className="text-[#E1E1E1] text-center md:text-left">
           {settings?.footer_text && (
              <p className="mb-4 text-2xl font-medium leading-7" style={{ color: COLORS.offerYellow }}>
                {settings?.footer_text}
              </p>
           )}
-          <span className="font-bold text-[#FFA900] text-[17px] hidden">STORE LOCATION</span>
+          <span className="font-bold text-[#FFA900] text-[17px] block mb-2">STORE LOCATION</span>
           <ul className="pt-2">
             <Location />
           </ul>
         </div>
-        <div className="">
-            <span className="font-bold text-[#FFA900] text-[17px] hidden">MY ACCOUNT</span>
-            <ul className="pt-4">
+        <div className="text-center md:text-left">
+            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">MY ACCOUNT</span>
+            <ul className="pt-0">
                 <My_Account/>
             </ul>
         </div>
-        <div>
-            <span className="font-bold text-[#FFA900] text-[17px] hidden">INFORMATION</span>
-          <ul className="pt-4">
+        <div className="text-center md:text-left">
+            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">INFORMATION</span>
+          <ul className="pt-0">
             <Categories/>
           </ul>
         </div>
-        <div className="">
-            <span className="font-bold text-[#FFA900] text-[17px] hidden">CATEGORIES</span>
-            <ul className="pt-4">
+        <div className="text-center md:text-left">
+            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">CATEGORIES</span>
+            <ul className="pt-0">
                 <Categories_2/>
             </ul>
         </div>
       </div>
-      <div className="bg-[#315234] flex justify-between items-center h-[60px] px-[70px]">
-        <h2 className="text-[#E1E1E1] text-[16px]">
+      <div className="bg-[#315234] flex flex-col md:flex-row justify-between items-center py-6 md:py-0 md:h-[60px] px-4 md:px-8 lg:px-[70px] gap-4 md:gap-0">
+        <h2 className="text-[#E1E1E1] text-[16px] text-center md:text-left">
           {(() => {
             const text = settings?.copyrightText?.replace(/Powered by XRT/i, '').trim() || '';
             const siteLink = settings?.siteLink || '#';
@@ -71,7 +71,7 @@ export default function FooterSection() {
             );
           })()}
         </h2>
-        <img src={footer_image.pay} alt="" />
+        <img src={footer_image.pay} alt="" className="max-w-[200px] md:max-w-none" />
       </div>
     </>
   );

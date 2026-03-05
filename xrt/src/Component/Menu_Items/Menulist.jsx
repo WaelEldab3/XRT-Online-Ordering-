@@ -45,9 +45,7 @@ export default function Menulist({
 
 
 
-  const gridCols = (variant === 'home' || variant === 'full')
-    ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
-    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+  const gridCols = "grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
 
   const containerPadding = "px-4 md:px-8 lg:px-[70px]";
 
@@ -69,7 +67,7 @@ export default function Menulist({
           {variant === "home" && <h2
             className={`${
               variant === "full" ? "text-2xl md:text-3xl" : "text-3xl"
-            } font-bold text-[var(--text-primary)] ${variant === "full" ? "mb-2" : "mb-0"}`}
+            } font-bold  text-[var(--text-primary)] text-center md:text-left`}
           >
             Menu List
           </h2>}
@@ -77,12 +75,12 @@ export default function Menulist({
       </div>
 
       {!hideFilter && (
-        <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-8 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-6 md:mb-8 pb-2">
           <div className="relative flex-1 min-w-[100px] h-[2px] bg-gray-200 hidden md:block">
             <div className="absolute left-0 top-0 h-full w-16 bg-[var(--primary)]" />
           </div>
 
-          <div className="flex gap-2 md:gap-3 flex-nowrap">
+          <div className="flex gap-2 md:gap-3 ">
             {categories.map((item, index) => (
               <ViewMenuList
                 key={index}
@@ -98,7 +96,7 @@ export default function Menulist({
       {displayedProducts.length > 0 ? (
         <>
           <div
-            className={`w-full grid ${gridCols} gap-4 md:gap-6 ${
+            className={`w-full grid ${gridCols} gap-3 md:gap-4 lg:gap-[18px] ${
               variant === "full" ? "mb-8" : "mt-[30px] pb-10"
             }`}
           >
@@ -106,7 +104,7 @@ export default function Menulist({
               (variant === 'home' || variant === 'full') ? (
                 <div 
                   key={product.id}
-                  className="w-full max-w-[170px] mx-auto [&>div>div:first-child>img]:!h-[160px] [&>div>div:last-child]:!flex-col [&>div>div:last-child]:!gap-3 [&>div>div:last-child>div]:!w-full [&>div>div:last-child>div]:!h-auto [&>div>div:last-child>div]:!py-2 [&>div>div:last-child>div_h5]:!text-xs [&>div>div:last-child>div_svg]:!w-4"
+                  className="w-full h-full max-w-[155px] md:max-w-none mx-auto [&>div>div:first-child>img]:!h-[160px] [&>div>div:last-child]:!flex-col [&>div>div:last-child]:!gap-3 [&>div>div:last-child>div]:!w-full [&>div>div:last-child>div]:!h-auto [&>div>div:last-child>div]:!py-2 [&>div>div:last-child>div_h5]:!text-xs [&>div>div:last-child>div_svg]:!w-4"
                 >
                   <ItemComponent product={product} />
                 </div>

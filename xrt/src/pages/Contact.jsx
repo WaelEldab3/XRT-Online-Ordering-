@@ -4,11 +4,13 @@ import  LocationSection from '../Component/Contact/LocationSection'
 
 const Contact = () => {
   return (
-    <>
-      < Information/>
-      <LocationSection />
-      <ContactForm/>
-    </>
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-[1400px] mx-auto overflow-hidden">
+        <Information />
+        <LocationSection />
+        <ContactForm />
+      </div>
+    </div>
   )
 }
 
