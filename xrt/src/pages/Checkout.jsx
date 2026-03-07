@@ -23,6 +23,27 @@ const Checkout = () => {
   const [promoApplied, setPromoApplied] = useState(false);
   const [selectedTip, setSelectedTip] = useState(null);
   const [customTip, setCustomTip] = useState('');
+  const [orderTimeType, setOrderTimeType] = useState('asap');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [asapTime, setAsapTime] = useState('');
+
+  const calculateAsapTime = () => {
+    const now = new Date();
+    const asap = new Date(now.getTime() + 25 * 60000);
+    return asap.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  React.useEffect(() => {
+    setAsapTime(calculateAsapTime());
+  }, []);
+
+  const handleSetOrderTimeType = (type) => {
+    if (type === 'asap') {
+      setAsapTime(calculateAsapTime());
+    }
+    setOrderTimeType(type);
+  };
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -224,10 +245,74 @@ const Checkout = () => {
               </div>
             </section>
 
-            {/* Promo Code */}
+            {/* Order Time */}
             <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
               <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-2">
                 <span className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex items-center justify-center">2</span>
+                Order Time
+              </h2>
+
+              <div className="mb-6">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSetOrderTimeType('asap')}
+                    className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${
+                      orderTimeType === 'asap'
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    ASAP {asapTime && `(${asapTime})`}
+                  </button>
+                  <button
+                    onClick={() => handleSetOrderTimeType('later')}
+                    className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${
+                      orderTimeType === 'later'
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    Later
+                  </button>
+                </div>
+              </div>
+
+              {orderTimeType === 'later' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label htmlFor="scheduledDate" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Select Date
+                    </label>
+                    <input
+                      id="scheduledDate"
+                      name="scheduledDate"
+                      type="date"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="scheduledTime" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Select Time
+                    </label>
+                    <input
+                      id="scheduledTime"
+                      name="scheduledTime"
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Promo Code */}
+            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex items-center justify-center">3</span>
                 Promo Code
               </h2>
 
