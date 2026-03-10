@@ -8,13 +8,13 @@ export default function Items({item}) {
 
   return (
     <>
-      <div className="flex" style={styleVars}>
+      <div className="flex flex-col md:flex-row items-center md:items-start" style={styleVars}>
           <img
             src={item.src}
             alt=""
-            className="w-[100px] h-[100px] rounded-[10px] cursor-pointer"
+            className="w-[80px] h-[80px] md:w-[100px] md:h-[100px] rounded-[10px] cursor-pointer object-cover"
           />
-          <div className="pl-[15px] w-[220px] flex flex-col ">
+          <div className="mt-3 md:mt-0 md:pl-[15px] w-full md:w-[220px] flex flex-col text-center md:text-left">
             <span className="block text-[18px] hover:cursor-pointer hover:text-[var(--primary)] duration-300">
               {item.name}
             </span>

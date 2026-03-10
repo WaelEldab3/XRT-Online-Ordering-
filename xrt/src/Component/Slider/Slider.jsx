@@ -57,7 +57,7 @@ export default function Sliderfun() {
       <button
         className="
           custom-prev
-          absolute left-4 top-1/2 -translate-y-1/2 z-20
+          absolute left-4 top-[55%] md:top-1/2 -translate-y-1/2 z-20
           w-12 h-12
           backdrop-blur-md bg-white/10
           text-white text-3xl
@@ -76,7 +76,7 @@ export default function Sliderfun() {
       <button
         className="
           custom-next
-          absolute right-4 top-1/2 -translate-y-1/2 z-20
+          absolute right-4 top-[55%] md:top-1/2 -translate-y-1/2 z-20
           w-12 h-12
           backdrop-blur-md bg-white/10
           text-white text-3xl
