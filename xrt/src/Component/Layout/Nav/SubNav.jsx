@@ -76,7 +76,7 @@ const SubNav = (props) => {
 
           <div className="flex items-center group">
           <div className="rounded-full w-[35px] h-[35px] bg-[#D9E8DB] flex items-center justify-center shadow-[0_4px_18px_rgba(0,0,0,0.04)] group-hover:cursor-pointer">
-            <i className="fa-duotone fa-regular fa-user-headset text-[#3D6642]"></i>
+            <i className="fa-solid fa-headset text-[#3D6642]"></i>
           </div>
           <h5 className='pl-[5px] text-[#FFA900] font-bold group-hover:cursor-pointer'>{props.phone}</h5>
         </div>

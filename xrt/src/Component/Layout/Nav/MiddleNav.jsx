@@ -44,7 +44,7 @@ const MiddleNav = ({ count, total, link, setclickfun, onCartClick }) => {
         ) : null}
       </a>
       <div onClick={onCartClick} className="flex cursor-pointer -translate-y-1 group">
-        <i className="fa-thin fa-bag-shopping cursor-pointer text-gray-600 mt-[15px] text-[30px] group-hover:text-[var(--primary-hover)] duration-200 "></i>
+        <i className="fa-solid fa-bag-shopping cursor-pointer text-gray-600 mt-[15px] text-[30px] group-hover:text-[var(--primary-hover)] duration-200 "></i>
         <h3 className="translate-y-[32px] translate-x-[-17px] text-white background_shopping_bag w-[18px] h-[18px] text-[11px]  ">
           {count}
         </h3>
