@@ -35,13 +35,11 @@ const AuthorizeNetIframe = ({
               setActionUrl("https://accept.authorize.net/payment/payment");
             }
           } else {
-            console.error('Invalid token payload', response);
             setIframeError("Failed to initialize secure payment session.");
             onError("Payment initialization failed.");
           }
         }
       } catch (err) {
-        console.error('Error fetching iframe token', err);
         if (isMounted) {
           setIframeError(err?.response?.data?.message || "Could not connect to payment gateway.");
           onError("Could not connect to payment gateway.");
@@ -84,7 +82,6 @@ const AuthorizeNetIframe = ({
               // Ignore extraneous messages (vite, react devtools, etc)
               if (eventData.includes("vite") || eventData.includes("react-devtools")) return;
               
-              console.log("Authorize.Net IFrame Message Received:", eventData);
 
               // Standard communicator.html payload is query string style: action=...&transId=...
               try {
@@ -98,13 +95,11 @@ const AuthorizeNetIframe = ({
                       try {
                           response = responseStr ? JSON.parse(responseStr) : {};
                       } catch (e) {
-                          console.warn("Could not parse transaction response JSON, but proceeding with transId.");
+                          // ignore parsing errors for transaction response JSON
                       }
                       
-                      console.log("Transaction Response Parsed:", { action, transId, response });
 
                       if (transId && transId !== '0') {
-                          console.log("Reporting success to parent for TransId:", transId);
                           onSuccess({ 
                               token: transId, 
                               method: 'authorize_net_iframe',
@@ -117,26 +112,22 @@ const AuthorizeNetIframe = ({
                           if (response && response.messages && response.messages.message && response.messages.message.length > 0) {
                               msg = response.messages.message[0].text;
                           }
-                          console.warn("Authorize.Net Transaction Error:", msg);
                           setIframeError(msg);
                           onError(msg);
                       }
                   } else if (action === 'cancel') {
-                      console.log("Authorize.Net Payment Cancelled");
                       const msg = "Payment was cancelled.";
                       setIframeError(msg);
                       onError(msg);
                   } else if (action === 'successfulSave') {
-                      console.log("Authorize.Net Successful Save Received");
                       // Handle if needed
                   }
               } catch (e) {
-                  console.error("Error parsing Authorize.Net message:", e, eventData);
+                  // ignore parsing errors for extraneous messages
               }
           } else if (typeof eventData === "object") {
               // Handle potential object payload if communicator is bypassed or modern
               if (eventData.action === 'transactResponse') {
-                 console.log("Authorize.Net Object Message Received:", eventData);
                  if (eventData.transId && eventData.transId !== '0') {
                     onSuccess({ 
                         token: eventData.transId, 

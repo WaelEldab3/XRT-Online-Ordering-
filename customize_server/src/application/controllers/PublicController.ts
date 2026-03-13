@@ -511,7 +511,6 @@ export class PublicController {
           return res.status(400).json({ success: false, message: 'Invalid order total: A positive amount is required.' });
         }
 
-        console.log(`[DEBUG_PAYMENT] NMI Amount: ${validAmount} (Raw: ${money.total_amount})`);
 
         const params = new URLSearchParams();
         params.append('security_key', nmiPrivateKey);
@@ -622,7 +621,6 @@ export class PublicController {
           return res.status(400).json({ success: false, message: 'Invalid order total: A positive amount is required.' });
         }
 
-        console.log(`[DEBUG_PAYMENT] AuthNet Amount: ${validAmount} (Raw: ${money.total_amount})`);
 
         const transactionRequestType = new APIContracts.TransactionRequestType();
         transactionRequestType.setTransactionType(
@@ -776,7 +774,6 @@ export class PublicController {
           ) || 0;
         const line_subtotal = (item.unit_price || 0) * (item.quantity || 1) + modifier_totals;
 
-        console.log(`[DEBUG_ITEMS] Mapping item: ${item.name_snap || item.name} | Base: ${item.unit_price} | Qty: ${item.quantity} | Modifiers: ${modifier_totals} | Total: ${line_subtotal}`);
 
         return {
           menu_item_id: item.menu_item_id || item.id,
@@ -829,7 +826,6 @@ export class PublicController {
             ...cardDetails
           },
         });
-        console.log(`[DEBUG_TRANSACTION] Created transaction for order ${order.order_number} with payment method ${finalCardType}`);
       } catch (err: any) {
         console.error('Failed to create transaction record:', err.message);
         // We don't fail the order creation if transaction logging fails, but it's a concern

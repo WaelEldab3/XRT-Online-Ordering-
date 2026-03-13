@@ -49,7 +49,6 @@ export class AuthorizeNetController {
         return res.status(400).json({ success: false, message: 'Invalid amount: A positive value is required.' });
       }
 
-      console.log(`[DEBUG_PAYMENT] HostedToken Amount: ${formattedAmount} (Raw: ${amount})`);
       transactionRequestType.setAmount(formattedAmount);
 
       const { customer, delivery } = req.body;
@@ -143,7 +142,6 @@ export class AuthorizeNetController {
       getRequest.setTransactionRequest(transactionRequestType);
       getRequest.setHostedPaymentSettings(alist);
 
-      console.log('Authorize.Net Request Payload:', JSON.stringify(getRequest.getJSON(), null, 2));
 
       const generateToken = async (envPath: string): Promise<string> => {
         const ctrl = new AuthorizeNet.APIControllers.GetHostedPaymentPageController(getRequest.getJSON());

@@ -42,12 +42,8 @@ export function useSocketOrderListener() {
 
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      console.log('[Socket.IO] Connected to', url);
-    });
 
     socket.on('new-order', (data: any) => {
-      console.log('[Socket.IO] new-order received', data);
 
       // The backend emits the full server order object
       let order;
@@ -82,9 +78,6 @@ export function useSocketOrderListener() {
       setPendingOrders((prev) => [...prev, order]);
     });
 
-    socket.on('disconnect', () => {
-      console.log('[Socket.IO] Disconnected');
-    });
 
     return () => {
       socket.disconnect();

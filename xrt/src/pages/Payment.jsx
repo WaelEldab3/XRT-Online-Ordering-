@@ -83,7 +83,6 @@ const Payment = () => {
       navigate('/order-success', { state: { orderNumber } });
 
     } catch (error) {
-      console.error('Order submission error:', error);
       const message = error?.response?.data?.message || 'Failed to place order. Please try again.';
       setSubmitError(message);
       setIsSubmitting(false);
