@@ -111,8 +111,8 @@ export const siteSettings = {
             icon: 'OrdersIcon',
           },
           {
-            href: Routes.transaction,
-            label: 'text-transactions',
+            href: Routes.orderHistory,
+            label: 'text-order-history',
             icon: 'TransactionsIcon',
           },
         ],
@@ -171,6 +171,29 @@ export const siteSettings = {
                 icon: 'UploadIcon', // Using UploadIcon as placeholder for Import/Export
               },
             ],
+          },
+        ],
+      },
+
+      printing: {
+        href: '',
+        label: 'Printing',
+        icon: 'OrdersIcon',
+        childMenu: [
+          {
+            href: Routes.printers.list,
+            label: 'Printers',
+            icon: 'OrdersIcon',
+          },
+          {
+            href: Routes.printTemplates.list,
+            label: 'Templates',
+            icon: 'ProductsIcon',
+          },
+          {
+            href: Routes.kitchenSections.list,
+            label: 'Kitchen Sections',
+            icon: 'CategoriesIcon',
           },
         ],
       },
@@ -307,11 +330,6 @@ export const siteSettings = {
                 href: Routes.seoSettings,
                 label: 'text-seo-settings',
                 icon: 'StoreNoticeIcon',
-              },
-              {
-                href: Routes.printerSettings,
-                label: 'text-printer-settings',
-                icon: 'RefundsIcon',
               },
               {
                 href: Routes?.maintenance,

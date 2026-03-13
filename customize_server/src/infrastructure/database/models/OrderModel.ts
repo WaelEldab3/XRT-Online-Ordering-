@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 import { Order, OrderStatus, OrderType, ServiceTimeType } from '../../../domain/entities/Order';
 
-export interface OrderDocument extends Omit<Order, 'id' | 'customer_id'>, Document {
+export interface OrderDocument extends Omit<Order, 'id' | 'customer_id' | 'business_id'>, Document {
   _id: Types.ObjectId;
   customer_id: Types.ObjectId | string;
+  business_id: Types.ObjectId | string;
 }
 
 const OrderItemModifierSchema = new Schema(
@@ -13,6 +14,7 @@ const OrderItemModifierSchema = new Schema(
     modifier_quantity_id: { type: Schema.Types.ObjectId },
     quantity_label_snapshot: { type: String },
     unit_price_delta: { type: Number, required: true, default: 0 },
+    selected_side: { type: String, enum: ['LEFT', 'RIGHT', 'WHOLE'] },
   },
   { _id: true } // Generate embedded _id
 );
@@ -29,6 +31,8 @@ const OrderItemSchema = new Schema(
     line_subtotal: { type: Number, required: true },
     special_notes: { type: String },
     modifiers: { type: [OrderItemModifierSchema], default: [] },
+    /** Kitchen section name for print routing (resolved from Item → Category at order creation) */
+    kitchen_section_snapshot: { type: String, default: null },
   },
   { _id: true } // Generate embedded _id
 );
@@ -43,6 +47,12 @@ const OrderMoneySchema = new Schema(
     total_amount: { type: Number, required: true },
     currency: { type: String, required: true, default: 'USD' },
     payment: { type: String, required: true }, // ENUM or string
+    payment_id: { type: String },
+    payment_status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+    coupon_code: { type: String },
+    rewards_points_used: { type: Number },
+    card_type: { type: String },
+    last_4: { type: String },
   },
   { _id: false }
 );
@@ -56,8 +66,19 @@ const OrderDeliverySchema = new Schema(
   { _id: false }
 );
 
+const OrderPrintStatusSchema = new Schema(
+  {
+    printer_id: { type: String, required: true },
+    status: { type: String, enum: ['pending', 'sent', 'failed'], required: true },
+    attempted_at: { type: Date },
+    error: { type: String },
+  },
+  { _id: false }
+);
+
 const OrderSchema = new Schema<OrderDocument>(
   {
+    business_id: { type: Schema.Types.ObjectId, ref: 'Business', required: true, index: true },
     customer_id: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     order_number: { type: String, required: true, unique: true, index: true },
     order_type: { type: String, enum: ['pickup', 'delivery'], required: true },
@@ -84,9 +105,11 @@ const OrderSchema = new Schema<OrderDocument>(
     cancelled_reason: { type: String },
     cancelled_by: { type: String }, // e.g., 'customer', 'admin', 'system'
     money: { type: OrderMoneySchema, required: true },
+    payment_status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
     delivery: { type: OrderDeliverySchema },
     notes: { type: String },
     items: { type: [OrderItemSchema], required: true },
+    print_status: { type: [OrderPrintStatusSchema], default: [] },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

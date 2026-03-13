@@ -1,72 +1,122 @@
 import { useEffect, useRef } from 'react';
 import { useAtom } from 'jotai';
-import { newOrderAtom, newOrderModalStateAtom } from '@/store/order-atoms';
-import { toast } from 'react-toastify';
-import { useTranslation } from 'next-i18next';
+import { pendingOrdersAtom, newOrderModalStateAtom } from '@/store/order-atoms';
 import { useUpdateOrderMutation } from '@/data/order';
-import NewOrderToast from './new-order-toast';
+import { useTranslation } from 'next-i18next';
+import { toast } from 'react-toastify';
+import { useQueryClient } from '@tanstack/react-query';
+import { API_ENDPOINTS } from '@/data/client/api-endpoints';
+import { playNotificationSound } from '@/utils/notification-sound';
 
+const AUTO_ACCEPT_TIMEOUT = 120_000; // 2 minutes
+const SOUND_REPEAT_INTERVAL = 10_000; // 10 seconds
+
+/**
+ * Global component that watches the pending-orders queue.
+ *
+ * Behaviour:
+ * 1. When a new order arrives (via socket.io → pendingOrdersAtom),
+ *    immediately open the NewOrderModal with the first queued order.
+ * 2. A notification sound plays immediately and repeats every 10 seconds
+ *    until all pending orders are accepted.
+ * 3. If the user doesn't accept within 2 minutes the order is
+ *    automatically accepted and the modal moves to the next queued order.
+ * 4. Orders are stacked: after one is accepted / auto-accepted the next
+ *    one in the queue opens automatically.
+ */
 export default function NewOrderNotification() {
   const { t } = useTranslation();
-  const [newOrder, setNewOrder] = useAtom(newOrderAtom);
-  const [, setModalState] = useAtom(newOrderModalStateAtom);
-
+  const [pendingOrders, setPendingOrders] = useAtom(pendingOrdersAtom);
+  const [modalState, setModalState] = useAtom(newOrderModalStateAtom);
   const { mutate: updateOrder } = useUpdateOrderMutation();
+  const autoAcceptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const soundIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const queryClient = useQueryClient();
 
+  // Whenever there are pending orders and the modal isn't open yet, show the first one
   useEffect(() => {
-    if (newOrder) {
-      // 1. Play Sound (Create new instance every time for overlapping)
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.play().catch((error) => console.error('Audio play failed:', error));
-
-      const orderId = newOrder.id;
-      const toastId = `order-${orderId}`;
-
-      // 2. Show Toast Notification
-      // Use generic toast for full custom control without default styles
-      toast(<NewOrderToast newOrder={newOrder} />, {
-        toastId: toastId, // Unique ID for programmatic dismissal
-        position: 'top-right',
-        autoClose: false, // Persistent until accepted/closed
-        closeOnClick: false,
-        draggable: false,
-        hideProgressBar: true,
-        closeButton: false, // Hide default close button
-        style: {
-          padding: 0,
-          background: 'transparent',
-          boxShadow: 'none',
-          minWidth: '350px', // Ensure it has enough width
-          transform: 'translateX(-2rem)', // Move left as requested
-        },
-        className: 'p-0 bg-transparent shadow-none', // Tailwind overrides just in case
-        bodyClassName: 'p-0 m-0',
-      });
-
-      // 3. Auto-Accept Timer (20 seconds)
-      const timer = setTimeout(() => {
-        if (toast.isActive(toastId)) {
-          updateOrder(
-            { id: orderId, status: 'accepted' },
-            {
-              onSuccess: () => {
-                toast.success(t('text-order-auto-accepted') + ` #${orderId}`);
-                toast.dismiss(toastId);
-                setModalState((prev) =>
-                  prev.isOpen && prev.order?.id === orderId
-                    ? { isOpen: false, order: null }
-                    : prev
-                );
-                setNewOrder(null);
-              },
-            }
-          );
-        }
-      }, 20000);
-
-      return () => clearTimeout(timer);
+    if (pendingOrders.length > 0 && !modalState.isOpen) {
+      const nextOrder = pendingOrders[0];
+      setModalState({ isOpen: true, order: nextOrder });
     }
-  }, [newOrder, setModalState, setNewOrder, t, updateOrder]);
+  }, [pendingOrders, modalState.isOpen, setModalState]);
 
-  return null;
+  // Repeating notification sound: plays every 10s while there are pending orders
+  useEffect(() => {
+    // Clear any existing interval
+    if (soundIntervalRef.current) {
+      clearInterval(soundIntervalRef.current);
+      soundIntervalRef.current = null;
+    }
+
+    if (pendingOrders.length === 0) return;
+
+    // Play sound immediately when a new order arrives
+    playNotificationSound();
+
+    // Then repeat every 10 seconds
+    soundIntervalRef.current = setInterval(() => {
+      playNotificationSound();
+    }, SOUND_REPEAT_INTERVAL);
+
+    return () => {
+      if (soundIntervalRef.current) {
+        clearInterval(soundIntervalRef.current);
+        soundIntervalRef.current = null;
+      }
+    };
+  }, [pendingOrders.length]);
+
+  // Auto-accept timer: 2 minutes for the currently shown order
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoAcceptTimerRef.current) {
+      clearTimeout(autoAcceptTimerRef.current);
+      autoAcceptTimerRef.current = null;
+    }
+
+    if (!modalState.isOpen || !modalState.order) return;
+
+    const orderId = modalState.order.id;
+
+    autoAcceptTimerRef.current = setTimeout(() => {
+      // Auto-accept the order
+      updateOrder(
+        { id: orderId, status: 'accepted', silent: true },
+        {
+          onSuccess: () => {
+            toast.success(
+              `${t('text-order-auto-accepted') || 'Order auto-accepted'} #${orderId}`,
+            );
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [API_ENDPOINTS.ORDERS],
+            });
+          },
+        },
+      );
+
+      // Remove from queue and close modal (next one will open via the effect above)
+      setPendingOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setModalState({ isOpen: false, order: null });
+    }, AUTO_ACCEPT_TIMEOUT);
+
+    return () => {
+      if (autoAcceptTimerRef.current) {
+        clearTimeout(autoAcceptTimerRef.current);
+        autoAcceptTimerRef.current = null;
+      }
+    };
+  }, [
+    modalState.isOpen,
+    modalState.order,
+    setPendingOrders,
+    setModalState,
+    t,
+    updateOrder,
+    queryClient,
+  ]);
+
+  return null; // UI handled by NewOrderModal
 }

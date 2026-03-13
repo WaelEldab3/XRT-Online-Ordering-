@@ -9,4 +9,6 @@ export interface IKitchenSectionRepository {
   findAll(filters: KitchenSectionFilters): Promise<KitchenSection[]>;
   findByName(name: string, business_id: string): Promise<KitchenSection | null>;
   findById(id: string): Promise<KitchenSection | null>;
+  update(id: string, data: Partial<CreateKitchenSectionDTO>): Promise<KitchenSection | null>;
+  delete(id: string): Promise<boolean>;
 }

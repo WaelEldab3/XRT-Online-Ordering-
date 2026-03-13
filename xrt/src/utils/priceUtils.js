@@ -16,7 +16,11 @@ export const computeTotalPrice = (
   const sizeCode = selectedSize?.code ?? selectedSize?.label ?? null;
 
   let pricePerUnit = 0;
-  if (selectedSize && typeof selectedSize === "object" && selectedSize.price != null) {
+  if (
+    selectedSize &&
+    typeof selectedSize === "object" &&
+    selectedSize.price != null
+  ) {
     pricePerUnit = Number(selectedSize.price);
   } else {
     pricePerUnit = (product.basePrice || 0) * sizeMultiplier;
@@ -41,15 +45,18 @@ export const computeTotalPrice = (
   const getLevelPrice = (optionDef, levelName) => {
     const levels = optionDef.quantity_levels;
     if (!levels?.length) return null;
-    const level = levels.find((l) => (l.name ?? String(l.quantity)) === levelName);
+    const level = levels.find(
+      (l) => (l.name ?? String(l.quantity)) === levelName,
+    );
     if (!level) return null;
     if (level.prices_by_size?.length && selectedSize) {
       const code = selectedSize?.code ?? selectedSize?.label ?? sizeCode;
       const sizeId = selectedSize?.size_id;
       const match = level.prices_by_size.find(
         (p) =>
-          (p.sizeCode && (p.sizeCode === code || p.sizeCode === selectedSize?.label)) ||
-          (p.size_id && sizeId && p.size_id === sizeId)
+          (p.sizeCode &&
+            (p.sizeCode === code || p.sizeCode === selectedSize?.label)) ||
+          (p.size_id && sizeId && p.size_id === sizeId),
       );
       if (match != null) return match.priceDelta;
     }
@@ -61,7 +68,9 @@ export const computeTotalPrice = (
   const isDefaultLevel = (optionDef, levelName) => {
     const levels = optionDef?.quantity_levels;
     if (!levels?.length || !levelName) return false;
-    const level = levels.find((l) => (l.name ?? String(l.quantity)) === levelName);
+    const level = levels.find(
+      (l) => (l.name ?? String(l.quantity)) === levelName,
+    );
     return level?.is_default === true;
   };
 
@@ -74,7 +83,8 @@ export const computeTotalPrice = (
       const optionDef = sectionDef.options?.find((o) => o.label === optLabel);
       if (!optionDef) return;
 
-      const levelName = optValue?.level ?? (typeof optValue === "string" ? optValue : null);
+      const levelName =
+        optValue?.level ?? (typeof optValue === "string" ? optValue : null);
       const atDefaultLevel =
         !optionDef.quantity_levels?.length ||
         !levelName ||
@@ -111,4 +121,36 @@ export const computeTotalPrice = (
 
   const total = pricePerUnit * quantity;
   return total.toFixed(2);
+};
+
+/**
+ * Formats a numeric price based on site settings (currency code, fractions).
+ */
+export const formatPrice = (amount, settings) => {
+  const currency = settings?.currency || "GBP";
+  const fractions = settings?.currencyOptions?.fractions ?? 2;
+
+  try {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: fractions,
+      maximumFractionDigits: fractions,
+    }).format(Number(amount) || 0);
+  } catch (e) {
+    console.error("Error formatting price:", e);
+    // Fallback if Intl fails or currency code is invalid
+    const symbol =
+      currency === "GBP" ? "£" : currency === "USD" ? "$" : currency;
+    return `${symbol}${(Number(amount) || 0).toFixed(fractions)}`;
+  }
+};
+
+/**
+ * Parses a price string to a number (e.g., "£15.00" -> 15).
+ */
+export const getPriceValue = (priceStr) => {
+  if (typeof priceStr === "number") return priceStr;
+  if (!priceStr) return 0;
+  return parseFloat(String(priceStr).replace(/[^0-9.]/g, "")) || 0;
 };

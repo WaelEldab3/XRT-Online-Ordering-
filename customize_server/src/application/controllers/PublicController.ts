@@ -3,7 +3,15 @@ import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { BusinessRepository } from '../../infrastructure/repositories/BusinessRepository';
 import { BusinessSettingsRepository } from '../../infrastructure/repositories/BusinessSettingsRepository';
+import { AuthRequest } from '../middlewares/auth';
 import { env } from '../../shared/config/env';
+import { APIContracts, APIControllers, Constants as AuthNetConstants } from 'authorizenet';
+import { CustomerRepository } from '../../infrastructure/repositories/CustomerRepository';
+import { OrderRepository } from '../../infrastructure/repositories/OrderRepository';
+import { ItemRepository } from '../../infrastructure/repositories/ItemRepository';
+import { CategoryRepository } from '../../infrastructure/repositories/CategoryRepository';
+import { CreateOrderUseCase } from '../../domain/usecases/order/CreateOrderUseCase';
+import { TransactionRepository } from '../../infrastructure/repositories/TransactionRepository';
 
 function getBaseUrl(req: Request): string {
   const fromEnv = (env as any).PUBLIC_ORIGIN;
@@ -113,13 +121,55 @@ export class PublicController {
           }
         : promoPopup;
 
+    // Restaurant location/address: prefer Business model (GeoJSON), fallback to BusinessSettings.contactDetails.location
+    const contactDetailsFromSettings = settings.contactDetails ?? null;
+    const contactDetails = (() => {
+      const base =
+        contactDetailsFromSettings && typeof contactDetailsFromSettings === 'object'
+          ? { ...contactDetailsFromSettings }
+          : ({} as Record<string, unknown>);
+      // 1) Business.location is GeoJSON Point: coordinates = [longitude, latitude]
+      const businessCoords = (business as any).location?.coordinates;
+      if (Array.isArray(businessCoords) && businessCoords.length >= 2) {
+        base.location = { lat: Number(businessCoords[1]), lng: Number(businessCoords[0]) };
+      } else {
+        // 2) Use BusinessSettings.contactDetails.location (e.g. from admin map: { lat, lng } or coordinates)
+        const loc =
+          contactDetailsFromSettings && typeof contactDetailsFromSettings === 'object'
+            ? (contactDetailsFromSettings as any).location
+            : undefined;
+        if (loc && typeof loc === 'object') {
+          const lat = Number(loc.lat);
+          const lng = Number(loc.lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            base.location = { lat, lng };
+          } else if (Array.isArray(loc.coordinates) && loc.coordinates.length >= 2) {
+            base.location = { lat: Number(loc.coordinates[1]), lng: Number(loc.coordinates[0]) };
+          }
+        }
+      }
+      // Business.address for restaurant address string (map popup / display)
+      const addr = (business as any).address;
+      if (addr && typeof addr === 'object') {
+        const parts = [
+          addr.street,
+          [addr.city, addr.state].filter(Boolean).join(', '),
+          addr.zipCode,
+          addr.country,
+        ].filter(Boolean);
+        (base as any).address = addr;
+        (base as any).formattedAddress = parts.join(', ');
+      }
+      return Object.keys(base).length ? base : null;
+    })();
+
     const publicSettings = {
       heroSlides,
       siteTitle: settings.siteTitle ?? 'XRT Online Ordering',
       siteSubtitle: settings.siteSubtitle ?? '',
       logo: logoNormalized ?? null,
       promoPopup: promoPopupNormalized ?? null,
-      contactDetails: settings.contactDetails ?? null,
+      contactDetails,
       footer_text: settings.footer_text ?? '',
       copyrightText: settings.copyrightText ?? 'Powered by XRT',
       orders: settings.orders ?? null,
@@ -127,6 +177,17 @@ export class PublicController {
       operating_hours: settings.operating_hours ?? null,
       siteLink: settings.siteLink ?? '',
       timezone: settings.timezone ?? 'America/New_York',
+      currency: settings.currency ?? 'USD',
+      currencyOptions: settings.currencyOptions ?? {
+        formation: 'standard',
+        fractions: 2,
+      },
+      fees: settings.fees ?? { service_fee: 0, tip_options: [10, 15, 20, 25] },
+      taxes: settings.taxes ?? { sales_tax: 0 },
+      delivery: (() => {
+        const d = settings.delivery ?? { enabled: false, radius: 0, fee: 0, min_order: 0 };
+        return { ...d, zones: d.zones ?? [] };
+      })(),
       isProductReview: settings.isProductReview ?? false,
       enableTerms: settings.enableTerms ?? false,
       enableCoupons: settings.enableCoupons ?? false,
@@ -134,9 +195,79 @@ export class PublicController {
       enableReviewPopup: settings.enableReviewPopup ?? false,
       reviewSystem: settings.reviewSystem ?? 'review_single_time',
       maxShopDistance: settings.maxShopDistance ?? 0,
+      nmiPublicKey: settings.nmiPublicKey ?? null,
+      authorizeNetPublicKey: settings.authorizeNetPublicKey ?? null,
+      authorizeNetApiLoginId: settings.authorizeNetApiLoginId ?? null,
+      authorizeNetMode: settings.authorizeNetMode ?? 'ui',
     };
 
     return sendSuccess(res, 'Site settings retrieved', publicSettings);
+  });
+
+  getAuthorizeNetEnvironment = asyncHandler(async (req: Request, res: Response) => {
+    const { BusinessRepository } = await import(
+      '../../infrastructure/repositories/BusinessRepository'
+    );
+    const { BusinessSettingsRepository } = await import(
+      '../../infrastructure/repositories/BusinessSettingsRepository'
+    );
+
+    const businessRepository = new BusinessRepository();
+    const businessSettingsRepository = new BusinessSettingsRepository();
+
+    const business = await businessRepository.findOne();
+    if (!business) {
+      return res.status(500).json({ success: false, message: 'Business not configured' });
+    }
+
+    const settings = await businessSettingsRepository.findByBusinessId(business.id);
+    const authNetApiLoginId = settings?.authorizeNetApiLoginId;
+    const authNetTransactionKey = settings?.authorizeNetTransactionKey;
+
+    if (!authNetApiLoginId || !authNetTransactionKey) {
+      return res.status(500).json({ success: false, message: 'Authorize.Net is not configured' });
+    }
+
+    try {
+      const merchantAuthenticationType = new APIContracts.MerchantAuthenticationType();
+      merchantAuthenticationType.setName(authNetApiLoginId);
+      merchantAuthenticationType.setTransactionKey(authNetTransactionKey);
+
+      const request = new APIContracts.AuthenticateTestRequest();
+      request.setMerchantAuthentication(merchantAuthenticationType);
+
+      const testEnv = async (envPath: string): Promise<boolean> => {
+        const ctrl = new APIControllers.AuthenticateTestController(request.getJSON());
+        ctrl.setEnvironment(envPath);
+
+        return new Promise((resolve) => {
+          ctrl.execute(() => {
+            const apiResponse = ctrl.getResponse();
+            const response = new APIContracts.AuthenticateTestResponse(apiResponse);
+            if (response != null && response.getMessages().getResultCode() == APIContracts.MessageTypeEnum.OK) {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          });
+        });
+      };
+
+      const isProd = await testEnv(AuthNetConstants.endpoint.production);
+      if (isProd) {
+        return sendSuccess(res, 'Environment retrieved', { environment: 'production' });
+      }
+
+      const isSandbox = await testEnv(AuthNetConstants.endpoint.sandbox);
+      if (isSandbox) {
+        return sendSuccess(res, 'Environment retrieved', { environment: 'sandbox' });
+      }
+
+      // If both fail, default to sandbox but note failure
+      return sendSuccess(res, 'Environment retrieved', { environment: 'sandbox', warning: 'Keys invalid in both environments' });
+    } catch (err: any) {
+       return sendSuccess(res, 'Environment retrieved', { environment: 'sandbox', warning: err.message });
+    }
   });
 
   getTestimonials = asyncHandler(async (_req: Request, res: Response) => {
@@ -299,5 +430,495 @@ export class PublicController {
     });
 
     return sendSuccess(res, 'Products retrieved successfully', products);
+  });
+
+  createOrder = asyncHandler(async (req: Request, res: Response) => {
+    const {
+      customer,
+      order_type,
+      service_time_type,
+      schedule_time,
+      money,
+      delivery,
+      notes,
+      items,
+      paymentToken,
+      authNetMethod,
+    } = req.body;
+
+    // Validate required fields
+    if (!customer?.phone) {
+      return res.status(400).json({ success: false, message: 'Customer phone number is required' });
+    }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Order must have at least one item' });
+    }
+    if (!money) {
+      return res.status(400).json({ success: false, message: 'Money/payment info is required' });
+    }
+
+    // 1. Get business
+    const businessRepository = new BusinessRepository();
+    const business = await businessRepository.findOne();
+    if (!business) {
+      return res.status(500).json({ success: false, message: 'Business not configured' });
+    }
+
+    // 2. Find or create customer by phone number
+    const customerRepository = new CustomerRepository();
+    const customerPhone = String(customer.phone);
+    let existingCustomer = await customerRepository.findByPhone(customerPhone, business.id);
+
+    if (!existingCustomer) {
+      existingCustomer = await customerRepository.create({
+        business_id: business.id,
+        name: customer.name || 'Guest',
+        email: customer.email || `${customerPhone.replace(/\D/g, '')}@guest.local`,
+        phoneNumber: customerPhone,
+      });
+    } else if (
+      (existingCustomer.name === 'Guest' || !existingCustomer.name) &&
+      customer.name &&
+      customer.name !== 'Guest'
+    ) {
+      // Update the customer name if it was previously set to Guest
+      await customerRepository.update(existingCustomer.id, { name: customer.name }, business.id);
+      existingCustomer.name = customer.name;
+    }
+
+    // 3. Process NMI Payment if applicable
+    let nmiTransactionId = '';
+    if (money?.payment === 'nmi') {
+      if (!money.paymentToken) {
+        return res.status(400).json({ success: false, message: 'NMI payment token is required' });
+      }
+
+      const businessSettingsRepository = new BusinessSettingsRepository();
+      const settings = await businessSettingsRepository.findByBusinessId(business.id);
+
+      const nmiPrivateKey = settings?.nmiPrivateKey;
+      if (!nmiPrivateKey) {
+        return res
+          .status(500)
+          .json({ success: false, message: 'NMI payment gateway is not configured' });
+      }
+
+      try {
+        const rawAmount = parseFloat(String(money.total_amount || 0));
+        const validAmount = (isNaN(rawAmount) ? 0 : rawAmount).toFixed(2);
+        
+        if (Number(validAmount) <= 0) {
+          return res.status(400).json({ success: false, message: 'Invalid order total: A positive amount is required.' });
+        }
+
+        console.log(`[DEBUG_PAYMENT] NMI Amount: ${validAmount} (Raw: ${money.total_amount})`);
+
+        const params = new URLSearchParams();
+        params.append('security_key', nmiPrivateKey);
+        params.append('type', 'sale');
+        params.append('amount', validAmount);
+        params.append('payment_token', money.paymentToken);
+
+        const nmiEndpoint = 'https://secure.nmi.com/api/transact.php';
+        let nmiRes = await fetch(nmiEndpoint, {
+          method: 'POST',
+          body: params,
+        });
+
+        let responseText = await nmiRes.text();
+        let responseParams = new URLSearchParams(responseText);
+
+        // Auto-retry on sandbox if the production endpoint rejects it as a sandbox account
+        if (
+          responseParams.get('response') !== '1' &&
+          responseParams.get('responsetext')?.includes('sandbox.nmi.com')
+        ) {
+          nmiRes = await fetch('https://sandbox.nmi.com/api/transact.php', {
+            method: 'POST',
+            body: params,
+          });
+          responseText = await nmiRes.text();
+          responseParams = new URLSearchParams(responseText);
+        }
+
+        if (responseParams.get('response') !== '1') {
+          return res.status(400).json({
+            success: false,
+            message: `Payment declined: ${responseParams.get('responsetext')}`,
+          });
+        }
+        nmiTransactionId = responseParams.get('transactionid') || '';
+        const nmiCardType = responseParams.get('type');
+        const nmiLast4 = responseParams.get('cc_number') ? String(responseParams.get('cc_number')).slice(-4) : undefined;
+        
+        if (nmiCardType) {
+           if (!money.cardDetails) money.cardDetails = {};
+           money.cardDetails.cardType = nmiCardType;
+        }
+        if (nmiLast4) {
+           if (!money.cardDetails) money.cardDetails = {};
+           money.cardDetails.last4 = nmiLast4;
+        }
+      } catch (err: any) {
+        return res
+          .status(500)
+          .json({ success: false, message: 'Payment gateway error', error: err.message });
+      }
+    } else if (money?.payment === 'authorize_net_iframe') {
+      if (!money.paymentToken) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Authorize.Net transaction ID is required' });
+      }
+      // For the iframe, the paymentToken is actually the successful transaction ID.
+      // The payment has already been processed and captured by the Authorize.net iframe.
+      // We do not need to process it again, we just save the order.
+      nmiTransactionId = money.paymentToken;
+    } else if (money?.payment === 'authorize_net' || money?.payment === 'card') {
+      if (!paymentToken && !money.paymentToken) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Authorize.Net payment token is required' });
+      }
+
+      const businessSettingsRepository = new BusinessSettingsRepository();
+      const settings = await businessSettingsRepository.findByBusinessId(business.id);
+
+      const authNetApiLoginId = settings?.authorizeNetApiLoginId;
+      const authNetTransactionKey = settings?.authorizeNetTransactionKey;
+
+      if (!authNetApiLoginId || !authNetTransactionKey) {
+        return res
+          .status(500)
+          .json({ success: false, message: 'Authorize.Net payment gateway is not configured' });
+      }
+
+      try {
+        const merchantAuthenticationType = new APIContracts.MerchantAuthenticationType();
+        merchantAuthenticationType.setName(authNetApiLoginId);
+        merchantAuthenticationType.setTransactionKey(authNetTransactionKey);
+
+        let dataDesc = 'COMMON.ACCEPT.INAPP.PAYMENT';
+        if (authNetMethod === 'apple_pay') {
+          dataDesc = 'COMMON.APPLE.INAPP.PAYMENT';
+        } else if (authNetMethod === 'google_pay') {
+          dataDesc = 'COMMON.GOOGLE.INAPP.PAYMENT';
+        }
+
+        const opaqueData = new APIContracts.OpaqueDataType();
+        opaqueData.setDataDescriptor(dataDesc);
+        opaqueData.setDataValue(paymentToken || money.paymentToken);
+
+        const paymentType = new APIContracts.PaymentType();
+        paymentType.setOpaqueData(opaqueData);
+
+        const orderDetails = new APIContracts.OrderType();
+        orderDetails.setInvoiceNumber(`WEB-${Date.now()}`);
+
+        const rawAmount = parseFloat(String(money.total_amount || 0));
+        const validAmount = (isNaN(rawAmount) ? 0 : rawAmount).toFixed(2);
+
+        if (Number(validAmount) <= 0) {
+          return res.status(400).json({ success: false, message: 'Invalid order total: A positive amount is required.' });
+        }
+
+        console.log(`[DEBUG_PAYMENT] AuthNet Amount: ${validAmount} (Raw: ${money.total_amount})`);
+
+        const transactionRequestType = new APIContracts.TransactionRequestType();
+        transactionRequestType.setTransactionType(
+          APIContracts.TransactionTypeEnum.AUTHCAPTURETRANSACTION
+        );
+        transactionRequestType.setPayment(paymentType);
+        transactionRequestType.setAmount(validAmount);
+        transactionRequestType.setOrder(orderDetails);
+
+        const createRequest = new APIContracts.CreateTransactionRequest();
+        createRequest.setMerchantAuthentication(merchantAuthenticationType);
+        createRequest.setTransactionRequest(transactionRequestType);
+
+        const executeTransaction = async (envPath: string): Promise<{transId: string, cardType?: string, last4?: string}> => {
+          const ctrl = new APIControllers.CreateTransactionController(createRequest.getJSON());
+          ctrl.setEnvironment(envPath);
+
+          return new Promise((resolve, reject) => {
+            ctrl.execute(() => {
+              const apiResponse = ctrl.getResponse();
+              const response = new APIContracts.CreateTransactionResponse(apiResponse);
+
+              if (
+                response != null &&
+                response.getMessages().getResultCode() == APIContracts.MessageTypeEnum.OK
+              ) {
+                const tr = response.getTransactionResponse();
+                if (tr && tr.getMessages() != null) {
+                  resolve({
+                    transId: tr.getTransId(),
+                    cardType: tr.getAccountType(),
+                    last4: tr.getAccountNumber() ? String(tr.getAccountNumber()).slice(-4) : undefined
+                  });
+                } else {
+                  let errorMsg = 'Transaction Failed.';
+                  if (tr && tr.getErrors() != null) {
+                    errorMsg = tr.getErrors().getError()[0].getErrorText();
+                  }
+                  reject(new Error(errorMsg));
+                }
+              } else {
+                let errorMsg = 'Transaction Failed.';
+                const tr = response?.getTransactionResponse();
+                if (tr && tr.getErrors() != null) {
+                  errorMsg = tr.getErrors().getError()[0].getErrorText();
+                } else if (response && response.getMessages() != null) {
+                  errorMsg = response.getMessages().getMessage()[0].getText();
+                }
+                reject(new Error(errorMsg));
+              }
+            });
+          });
+        };
+
+        try {
+          const result = await executeTransaction(AuthNetConstants.endpoint.production);
+          nmiTransactionId = result.transId;
+          if (result.cardType) {
+            if (!money.cardDetails) money.cardDetails = {};
+            money.cardDetails.cardType = result.cardType;
+          }
+          if (result.last4) {
+             if (!money.cardDetails) money.cardDetails = {};
+             money.cardDetails.last4 = result.last4;
+          }
+        } catch (prodErr: any) {
+          console.warn(`Authorize.Net SDK Production failed: ${prodErr.message}. Retrying mapping on Sandbox...`);
+          try {
+             const result = await executeTransaction(AuthNetConstants.endpoint.sandbox);
+             nmiTransactionId = result.transId;
+             if (result.cardType) {
+                if (!money.cardDetails) money.cardDetails = {};
+                money.cardDetails.cardType = result.cardType;
+             }
+             if (result.last4) {
+                if (!money.cardDetails) money.cardDetails = {};
+                money.cardDetails.last4 = result.last4;
+             }
+          } catch (sandboxErr: any) {
+             throw new Error(`Transaction failed in both Production and Sandbox. Last error: ${sandboxErr.message}`);
+          }
+        }
+      } catch (err: any) {
+        return res
+          .json({ success: false, message: err.message || 'Payment gateway error' });
+      }
+    }
+
+    // 3. Create the order
+    const orderRepository = new OrderRepository();
+    const itemRepository = new ItemRepository();
+    const categoryRepository = new CategoryRepository();
+    const businessSettingsRepository = new BusinessSettingsRepository();
+    const createOrderUseCase = new CreateOrderUseCase(
+      orderRepository,
+      itemRepository,
+      categoryRepository,
+      businessSettingsRepository
+    );
+    
+    // Normalize address structure (frontend uses address1/zipcode, backend/admin expects street/zipCode)
+    if (delivery?.address) {
+      const addr = delivery.address;
+      delivery.address = {
+        ...addr,
+        street: addr.street || addr.address1 || '',
+        zipCode: addr.zipCode || addr.zipcode || '',
+        city: addr.city || '',
+        state: addr.state || '',
+      };
+    }
+
+    // 3.4 Capturing customer data and creating the order
+    // Update customer address if provided in checkout
+    if (delivery?.address) {
+       await customerRepository.update(existingCustomer.id, { 
+         address: delivery.address 
+       }, business.id);
+       existingCustomer.address = delivery.address; // Update local copy for enrichedOrder
+    }
+
+    const orderData = {
+      business_id: business.id,
+      customer_id: existingCustomer.id,
+      order_type: order_type || 'pickup',
+      service_time_type: service_time_type || 'ASAP',
+      schedule_time: schedule_time || null,
+      money: {
+        subtotal: money.subtotal || 0,
+        discount: money.discount || 0,
+        delivery_fee: money.delivery_fee || 0,
+        tax_total: money.tax_total || 0,
+        tips: money.tips || 0,
+        total_amount: money.total_amount || 0,
+        currency: money.currency || 'USD',
+        payment: money.payment || 'cash',
+        payment_id: nmiTransactionId || undefined,
+        payment_status: (nmiTransactionId ? 'paid' : 'pending') as 'paid' | 'pending',
+        coupon_code: money?.coupon_code,
+        rewards_points_used: money?.rewards_points_used,
+        card_type: money?.cardDetails?.cardType || req.body.cardDetails?.cardType,
+        last_4: money?.cardDetails?.last4 || req.body.cardDetails?.last4,
+      },
+      delivery: delivery || undefined,
+      notes: notes || '',
+      items: items.map((item: any) => {
+        const modifier_totals =
+          item.modifiers?.reduce(
+            (sum: number, m: any) => sum + (m.unit_price_delta || 0) * (item.quantity || 1),
+            0
+          ) || 0;
+        const line_subtotal = (item.unit_price || 0) * (item.quantity || 1) + modifier_totals;
+
+        console.log(`[DEBUG_ITEMS] Mapping item: ${item.name_snap || item.name} | Base: ${item.unit_price} | Qty: ${item.quantity} | Modifiers: ${modifier_totals} | Total: ${line_subtotal}`);
+
+        return {
+          menu_item_id: item.menu_item_id || item.id,
+          size_id: item.size_id || undefined,
+          name_snap: item.name_snap || item.name || 'Item',
+          size_snap: item.size_snap || undefined,
+          unit_price: item.unit_price || 0,
+          quantity: item.quantity || 1,
+          modifier_totals,
+          line_subtotal,
+          special_notes: item.special_notes || undefined,
+          modifiers: (item.modifiers || []).map((mod: any) => ({
+            modifier_id: mod.modifier_id || mod.id,
+            name_snapshot: mod.name_snapshot || mod.name || mod.label || 'Modifier',
+            modifier_quantity_id: mod.modifier_quantity_id,
+            quantity_label_snapshot: mod.quantity_label_snapshot,
+            unit_price_delta: mod.unit_price_delta || mod.price || 0,
+            selected_side: mod.selected_side,
+          })),
+        };
+      }),
+    };
+
+    const order = await createOrderUseCase.execute(orderData);
+
+    // 3.5 Create Transaction record if payment was successful
+    if (nmiTransactionId) {
+      try {
+        const transactionRepository = new TransactionRepository();
+        const cardDetails = money?.cardDetails || req.body.cardDetails;
+        const finalCardType = cardDetails?.cardType || cardDetails?.brand || (money?.payment === 'nmi' ? 'Card' : 'Authorize_net');
+        const finalLast4 = cardDetails?.last4 || cardDetails?.last_4;
+
+        await transactionRepository.create({
+          order_id: order.id,
+          customer_id: existingCustomer.id,
+          transaction_id: nmiTransactionId,
+          amount: order.money.total_amount,
+          currency: order.money.currency || 'USD',
+          gateway: (money?.payment === 'nmi' ? 'nmi' : 'authorize_net') as any,
+          status: 'completed',
+          payment_method: finalCardType,
+          card_type: finalCardType,
+          last_4: finalLast4,
+          metadata: {
+            authNetMethod: req.body.authNetMethod || money?.authNetMethod,
+            customer_ip: req.ip,
+            customer_name: customer?.name || existingCustomer.name,
+            customer_email: customer?.email || existingCustomer.email,
+            ...cardDetails
+          },
+        });
+        console.log(`[DEBUG_TRANSACTION] Created transaction for order ${order.order_number} with payment method ${finalCardType}`);
+      } catch (err: any) {
+        console.error('Failed to create transaction record:', err.message);
+        // We don't fail the order creation if transaction logging fails, but it's a concern
+      }
+    }
+
+    // 4. Emit full order via socket.io for admin real-time notification
+    // Enrich with customer info so the admin modal can display it
+    const enrichedOrder = {
+      ...order,
+      delivery: order.delivery || {
+        name: existingCustomer.name,
+        phone: existingCustomer.phoneNumber,
+        address: existingCustomer.address,
+      },
+    };
+    // Ensure customer name/phone are always present
+    if (enrichedOrder.delivery && !enrichedOrder.delivery.name) {
+      enrichedOrder.delivery.name = existingCustomer.name;
+    }
+    if (enrichedOrder.delivery && !enrichedOrder.delivery.phone) {
+      enrichedOrder.delivery.phone = existingCustomer.phoneNumber;
+    }
+
+    const { Server: SocketIOServer } = await import('socket.io');
+    const socketIo = req.app.get('io') as InstanceType<typeof SocketIOServer> | undefined;
+    if (socketIo) {
+      socketIo.emit('new-order', enrichedOrder);
+    }
+    // 5. Also trigger printer events
+    try {
+      const { emitNewOrder } = await import('../../services/printer/orderPrintEvents');
+      emitNewOrder({ orderId: order.id, orderNumber: order.order_number });
+    } catch {
+      // Printer events are optional
+    }
+
+    return sendSuccess(res, 'Order created successfully', order, 201);
+  });
+
+  // Apple Pay Session Validation
+  applePaySession = asyncHandler(async (req: Request, res: Response) => {
+    const { validationUrl } = req.body;
+    if (!validationUrl) {
+      return res.status(400).json({ success: false, message: 'validationUrl is required' });
+    }
+
+    try {
+      const { BusinessSettingsRepository } = await import(
+        '../../infrastructure/repositories/BusinessSettingsRepository'
+      );
+      const businessSettingsRepository = new BusinessSettingsRepository();
+      // Since it's public, we might not have a business ID directly, but for now we fallback to default
+      const businessId = (req as AuthRequest).user?.id || 'default_business'; // Needs proper resolution if multi-tenant
+
+      // In a real scenario, you'd load your Apple Pay Merchant Identity Certificate and Key here.
+      // These are required by Apple to validate the session.
+      // const httpsAgent = new https.Agent({
+      //   cert: fs.readFileSync(path.join(__dirname, 'merchant_id.pem')),
+      //   key: fs.readFileSync(path.join(__dirname, 'merchant_id.key')),
+      // });
+
+      const payload = {
+        merchantIdentifier: 'merchant.com.yourdomain', // Replace with your Merchant ID
+        displayName: 'XRT Online Ordering',
+        initiative: 'web',
+        initiativeContext: req.hostname,
+      };
+
+      const response = await fetch(validationUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        // If using node-fetch or similar, pass agent: httpsAgent
+      });
+
+      if (!response.ok) {
+        throw new Error(`Apple Pay validation failed: ${response.statusText}`);
+      }
+
+      const session = await response.json();
+      return sendSuccess(res, 'Session validated', session);
+    } catch (error: any) {
+      console.error('Apple Pay Session Error:', error);
+      return res
+        .status(500)
+        .json({ success: false, message: 'Failed to validate session', error: error.message });
+    }
   });
 }

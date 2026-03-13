@@ -29,6 +29,7 @@ const WebHookURL = ({ gateway }: WebHookURLProps) => {
   const [isCopied, setCopied] = useState(false);
 
   const icon: any = {
+    nmi: <span className="font-bold italic text-blue-600">NMI</span>,
     stripe: <StripeIcon className="h-4 w-auto" />,
     paypal: <PayPalIcon className="h-4 w-auto" />,
     razorpay: <RazorPayIcon className="h-4 w-auto" />,

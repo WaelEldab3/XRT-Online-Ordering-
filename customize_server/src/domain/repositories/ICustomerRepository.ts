@@ -25,5 +25,5 @@ export interface ICustomerRepository {
   update(id: string, customerData: UpdateCustomerDTO, business_id?: string): Promise<Customer>;
   delete(id: string, business_id?: string): Promise<void>;
   exists(email: string, business_id: string): Promise<boolean>;
+  findByPhone(phoneNumber: string, business_id: string): Promise<Customer | null>;
 }
-

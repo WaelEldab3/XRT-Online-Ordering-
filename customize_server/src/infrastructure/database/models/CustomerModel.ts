@@ -46,6 +46,9 @@ const CustomerSchema = new Schema<CustomerDocument>(
     last_order_at: {
       type: Date,
     },
+    address: {
+      type: Schema.Types.Mixed,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

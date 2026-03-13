@@ -15,6 +15,11 @@ export interface BusinessSettings {
     radius?: number;
     fee?: number;
     min_order?: number;
+    zones?: Array<{
+      radius: number;
+      fee: number;
+      min_order?: number;
+    }>;
   };
   fees?: {
     service_fee?: number;
@@ -28,6 +33,9 @@ export interface BusinessSettings {
     allowScheduleOrder?: boolean;
     maxDays?: number;
     deliveredOrderTime?: number;
+    auto_accept_orders?: boolean;
+    auto_accept_order_types?: string[];
+    auto_accept_time?: number;
   };
   minimumOrderAmount?: number;
   siteLink?: string;
@@ -127,6 +135,17 @@ export interface BusinessSettings {
     popupExpiredIn?: number;
     isNotShowAgain?: boolean;
   };
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: 'sandbox' | 'production';
+  useCashOnDelivery?: boolean;
+  paymentGateway?: any[];
+  defaultPaymentGateway?: string;
+  useEnableGateway?: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -164,6 +183,17 @@ export interface CreateBusinessSettingsDTO {
   copyrightText?: string;
   messages?: BusinessSettings['messages'];
   promoPopup?: BusinessSettings['promoPopup'];
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: BusinessSettings['authorizeNetEnvironment'];
+  useCashOnDelivery?: boolean;
+  paymentGateway?: any[];
+  defaultPaymentGateway?: string;
+  useEnableGateway?: boolean;
 }
 
 export interface UpdateBusinessSettingsDTO {
@@ -198,4 +228,15 @@ export interface UpdateBusinessSettingsDTO {
   copyrightText?: string;
   messages?: BusinessSettings['messages'];
   promoPopup?: BusinessSettings['promoPopup'];
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: BusinessSettings['authorizeNetEnvironment'];
+  useCashOnDelivery?: boolean;
+  paymentGateway?: any[];
+  defaultPaymentGateway?: string;
+  useEnableGateway?: boolean;
 }

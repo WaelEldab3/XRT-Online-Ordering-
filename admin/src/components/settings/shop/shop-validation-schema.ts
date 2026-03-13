@@ -27,14 +27,21 @@ export const shopValidationSchema = yup.object().shape({
   enableEmailForDigitalProduct: yup.boolean().optional(),
   useGoogleMap: yup.boolean().optional(),
   enableReviewPopup: yup.boolean().optional(),
-  maxShopDistance: yup.number().transform((v) => (isNaN(v) ? undefined : v)).min(0).optional(),
-  contactDetails: yup.object().shape({
-    location: yup.object().optional(),
-    contact: yup.string().optional(),
-    website: yup.string().optional(),
-    emailAddress: yup.string().email('form:error-email-format').optional(),
-    socials: yup.array().optional(),
-  }).optional(),
+  maxShopDistance: yup
+    .number()
+    .transform((v) => (isNaN(v) ? undefined : v))
+    .min(0)
+    .optional(),
+  contactDetails: yup
+    .object()
+    .shape({
+      location: yup.object().optional(),
+      contact: yup.string().optional(),
+      website: yup.string().optional(),
+      emailAddress: yup.string().email('form:error-email-format').optional(),
+      socials: yup.array().optional(),
+    })
+    .optional(),
   google: yup
     .object()
     .shape({
@@ -66,25 +73,71 @@ export const shopValidationSchema = yup.object().shape({
         .transform((v) => (isNaN(v) ? 0 : v))
         .min(0, 'Must be positive')
         .default(0),
+      auto_accept_orders: yup.boolean().optional(),
+      auto_accept_order_types: yup.array().optional(),
+      auto_accept_time: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
     })
     .optional(),
   delivery: yup
     .object()
     .shape({
       enabled: yup.boolean(),
-      radius: yup.number().transform((v) => (isNaN(v) ? 0 : v)).min(0, 'Must be positive').default(0),
-      fee: yup.number().transform((v) => (isNaN(v) ? 0 : v)).min(0, 'Must be positive').default(0),
-      min_order: yup.number().transform((v) => (isNaN(v) ? 0 : v)).min(0, 'Must be positive').default(0),
+      radius: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
+      fee: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
+      min_order: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
+      zones: yup
+        .array()
+        .of(
+          yup.object().shape({
+            radius: yup
+              .number()
+              .transform((v) => (isNaN(v) ? 0 : v))
+              .min(0, 'Must be positive')
+              .required('Required'),
+            fee: yup
+              .number()
+              .transform((v) => (isNaN(v) ? 0 : v))
+              .min(0, 'Must be positive')
+              .required('Required'),
+            min_order: yup
+              .number()
+              .transform((v) => (isNaN(v) ? 0 : v))
+              .min(0, 'Must be positive')
+              .optional(),
+          }),
+        )
+        .optional(),
     })
     .optional(),
   fees: yup
     .object()
     .shape({
-      service_fee: yup.number().transform((v) => (isNaN(v) ? 0 : v)).min(0, 'Must be positive').default(0),
+      service_fee: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
       tip_options: yup.mixed().test({
         message: 'Must be a comma-separated list of numbers',
         test: (value) => {
-          if (value === undefined || value === null || value === '') return true;
+          if (value === undefined || value === null || value === '')
+            return true;
           if (Array.isArray(value))
             return value.every((v) => typeof v === 'number');
           if (typeof value === 'string') {
@@ -98,7 +151,11 @@ export const shopValidationSchema = yup.object().shape({
   taxes: yup
     .object()
     .shape({
-      sales_tax: yup.number().transform((v) => (isNaN(v) ? 0 : v)).min(0, 'Must be positive').default(0),
+      sales_tax: yup
+        .number()
+        .transform((v) => (isNaN(v) ? 0 : v))
+        .min(0, 'Must be positive')
+        .default(0),
     })
     .optional(),
   operating_hours: yup

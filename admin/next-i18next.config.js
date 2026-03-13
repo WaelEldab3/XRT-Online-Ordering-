@@ -29,7 +29,7 @@ module.exports = {
     defaultLocale: 'en',
     locales: ['en'],
   },
-  debug: true,
+  debug: false,
   saveMissing: true,
   localePath: path.resolve('./public/locales'),
   reloadOnPrerender: process.env.NODE_ENV === 'development',

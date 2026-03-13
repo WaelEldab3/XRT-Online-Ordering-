@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
   ALL_PERMISSIONS: 'auth/permissions',
   PERMISSIONS: 'permissions',
   ROLES: 'roles',
+  KITCHEN_SECTIONS: 'kitchen-sections',
 
   // Business endpoints (shops in frontend)
   BUSINESSES: 'businesses',
@@ -83,7 +84,17 @@ export const API_ENDPOINTS = {
   IMPORT_HISTORY: '/import/history',
   IMPORT_FILES: '/import/files',
   IMPORT_ANALYTICS: '/import/analytics',
-  KITCHEN_SECTIONS: '/kitchen-sections',
+  PRINTERS: 'printers',
+  PRINTER_SCAN_WIFI: 'printers/scan',
+  PRINTER_SCAN_LAN: 'printers/scan-lan',
+  PRINTER_SCAN_BLUETOOTH: 'printers/scan-bluetooth',
+  PRINTER_DETAIL: 'printers/:id',
+  PRINTER_TEST_PRINT: 'printers/:id/test-print',
+  TEMPLATES: 'templates',
+  TEMPLATE_DETAIL: 'templates/:id',
+  TEMPLATES_PRINTABLE_FIELDS: 'templates/printable-fields',
+  ORDER_REPRINT: 'orders/:id/reprint',
+  ORDER_PRINT_LOGS: 'orders/:id/print-logs',
   IMPORT_SESSION: 'import/sessions/:id',
   IMPORT_SESSION_SAVE: 'import/sessions/:id/save',
   IMPORT_SESSION_ERRORS: 'import/sessions/:id/errors',
@@ -158,4 +169,5 @@ export const API_ENDPOINTS = {
   PRICES_BULK_UPDATE: 'prices/bulk-update',
   PRICES_ROLLBACK: 'prices/rollback/:id',
   PRICES_HISTORY: 'prices/history',
+  TRANSACTIONS: 'transactions',
 };

@@ -17,6 +17,8 @@ export interface OrderItemModifier {
   modifier_quantity_id?: string;
   quantity_label_snapshot?: string;
   unit_price_delta: number;
+  /** Side placement chosen by the customer: LEFT, RIGHT, or WHOLE */
+  selected_side?: 'LEFT' | 'RIGHT' | 'WHOLE';
 }
 
 export interface OrderItem {
@@ -32,6 +34,8 @@ export interface OrderItem {
   line_subtotal: number;
   special_notes?: string;
   modifiers: OrderItemModifier[];
+  /** Kitchen section name for routing prints (set at order creation from Item → Category) */
+  kitchen_section_snapshot?: string;
 }
 
 export interface OrderMoney {
@@ -43,6 +47,12 @@ export interface OrderMoney {
   total_amount: number;
   currency: string;
   payment: string; // payment enum/string
+  payment_id?: string;
+  payment_status?: 'pending' | 'paid' | 'failed';
+  coupon_code?: string;
+  rewards_points_used?: number;
+  card_type?: string;
+  last_4?: string;
 }
 
 export interface OrderDelivery {
@@ -51,8 +61,17 @@ export interface OrderDelivery {
   address?: any; // object of data
 }
 
+/** Per-printer print status to prevent duplicate prints */
+export interface OrderPrintStatus {
+  printer_id: string;
+  status: 'pending' | 'sent' | 'failed';
+  attempted_at?: Date;
+  error?: string;
+}
+
 export interface Order {
   id: string;
+  business_id: string;
   customer_id: string;
   order_number: string;
   order_type: OrderType;
@@ -68,17 +87,22 @@ export interface Order {
   cancelled_reason?: string;
   cancelled_by?: string;
   money: OrderMoney;
+  payment_status?: 'pending' | 'paid' | 'failed';
   delivery?: OrderDelivery;
   notes?: string;
   items: OrderItem[];
+  /** Tracks which printers have already received this order (prevents double print) */
+  print_status?: OrderPrintStatus[];
 }
 
 export interface CreateOrderDTO {
+  business_id: string;
   customer_id: string;
   order_type: OrderType;
   service_time_type: ServiceTimeType;
   schedule_time?: Date | null;
   money: OrderMoney;
+  payment_status?: 'pending' | 'paid' | 'failed';
   delivery?: OrderDelivery;
   notes?: string;
   items: Omit<OrderItem, 'id' | 'order_id'>[]; // items when creating a new order

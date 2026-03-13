@@ -3,6 +3,7 @@ import { BusinessSettings, CreateBusinessSettingsDTO, UpdateBusinessSettingsDTO 
 export interface IBusinessSettingsRepository {
   create(settingsData: CreateBusinessSettingsDTO): Promise<BusinessSettings>;
   findByBusinessId(businessId: string): Promise<BusinessSettings | null>;
+  findAll(): Promise<BusinessSettings[]>;
   update(businessId: string, settingsData: UpdateBusinessSettingsDTO): Promise<BusinessSettings>;
   delete(businessId: string): Promise<void>;
 }

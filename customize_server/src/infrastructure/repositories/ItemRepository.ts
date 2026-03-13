@@ -6,7 +6,7 @@ import { ModifierModel } from '../database/models/ModifierModel';
 export class ItemRepository implements IItemRepository {
   private toDomain(document: ItemDocument, allModifiers: any[] = []): Item {
     return {
-      id: document._id.toString(),
+      id: document._id?.toString() || '',
       name: document.name,
       description: document.description,
       sort_order: document.sort_order,
@@ -19,7 +19,7 @@ export class ItemRepository implements IItemRepository {
               size_id:
                 typeof s.size_id === 'string'
                   ? s.size_id
-                  : (s.size_id?._id || s.size_id).toString(),
+                  : (s.size_id?._id || s.size_id)?.toString() || '',
               name: s.size_id && typeof s.size_id === 'object' ? s.size_id.name : undefined,
               code: s.size_id && typeof s.size_id === 'object' ? s.size_id.code : undefined,
               price: s.price,
@@ -30,7 +30,7 @@ export class ItemRepository implements IItemRepository {
       category_id: document.category_id
         ? (document.category_id as any)._id
           ? (document.category_id as any)._id.toString()
-          : document.category_id.toString()
+          : document.category_id?.toString() || ''
         : '',
       category:
         document.category_id && (document.category_id as any).name
@@ -51,7 +51,7 @@ export class ItemRepository implements IItemRepository {
           ? document.default_size_id
           : (document.default_size_id as any)?._id
             ? (document.default_size_id as any)._id.toString()
-            : document.default_size_id.toString()
+            : document.default_size_id?.toString() || ''
         : undefined,
       modifier_groups: document.modifier_groups
         ? (document.modifier_groups as any[])
@@ -68,7 +68,7 @@ export class ItemRepository implements IItemRepository {
             const groupId =
               typeof mg.modifier_group_id === 'string'
                 ? mg.modifier_group_id
-                : (mg.modifier_group_id?._id || mg.modifier_group_id).toString();
+                : (mg.modifier_group_id?._id || mg.modifier_group_id)?.toString() || '';
 
             // Map full Modifier Group data if populated
             let modifierGroupData = undefined;
@@ -93,15 +93,15 @@ export class ItemRepository implements IItemRepository {
             const groupModifiers = allModifiers
               .filter((m: any) => {
                 const mGroupId =
-                  typeof m.modifier_group_id === 'object' && m.modifier_group_id._id
+                  typeof m.modifier_group_id === 'object' && m.modifier_group_id?._id
                     ? m.modifier_group_id._id.toString()
-                    : m.modifier_group_id.toString();
+                    : m.modifier_group_id?.toString() || '';
                 return mGroupId === groupId;
               })
               .slice()
               .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
               .map((m: any) => ({
-                id: m._id.toString(),
+                id: m._id?.toString() || '',
                 name: m.name,
                 modifier_group_id: groupId,
                 display_order: m.display_order,
@@ -123,7 +123,7 @@ export class ItemRepository implements IItemRepository {
                     modifier_id:
                       typeof mo.modifier_id === 'string'
                         ? mo.modifier_id
-                        : (mo.modifier_id?._id || mo.modifier_id).toString(),
+                        : (mo.modifier_id?._id || mo.modifier_id)?.toString() || '',
                     max_quantity: mo.max_quantity,
                     is_default: mo.is_default,
                     price: mo.price != null ? mo.price : undefined,

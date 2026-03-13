@@ -93,7 +93,7 @@ export default function useLocation({
   const onPlaceChanged = () => {
     const place = autocomplete?.getPlace();
 
-    if (!place?.geometry?.location || true) {
+    if (!place?.geometry?.location) {
       return;
     }
     const location = getLocation(place);

@@ -8,6 +8,7 @@ export { getSiteSettings } from "./siteSettings";
 export { getActiveTestimonials } from "./testimonials";
 export { getCategories } from "./categories";
 export { getProducts } from "./products";
+export { createOrder } from "./orders";
 export { useSiteSettingsQuery } from "./hooks/useSiteSettings";
 export { useTestimonialsQuery } from "./hooks/useTestimonials";
 export { useCategoriesQuery } from "./hooks/useCategories";

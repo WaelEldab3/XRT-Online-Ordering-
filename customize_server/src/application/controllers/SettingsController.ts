@@ -115,6 +115,7 @@ const getDefaultOptions = () => ({
     radius: 10,
     fee: 5,
     min_order: 0,
+    zones: [],
   },
   fees: {
     service_fee: 0,
@@ -134,6 +135,16 @@ const getDefaultOptions = () => ({
   heroSlides: [] as any[],
   siteLink: '',
   enableReviewPopup: false,
+  nmiPublicKey: '',
+  nmiPrivateKey: '',
+  authorizeNetPublicKey: '',
+  authorizeNetApiLoginId: '',
+  authorizeNetTransactionKey: '',
+  authorizeNetMode: 'ui',
+  useCashOnDelivery: false,
+  paymentGateway: [],
+  defaultPaymentGateway: '',
+  useEnableGateway: true,
 });
 
 export class SettingsController {

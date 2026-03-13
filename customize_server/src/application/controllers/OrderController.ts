@@ -6,9 +6,17 @@ import { GetOrdersUseCase } from '../../domain/usecases/order/GetOrdersUseCase';
 import { UpdateOrderStatusUseCase } from '../../domain/usecases/order/UpdateOrderStatusUseCase';
 import { DeleteOrderUseCase } from '../../domain/usecases/order/DeleteOrderUseCase';
 import { OrderRepository } from '../../infrastructure/repositories/OrderRepository';
+import { ItemRepository } from '../../infrastructure/repositories/ItemRepository';
+import { CategoryRepository } from '../../infrastructure/repositories/CategoryRepository';
 import { sendSuccess } from '../../shared/utils/response';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { ValidationError, NotFoundError } from '../../shared/errors/AppError';
+import { emitNewOrder } from '../../services/printer/orderPrintEvents';
+import { routeOrderToPrinters } from '../../services/printer/printRoutingService';
+import { PrintLogRepository } from '../../infrastructure/repositories/PrintLogRepository';
+import { Server as SocketIOServer } from 'socket.io';
+
+import { BusinessSettingsRepository } from '../../infrastructure/repositories/BusinessSettingsRepository';
 
 export class OrderController {
   private createOrderUseCase: CreateOrderUseCase;
@@ -19,7 +27,15 @@ export class OrderController {
 
   constructor() {
     const orderRepository = new OrderRepository();
-    this.createOrderUseCase = new CreateOrderUseCase(orderRepository);
+    const itemRepository = new ItemRepository();
+    const categoryRepository = new CategoryRepository();
+    const businessSettingsRepository = new BusinessSettingsRepository();
+    this.createOrderUseCase = new CreateOrderUseCase(
+      orderRepository,
+      itemRepository,
+      categoryRepository,
+      businessSettingsRepository
+    );
     this.getOrderUseCase = new GetOrderUseCase(orderRepository);
     this.getOrdersUseCase = new GetOrdersUseCase(orderRepository);
     this.updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
@@ -40,6 +56,10 @@ export class OrderController {
     };
 
     const order = await this.createOrderUseCase.execute(orderData);
+    const payload = { orderId: order.id, orderNumber: order.order_number };
+    emitNewOrder(payload);
+    const socketIo = req.app.get('io') as SocketIOServer | undefined;
+    if (socketIo) socketIo.emit('new-order', order);
     return sendSuccess(res, 'Order created successfully', order, 201);
   });
 
@@ -47,7 +67,10 @@ export class OrderController {
     const statusParam = req.query.status as string | undefined;
     const status = statusParam
       ? statusParam.includes(',')
-        ? statusParam.split(',').map((s) => s.trim()).filter(Boolean)
+        ? statusParam
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : statusParam
       : undefined;
     const filters: any = {
@@ -116,5 +139,31 @@ export class OrderController {
     }
 
     return sendSuccess(res, 'Order deleted successfully', { deleted: true });
+  });
+
+  /** POST /orders/:id/reprint — clear print status and trigger routing again (manual reprint). */
+  reprint = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id: orderId } = req.params;
+    const printerId = req.body.printerId as string | undefined;
+
+    const order = await this.getOrderUseCase.execute(orderId);
+    if (!order) throw new NotFoundError('Order not found');
+
+    const orderRepository = new OrderRepository();
+    await orderRepository.clearPrintStatus(orderId, printerId);
+    setImmediate(() => {
+      routeOrderToPrinters(orderId).catch(() => {});
+    });
+    return sendSuccess(res, 'Reprint triggered', { orderId, printerId: printerId ?? 'all' });
+  });
+
+  /** GET /orders/:id/print-logs — list print attempt logs for an order. */
+  getPrintLogs = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id: orderId } = req.params;
+    const order = await this.getOrderUseCase.execute(orderId);
+    if (!order) throw new NotFoundError('Order not found');
+    const printLogRepo = new PrintLogRepository();
+    const logs = await printLogRepo.findByOrderId(orderId);
+    return sendSuccess(res, 'Print logs retrieved', logs);
   });
 }

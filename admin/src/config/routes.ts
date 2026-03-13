@@ -12,7 +12,6 @@ export const Routes = {
   landingSettings: '/landing-settings',
   paymentSettings: '/settings/payment',
   seoSettings: '/settings/seo',
-  printerSettings: '/settings/printer',
   shopSettings: '/settings/shop',
   companyInformation: '/settings/company-information',
   socialSettings: '/settings/social',
@@ -123,7 +122,22 @@ export const Routes = {
   priceUpdates: {
     ...routesFactory('/price-updates'),
   },
-  transaction: '/orders/transaction',
+  printers: {
+    list: '/printers',
+    create: '/printers/create',
+    edit: (id: string) => `/printers/${id}/edit`,
+  },
+  printTemplates: {
+    list: '/templates',
+    create: '/templates/create',
+    edit: (id: string) => `/templates/${id}/edit`,
+  },
+  kitchenSections: {
+    list: '/kitchen-sections',
+    create: '/kitchen-sections/create',
+    edit: (id: string) => `/kitchen-sections/${id}/edit`,
+  },
+  orderHistory: '/orders/order-history',
   refund: {
     ...routesFactory('/refunds'),
   },

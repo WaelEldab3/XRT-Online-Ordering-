@@ -17,6 +17,7 @@ import {
 } from '@/utils/constants';
 import NewOrderNotification from '@/components/order/new-order-notification';
 import NewOrderModal from '@/components/order/new-order-modal';
+import { useSocketOrderListener } from '@/hooks/useSocketOrderListener';
 
 interface MenuItemsProps {
   [key: string]: {
@@ -117,6 +118,9 @@ const AdminLayout: React.FC<{
   const [underMaintenance] = useAtom(checkIsMaintenanceModeComing);
   const [underMaintenanceStart] = useAtom(checkIsMaintenanceModeStart);
   const { width } = useWindowSize();
+
+  // Connect to socket.io for real-time new order notifications
+  useSocketOrderListener();
 
   return (
     <div

@@ -874,5 +874,13 @@
   "no-modifiers-in-group": "لا توجد معدلات في هذه المجموعة بعد.",
   "pricing-inherited-from-group": "استخدام تسعير المجموعة.",
   "pricing-will-use-group-config": "سيتم وراثه الأسعار من تكوين مجموعة المعدل.",
-  "button-label-add-item-size": "إضافة حجم عنصر"
+  "button-label-add-item-size": "إضافة حجم عنصر",
+  "form-title-fees-taxes": "الرسوم والضرائب",
+  "form-description-fees-taxes": "تكوين رسوم الخدمة ومعدلات الضرائب",
+  "form-input-label-service-fee": "رسوم الخدمة",
+  "form-input-tip-service-fee": "رسوم خدمة ثابتة تضاف إلى كل طلب",
+  "form-input-label-tip-options": "خيارات البقشيش",
+  "form-input-tip-tip-options": "نسب البقشيش ليختار العميل من بينها، مثل 10, 15, 20",
+  "form-input-label-sales-tax": "ضريبة المبيعات",
+  "form-input-tip-sales-tax": "نسبة ضريبة المبيعات المطبقة على الطلبات"
 }

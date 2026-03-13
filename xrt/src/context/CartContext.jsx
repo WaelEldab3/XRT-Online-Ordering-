@@ -1,7 +1,32 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
 import Toast from '../Component/UI/Toast';
 
 const CartContext = createContext();
+const CART_STORAGE_KEY = 'xrt_cart';
+
+function loadCartFromStorage() {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return { cartItems: [], orderType: null, deliveryDetails: null };
+    const data = JSON.parse(raw);
+    const items = Array.isArray(data?.cartItems) ? data.cartItems : [];
+    const cartItems = items.filter((item) => item != null && item.id != null && Number(item.qty) > 0);
+    const orderType = data?.orderType === 'pickup' || data?.orderType === 'delivery' ? data.orderType : null;
+    const deliveryDetails = data?.deliveryDetails && typeof data.deliveryDetails === 'object' ? data.deliveryDetails : null;
+    return { cartItems, orderType, deliveryDetails };
+  } catch {
+    return { cartItems: [], orderType: null, deliveryDetails: null };
+  }
+}
+
+function saveCartToStorage(cartItems, orderType, deliveryDetails) {
+  try {
+    const payload = { cartItems: cartItems ?? [], orderType: orderType ?? null, deliveryDetails: deliveryDetails ?? null };
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore
+  }
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function useCart() {
@@ -9,19 +34,43 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
-
-  const [cartItems, setCartItems] = useState([]);
-  const [orderType, setOrderType] = useState(null); // 'pickup' or 'delivery'
-  const [deliveryDetails, setDeliveryDetails] = useState(null); // { firstName, lastName, address }
+  const [persisted, setPersisted] = useState(loadCartFromStorage);
+  const { cartItems, orderType, deliveryDetails } = persisted;
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '' });
 
+  const setCartItems = useCallback((updater) => {
+    setPersisted((prev) => {
+      const nextItems = typeof updater === 'function' ? updater(prev.cartItems) : updater;
+      const next = { ...prev, cartItems: nextItems };
+      saveCartToStorage(next.cartItems, next.orderType, next.deliveryDetails);
+      return next;
+    });
+  }, []);
+
+  const setOrderType = useCallback((value) => {
+    setPersisted((prev) => {
+      const next = { ...prev, orderType: value };
+      saveCartToStorage(next.cartItems, next.orderType, next.deliveryDetails);
+      return next;
+    });
+  }, []);
+
+  const setDeliveryDetails = useCallback((value) => {
+    setPersisted((prev) => {
+      const nextDetails = typeof value === 'function' ? value(prev.deliveryDetails) : value;
+      const next = { ...prev, deliveryDetails: nextDetails };
+      saveCartToStorage(next.cartItems, next.orderType, next.deliveryDetails);
+      return next;
+    });
+  }, []);
+
   // Reset orderType when cart becomes empty
   React.useEffect(() => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && orderType !== null) {
       setOrderType(null);
     }
-  }, [cartItems]);
+  }, [cartItems.length, orderType, setOrderType]);
 
   const showToast = (message) => {
     setToast({ show: true, message });
@@ -90,7 +139,7 @@ export function CartProvider({ children }) {
   const cartTotal = useMemo(() => {
     return cartItems.reduce((acc, item) => {
       const p = item.price;
-      const price = typeof p === 'string' ? parseFloat(p.replace(/[^\d.]/g, '')) : parseFloat(p);
+      const price = typeof p === 'number' ? p : parseFloat(String(p || '0').replace(/[^\d.]/g, '')) || 0;
       return acc + (price * item.qty);
     }, 0);
   }, [cartItems]);
@@ -106,11 +155,18 @@ export function CartProvider({ children }) {
     });
   };
 
+  const clearCart = useCallback(() => {
+    const empty = { cartItems: [], orderType: null, deliveryDetails: null };
+    setPersisted(empty);
+    saveCartToStorage([], null, null);
+  }, []);
+
   const value = {
     cartItems,
     addToCart,
     removeFromCart,
     updateQuantity,
+    clearCart,
     cartCount,
     cartTotal,
     orderType,

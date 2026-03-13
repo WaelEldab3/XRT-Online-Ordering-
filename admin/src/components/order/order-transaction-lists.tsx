@@ -23,21 +23,18 @@ import { useCreateConversations } from '@/data/conversations';
 import { SUPER_ADMIN } from '@/utils/constants';
 import { getAuthCredentials } from '@/utils/auth-utils';
 import { NoDataFound } from '@/components/icons/no-data-found';
+import TransactionDetailsModal from './transaction-details-modal';
 
 type IProps = {
-  orders: Order[] | undefined;
+  transactions: any[] | undefined;
   paginatorInfo: MappedPaginatorInfo | null;
   onPagination: (current: number) => void;
-  onSort: (current: any) => void;
-  onOrder: (current: string) => void;
 };
 
 const OrderTransactionList = ({
-  orders,
+  transactions,
   paginatorInfo,
   onPagination,
-  onSort,
-  onOrder,
 }: IProps) => {
   // const { data, paginatorInfo } = orders! ?? {};
   const router = useRouter();
@@ -48,115 +45,95 @@ const OrderTransactionList = ({
   const { mutate: createConversations, isPending: creating } =
     useCreateConversations();
   const [loading, setLoading] = useState<boolean | string | undefined>(false);
-  const [sortingObj, setSortingObj] = useState<{
-    sort: SortOrder;
-    column: string | null;
-  }>({
-    sort: SortOrder.Desc,
-    column: null,
-  });
-
-  const onSubmit = async (shop_id: string | undefined) => {
-    setLoading(shop_id);
-    createConversations({
-      // @ts-ignore
-      shop_id,
-      via: 'admin',
-    });
-  };
-
-  const onHeaderClick = (column: string | null) => ({
-    onClick: () => {
-      onSort((currentSortDirection: SortOrder) =>
-        currentSortDirection === SortOrder.Desc
-          ? SortOrder.Asc
-          : SortOrder.Desc,
-      );
-      onOrder(column!);
-
-      setSortingObj({
-        sort:
-          sortingObj.sort === SortOrder.Desc ? SortOrder.Asc : SortOrder.Desc,
-        column: column,
-      });
-    },
-  });
 
   const columns = [
     {
-      title: t('table:table-item-tracking-number'),
-      dataIndex: 'tracking_number',
-      key: 'tracking_number',
+      title: t('table:table-item-order-number'),
+      dataIndex: 'order_id',
+      key: 'order_number',
       align: 'center',
-      width: 150,
+      render: (order: any) => order?.order_number || 'N/A',
     },
     {
-      title: (
-        <TitleWithSort
-          title={t('table:table-item-total')}
-          ascending={
-            sortingObj?.sort === SortOrder?.Asc &&
-            sortingObj?.column === 'paid_total'
-          }
-          isActive={sortingObj?.column === 'paid_total'}
-          className="cursor-pointer"
-        />
-      ),
-      className: 'cursor-pointer',
-      dataIndex: 'paid_total',
-      key: 'paid_total',
+      title: t('table:table-item-placed-at'),
+      dataIndex: 'created_at',
+      key: 'created_at',
       align: 'center',
-      width: 120,
-      onHeaderCell: () => onHeaderClick('paid_total'),
-      render: (paid_total: any) => (
-        <ListItemPrice value={paid_total} className="whitespace-nowrap" />
-      ),
+      render: (date: string) => dayjs(date).format('MM/DD/YYYY HH:mm'),
     },
     {
-      title: t('table:table-item-product-price'),
+      title: t('table:table-item-customer-name'),
+      dataIndex: 'customer_id',
+      key: 'customer_name',
+      align: alignLeft,
+      render: (customer: any) => customer?.name || 'Guest',
+    },
+    {
+      title: t('table:table-item-total-items-value'),
+      dataIndex: 'order_id',
+      key: 'subtotal',
+      align: 'center',
+      render: (order: any) => <ListItemPrice value={order?.money?.subtotal} />,
+    },
+    {
+      title: t('table:table-item-tax'),
+      dataIndex: 'order_id',
+      key: 'tax',
+      align: 'center',
+      render: (order: any) => <ListItemPrice value={order?.money?.tax_total} />,
+    },
+    {
+      title: t('table:table-item-tip'),
+      dataIndex: 'order_id',
+      key: 'tip',
+      align: 'center',
+      render: (order: any) => <ListItemPrice value={order?.money?.tips} />,
+    },
+    {
+      title: t('table:table-item-total'),
       dataIndex: 'amount',
       key: 'amount',
       align: 'center',
-      render: (amount: any) => <ListItemPrice value={amount} />,
+      render: (amount: number) => <ListItemPrice value={amount} />,
     },
     {
-      title: t('table:table-item-delivery-fee'),
-      dataIndex: 'delivery_fee',
-      key: 'delivery_fee',
+      title: t('table:table-item-order-type'),
+      dataIndex: 'order_id',
+      key: 'order_type',
       align: 'center',
-      render: (value: any) => <ListItemPrice value={value} />,
+      render: (order: any) => (
+        <span className="capitalize">{order?.order_type || 'N/A'}</span>
+      ),
     },
     {
-      title: t('table:table-item-taxable-amount'),
-      dataIndex: 'sales_tax',
-      key: 'sales_tax',
+      title: t('table:table-item-payment-method'),
+      dataIndex: 'payment_method',
+      key: 'payment_method',
       align: 'center',
-      render: (sales_tax: any) => <ListItemPrice value={sales_tax} />,
+      render: (method: string, record: any) => (
+        <span className="capitalize">
+          {record.card_type} {record.last_4 ? `**** ${record.last_4}` : method}
+        </span>
+      ),
     },
     {
-      title: t('table:table-item-discount'),
-      dataIndex: 'discount',
-      key: 'discount',
-      align: 'center',
-      render: (discount: any) => <ListItemPrice value={discount} />,
-    },
-    {
-      title: t('table:table-item-payment-gateway'),
-      dataIndex: 'payment_gateway',
-      key: 'payment_gateway',
-      align: alignLeft,
-      render: (payment_gateway: string) => <div>{payment_gateway}</div>,
-    },
-    {
-      title: t('table:table-item-payment-status'),
-      dataIndex: 'payment_status',
-      key: 'payment_status',
-      align: 'center',
-      render: (payment_status: string) => (
-        <Badge text={t(payment_status)} color={StatusColor(payment_status)} />
+      title: t('table:table-item-actions'),
+      dataIndex: 'id',
+      key: 'actions',
+      align: 'right',
+      render: (id: string, record: any) => (
+        <Button
+          size="small"
+          onClick={() => setSelectedTransaction(record)}
+          className="!bg-accent !text-light"
+        >
+          {t('common:text-show-more')}
+        </Button>
       ),
     },
   ];
+
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
 
   return (
     <>
@@ -173,15 +150,18 @@ const OrderTransactionList = ({
               <p className="text-[13px]">{t('table:empty-table-sorry-text')}</p>
             </div>
           )}
-          data={orders}
+          data={transactions}
           rowKey="id"
-          scroll={{ x: 1000 }}
-          expandable={{
-            expandedRowRender: () => '',
-            rowExpandable: rowExpandable,
-          }}
+          scroll={{ x: 1200 }}
         />
       </div>
+
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          transaction={selectedTransaction}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
 
       {!!paginatorInfo?.total && (
         <div className="flex items-center justify-end">

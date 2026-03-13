@@ -724,6 +724,21 @@ export interface Order {
   note?: string;
   cancelled_reason?: string;
   cancelled_by?: string;
+  card_type?: string;
+  last_4?: string;
+  money?: {
+    subtotal: number;
+    discount: number;
+    delivery_fee: number;
+    tax_total: number;
+    tips: number;
+    total_amount: number;
+    currency: string;
+    coupon_code?: string;
+    rewards_points_used?: number;
+    card_type?: string;
+    last_4?: string;
+  };
 }
 
 export interface NotifyLogs {
@@ -1237,6 +1252,7 @@ export interface SettingsOptions {
     min_order?: number;
     min_order_free_delivery?: number;
     amount_per_km?: number;
+    zones?: { radius: number; fee: number; min_order?: number }[];
   };
   fees?: {
     service_fee?: number;
@@ -1275,6 +1291,9 @@ export interface SettingsOptions {
     allowScheduleOrder?: boolean;
     maxDays?: number;
     deliveredOrderTime?: number;
+    auto_accept_orders?: boolean;
+    auto_accept_order_types?: string[];
+    auto_accept_time?: number;
   };
   operating_hours?: {
     auto_close?: boolean;
@@ -1292,8 +1311,14 @@ export interface SettingsOptions {
   externalText?: string;
   externalLink?: string;
   timezone?: string;
-  // Hero Slider
   heroSlides?: HeroSlide[];
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: 'sandbox' | 'production';
 }
 
 export interface HeroSlide {
@@ -1415,6 +1440,9 @@ export interface SettingsOptionsInput {
     allowScheduleOrder?: boolean;
     maxDays?: number;
     deliveredOrderTime?: number;
+    auto_accept_orders?: boolean;
+    auto_accept_order_types?: string[];
+    auto_accept_time?: number;
   };
   operating_hours?: {
     auto_close?: boolean;
@@ -1430,7 +1458,15 @@ export interface SettingsOptionsInput {
     radius?: number;
     fee?: number;
     min_order?: number;
+    zones?: { radius: number; fee: number; min_order?: number }[];
   };
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: 'sandbox' | 'production';
 }
 
 export interface DeliveryTime {

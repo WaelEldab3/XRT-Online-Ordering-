@@ -14,13 +14,13 @@ import { NotFoundError } from '../../shared/errors/AppError';
 export class ModifierRepository implements IModifierRepository {
   public toDomain(document: ModifierDocument): Modifier {
     return {
-      id: document._id.toString(),
-      modifier_group_id: (document.modifier_group_id as any)._id
+      id: document._id?.toString() || '',
+      modifier_group_id: (document.modifier_group_id as any)?._id
         ? (document.modifier_group_id as any)._id.toString()
-        : document.modifier_group_id.toString(),
-      modifier_group: (document.modifier_group_id as any).name
+        : document.modifier_group_id?.toString() || '',
+      modifier_group: (document.modifier_group_id as any)?.name
         ? {
-            id: (document.modifier_group_id as any)._id.toString(),
+            id: (document.modifier_group_id as any)._id?.toString() || '',
             name: (document.modifier_group_id as any).name,
           }
         : undefined,

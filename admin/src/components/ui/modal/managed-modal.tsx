@@ -14,6 +14,12 @@ const TagDeleteView = dynamic(() => import('@/components/tag/tag-delete-view'));
 const BanCustomerView = dynamic(
   () => import('@/components/user/user-ban-view'),
 );
+const KitchenSectionDeleteView = dynamic(
+  () => import('@/components/kitchen-section/kitchen-section-delete-view'),
+);
+const PrinterDeleteView = dynamic(
+  () => import('@/components/printer/printer-delete-view'),
+);
 const UserWalletPointsAddView = dynamic(
   () => import('@/components/user/user-wallet-points-add-view'),
 );
@@ -248,6 +254,10 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <ManufacturerDeleteView />;
     case 'DELETE_AUTHOR':
       return <AuthorDeleteView />;
+    case 'DELETE_KITCHEN_SECTION':
+      return <KitchenSectionDeleteView />;
+    case 'DELETE_PRINTER':
+      return <PrinterDeleteView />;
     case 'BAN_CUSTOMER':
       return <BanCustomerView />;
     case 'SHOP_APPROVE_VIEW':

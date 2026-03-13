@@ -33,12 +33,26 @@ router.get(
   orderController.getById
 );
 
+// Get print logs for an order
+router.get(
+  '/:id/print-logs',
+  // requireAuth,
+  orderController.getPrintLogs
+);
+
 // Update order status - requires orders:update permission
 router.put(
   '/:id/status',
   // requireAuth,
   // requirePermission('orders:update'),
   orderController.updateStatus
+);
+
+// Manual reprint - clear print status and trigger routing (optional body: { printerId? })
+router.post(
+  '/:id/reprint',
+  // requireAuth,
+  orderController.reprint
 );
 
 // Delete order - requires orders:delete permission

@@ -13,6 +13,7 @@ export interface ServerOrderItemModifier {
   modifier_quantity_id?: string;
   quantity_label_snapshot?: string;
   unit_price_delta: number;
+  selected_side?: string;
 }
 
 export interface ServerOrderItem {
@@ -123,6 +124,7 @@ export function serverOrderToAdminOrder(server: ServerOrder): Order {
               modifier_name_snap: m.name_snapshot,
               quantity_label_snapshot: m.quantity_label_snapshot,
               unit_price_delta: m.unit_price_delta,
+              selected_side: m.selected_side,
             })),
           },
         }) as any,
@@ -136,5 +138,7 @@ export function serverOrderToAdminOrder(server: ServerOrder): Order {
     note: server.notes,
     cancelled_reason: server.cancelled_reason,
     cancelled_by: server.cancelled_by,
-  };
+    // Preserve raw server data for the new order modal
+    ...({ money: server.money, delivery: server.delivery } as any),
+  } as Order;
 }

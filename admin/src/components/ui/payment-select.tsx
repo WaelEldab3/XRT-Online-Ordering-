@@ -43,6 +43,10 @@ const PaymentMethodCard = ({
   disable?: boolean;
 }) => {
   const icon: any = {
+    nmi: <span className="text-xl font-bold italic text-blue-600">NMI</span>,
+    authorize_net: (
+      <span className="text-lg font-bold text-slate-800">Authorize.Net</span>
+    ),
     stripe: <StripeIcon />,
     paypal: <PayPalIcon />,
     razorpay: <RazorPayIcon />,
@@ -62,7 +66,7 @@ const PaymentMethodCard = ({
       className={cn(
         isDefault || disable
           ? 'pointer-events-none cursor-not-allowed opacity-60'
-          : 'cursor-pointer'
+          : 'cursor-pointer',
       )}
     >
       <input

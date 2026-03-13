@@ -34,6 +34,13 @@ type PaymentFormValues = {
   defaultPaymentGateway: paymentGatewayOption;
   useEnableGateway: boolean;
   paymentGateway: paymentGatewayOption[];
+  nmiPublicKey?: string;
+  nmiPrivateKey?: string;
+  authorizeNetPublicKey?: string;
+  authorizeNetApiLoginId?: string;
+  authorizeNetTransactionKey?: string;
+  authorizeNetMode?: 'ui' | 'iframe';
+  authorizeNetEnvironment?: 'sandbox' | 'production';
 };
 
 type paymentGatewayOption = {
@@ -72,25 +79,32 @@ export default function PaymentSettingsForm({ settings }: IProps) {
         : '',
       defaultPaymentGateway: options?.defaultPaymentGateway
         ? PAYMENT_GATEWAY.find(
-          (item) => item.name == options?.defaultPaymentGateway,
-        )
+            (item) => item.name == options?.defaultPaymentGateway,
+          )
         : PAYMENT_GATEWAY[0],
       currencyOptions: {
         ...options?.currencyOptions,
         // @ts-ignore
         formation: options?.currencyOptions?.formation
           ? COUNTRY_LOCALE.find(
-            (item) => item.code == options?.currencyOptions?.formation,
-          )
+              (item) => item.code == options?.currencyOptions?.formation,
+            )
           : COUNTRY_LOCALE[0],
       },
       // multi-select on payment gateway
       paymentGateway: options?.paymentGateway
         ? options?.paymentGateway?.map((gateway: any) => ({
-          name: gateway?.name,
-          title: gateway?.title,
-        }))
+            name: gateway?.name,
+            title: gateway?.title,
+          }))
         : [],
+      nmiPublicKey: options?.nmiPublicKey ?? '',
+      nmiPrivateKey: options?.nmiPrivateKey ?? '',
+      authorizeNetPublicKey: options?.authorizeNetPublicKey ?? '',
+      authorizeNetApiLoginId: options?.authorizeNetApiLoginId ?? '',
+      authorizeNetTransactionKey: options?.authorizeNetTransactionKey ?? '',
+      authorizeNetMode: options?.authorizeNetMode ?? 'ui',
+      authorizeNetEnvironment: options?.authorizeNetEnvironment ?? 'sandbox',
     },
   });
 
@@ -111,9 +125,9 @@ export default function PaymentSettingsForm({ settings }: IProps) {
         paymentGateway:
           values?.paymentGateway && values?.paymentGateway!.length
             ? values?.paymentGateway?.map((gateway: any) => ({
-              name: gateway.name,
-              title: gateway.title,
-            }))
+                name: gateway.name,
+                title: gateway.title,
+              }))
             : PAYMENT_GATEWAY.filter((value: any, index: number) => index < 2),
         useEnableGateway: values?.useEnableGateway,
         //@ts-ignore
@@ -136,6 +150,12 @@ export default function PaymentSettingsForm({ settings }: IProps) {
   const isStripeActive = paymentGateway?.some(
     (payment) => payment?.name === 'stripe',
   );
+  const isNMIActive = paymentGateway?.some(
+    (payment) => payment?.name === 'nmi',
+  );
+  const isAuthorizeNetActive = paymentGateway?.some(
+    (payment) => payment?.name === 'authorize_net',
+  );
 
   return (
     <form onSubmit={handleSubmit(onSubmit as any)}>
@@ -152,7 +172,7 @@ export default function PaymentSettingsForm({ settings }: IProps) {
               control={control}
               label={t('form:input-label-cash-on-delivery')}
               toolTipText={t('form:input-tooltip-enable-cash-on-delivery')}
-            // disabled={isNotDefaultSettingsPage}
+              // disabled={isNotDefaultSettingsPage}
             />
           </div>
           <div className="mb-5">
@@ -164,7 +184,7 @@ export default function PaymentSettingsForm({ settings }: IProps) {
               options={CURRENCY}
               label={t('form:input-label-currency')}
               toolTipText={t('form:input-tooltip-currency')}
-            // disabled={isNotDefaultSettingsPage}
+              // disabled={isNotDefaultSettingsPage}
             />
             <ValidationError message={t(errors.currency?.message)} />
           </div>
@@ -188,20 +208,11 @@ export default function PaymentSettingsForm({ settings }: IProps) {
                       ? defaultPaymentGateway?.name
                       : ''
                   }
-                  disable={isEmpty(paymentGateway)}
+                  disable={false}
                 />
               </div>
 
-              {isEmpty(paymentGateway) ? (
-                <div className="flex px-5 py-4">
-                  <Loader
-                    simple={false}
-                    showText={true}
-                    text={'form:text-payment-method-preparing'}
-                    className="mx-auto !h-20"
-                  />
-                </div>
-              ) : (
+              {true && (
                 <>
                   <div className="mb-5">
                     <SelectInput
@@ -211,25 +222,88 @@ export default function PaymentSettingsForm({ settings }: IProps) {
                       getOptionValue={(option: any) => option.name}
                       options={paymentGateway ?? []}
                       label={t('text-select-default-payment-gateway')}
-                    // disabled={isNotDefaultSettingsPage}
+                      // disabled={isNotDefaultSettingsPage}
                     />
                   </div>
-                  {isStripeActive && (
-                    <div className="mb-5">
-                      <SwitchInput
-                        name="StripeCardOnly"
-                        control={control}
-                        label={t('Enable Stripe Element')}
-                      // disabled={isNotDefaultSettingsPage}
+                  {isNMIActive && (
+                    <div className="mb-5 space-y-4">
+                      <Input
+                        label={t('NMI Public API Key')}
+                        {...register('nmiPublicKey')}
+                        variant="outline"
+                      />
+                      <Input
+                        label={t('NMI Private API Key')}
+                        {...register('nmiPrivateKey')}
+                        variant="outline"
                       />
                     </div>
                   )}
-                  <Label>{t('text-webhook-url')}</Label>
-                  <div className="relative flex flex-col overflow-hidden rounded-md border border-solid border-[#D1D5DB]">
-                    {paymentGateway?.map((gateway: any, index: any) => {
-                      return <WebHookURL gateway={gateway} key={index} />;
-                    })}
-                  </div>
+                  {isAuthorizeNetActive && (
+                    <div className="mb-5 space-y-4">
+                      <Input
+                        label={t('Authorize.Net Public Client Key')}
+                        {...register('authorizeNetPublicKey')}
+                        variant="outline"
+                      />
+                      <Input
+                        label={t('Authorize.Net API Login ID')}
+                        {...register('authorizeNetApiLoginId')}
+                        variant="outline"
+                      />
+                      <Input
+                        label={t('Authorize.Net Transaction Key')}
+                        {...register('authorizeNetTransactionKey')}
+                        variant="outline"
+                      />
+                      <div className="flex flex-col gap-3 pt-3">
+                        <Label>{t('Authorize.Net Environment')}</Label>
+                        <div className="flex items-center gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-heading font-medium">
+                            <input
+                              type="radio"
+                              value="sandbox"
+                              className="w-4 h-4 accent-accent"
+                              {...register('authorizeNetEnvironment')}
+                            />
+                            Sandbox (Testing)
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-heading font-medium">
+                            <input
+                              type="radio"
+                              value="production"
+                              className="w-4 h-4 accent-accent"
+                              {...register('authorizeNetEnvironment')}
+                            />
+                            Production (Real Payments)
+                          </label>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 pt-3">
+                        <Label>{t('Authorize.Net Integration Mode')}</Label>
+                        <div className="flex items-center gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-heading font-medium">
+                            <input
+                              type="radio"
+                              value="ui"
+                              className="w-4 h-4 accent-accent"
+                              {...register('authorizeNetMode')}
+                            />
+                            Standard UI (Custom Form)
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm text-heading font-medium">
+                            <input
+                              type="radio"
+                              value="iframe"
+                              className="w-4 h-4 accent-accent"
+                              {...register('authorizeNetMode')}
+                            />
+                            Hosted IFrame (Authorize.net Form)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -256,7 +330,7 @@ export default function PaymentSettingsForm({ settings }: IProps) {
               required
               label={t('form:input-label-currency-formations')}
               toolTipText={t('form:input-tooltip-currency-formation')}
-            // disabled={isNotDefaultSettingsPage}
+              // disabled={isNotDefaultSettingsPage}
             />
           </div>
           <Input

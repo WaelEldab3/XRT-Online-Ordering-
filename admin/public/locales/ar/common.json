@@ -609,5 +609,17 @@
   "text-quote-title": "Quote",
   "text-transfer-shop-ownership-status": "Transfer shop ownership.",
   "button-label-import-csv": "Import CSV",
-  "button-label-export-csv": "Export CSV"
+  "button-label-export-csv": "Export CSV",
+  "text-tips": "بقشيش",
+  "text-invalid-custom-time": "يرجى اختيار وقت صالح",
+  "text-select-time-error": "يرجى تحديد وقت التحضير",
+  "text-order-accepted-message": "تم قبول الطلب! سيكون جاهزاً خلال {{time}} دقيقة.",
+  "text-order-items": "عناصر الطلب",
+  "text-order-summary": "ملخص الطلب",
+  "text-customer-details": "تفاصيل العميل",
+  "text-delivery-address": "عنوان التوصيل",
+  "text-select-preparation-time": "اختر وقت التحضير",
+  "text-delivery-fee": "رسوم التوصيل",
+  "text-new-order": "طلب جديد",
+  "text-schedule": "مجدول"
 }

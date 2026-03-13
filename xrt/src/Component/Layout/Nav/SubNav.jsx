@@ -9,7 +9,8 @@ const SubNav = (props) => {
   const toggleDropdown = () => setIsOpen(!isOpen);
   
   const selectOrderType = (type) => {
-    if (type === 'delivery' && !deliveryDetails) {
+    if (type === 'delivery') {
+      setOrderType(type);
       setShowDeliveryModal(true);
       setIsOpen(false);
       return;

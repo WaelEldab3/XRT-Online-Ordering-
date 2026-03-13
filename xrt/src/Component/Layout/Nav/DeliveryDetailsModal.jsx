@@ -20,6 +20,7 @@ const DeliveryDetailsModal = () => {
     if (deliveryDetails) {
       setValue('firstName', deliveryDetails.firstName);
       setValue('lastName', deliveryDetails.lastName);
+      setValue('phone', deliveryDetails.phone);
       setValue('address1', deliveryDetails.address1);
       setValue('apt', deliveryDetails.apt);
       setValue('city', deliveryDetails.city);
@@ -108,6 +109,21 @@ const DeliveryDetailsModal = () => {
                   />
                   {errors.lastName && <span className="text-xs text-red-500">{errors.lastName.message}</span>}
                 </div>
+              </div>
+
+              {/* Phone */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  Phone <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register("phone", { required: "Phone is required" })}
+                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-[var(--primary)]/20 bg-gray-50/50 outline-none transition-all ${
+                    errors.phone ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-[var(--primary)]'
+                  }`}
+                  placeholder="+1 (555) 000-0000"
+                />
+                {errors.phone && <span className="text-xs text-red-500">{errors.phone.message}</span>}
               </div>
 
               {/* Address 1 */}

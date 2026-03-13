@@ -20,8 +20,10 @@ export default function OrderInfo({ order }: OrderInfoProps) {
           <span className="text-sm font-semibold text-heading">
             {t('text-payment-method')}
           </span>
-          <span className="text-sm text-body capitalize">
-            {order?.payment_gateway}
+          <span className="text-sm text-body capitalize font-medium text-heading">
+            {order?.money?.card_type || order?.card_type 
+              ? `${order?.money?.card_type || order?.card_type} ${order?.money?.last_4 || order?.last_4 ? `**** ${order?.money?.last_4 || order?.last_4}` : ''}`
+              : (order?.payment_gateway || order?.money?.payment || 'N/A')}
           </span>
         </div>
 

@@ -3,10 +3,12 @@ import { useSiteSettingsQuery } from "@/api/hooks/useSiteSettings";
 import { resolveImageUrl } from "@/utils/resolveImageUrl";
 import { Menu } from "lucide-react";
 import { COLORS } from "../../../config/colors";
+import { formatPrice } from "@/utils/priceUtils";
 
 const MiddleNav = ({ count, total, link, setclickfun, onCartClick }) => {
-  const { logo: settingsLogo } = useSiteSettingsQuery();
-  const logoSrc = resolveImageUrl(settingsLogo?.original ?? settingsLogo?.thumbnail ?? "");
+  const { data: siteSettings } = useSiteSettingsQuery();
+  const settingsLogo = siteSettings; // the hook returns the whole data
+  const logoSrc = resolveImageUrl(settingsLogo?.logo?.original ?? settingsLogo?.logo?.thumbnail ?? "");
   const [imageLoaded, setImageLoaded] = useState(false);
 
   return (
@@ -47,7 +49,7 @@ const MiddleNav = ({ count, total, link, setclickfun, onCartClick }) => {
           {count}
         </h3>
         <div className=" items-center flex font-semibold relative translate-y-[6px]">
-          <span className="z-10">£{total}</span>
+          <span className="z-10">{formatPrice(total, siteSettings)}</span>
           <span className="block w-0 border-b-2 border-black transition-all duration-300 group-hover:w-full absolute left-0 bottom-[10px]"></span>
         </div>
       </div>

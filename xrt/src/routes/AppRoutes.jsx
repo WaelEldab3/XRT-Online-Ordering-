@@ -5,7 +5,9 @@ import Contact from '../pages/Contact';
 import Customize from "../pages/Customize";
 import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
+import Payment from "../pages/Payment";
 import ProductDetails from "../pages/ProductDetails";
+import OrderSuccess from "../pages/OrderSuccess";
 
 const routes = [
   {
@@ -31,6 +33,14 @@ const routes = [
   {
     path: "/checkout",
     element: <Checkout />,
+  },
+  {
+    path: "/payment",
+    element: <Payment />,
+  },
+  {
+    path: "/order-success",
+    element: <OrderSuccess />,
   },
   {
     path: "/product/:id",

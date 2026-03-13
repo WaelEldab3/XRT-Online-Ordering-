@@ -1,5 +1,7 @@
+import http from 'http';
 import express, { Express } from 'express';
 import path from 'path';
+import { Server as SocketIOServer } from 'socket.io';
 import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import { connectDatabase } from './infrastructure/database/connection';
@@ -33,10 +35,17 @@ import shippingRoutes from './application/routes/shipping.routes';
 import couponRoutes from './application/routes/coupon.routes';
 import testimonialRoutes from './application/routes/testimonial.routes';
 import orderRoutes from './application/routes/order.routes';
+import templateRoutes from './application/routes/template.routes';
+import printerRoutes from './application/routes/printer.routes';
+import printJobRoutes from './application/routes/print-job.routes';
+import transactionRoutes from './application/routes/transaction.routes';
 import { env } from './shared/config/env';
 import { logger } from './shared/utils/logger';
+import { registerOrderPrintHandler } from './services/printer/orderPrintEvents';
+import { startPrinterStatusMonitor } from './services/printer/printerStatusMonitor';
 // Import swagger config - using relative path from src to config directory
 import { specs } from './swagger';
+import { autoOrderManager } from './services/order/AutoOrderManagerService';
 
 const app: Express = express();
 // Trigger restart for helmet config change
@@ -176,6 +185,10 @@ app.use(`${env.API_BASE_URL}/shippings`, shippingRoutes);
 app.use(`${env.API_BASE_URL}/coupons`, couponRoutes);
 app.use(`${env.API_BASE_URL}/testimonials`, testimonialRoutes);
 app.use(`${env.API_BASE_URL}/orders`, orderRoutes);
+app.use(`${env.API_BASE_URL}/templates`, templateRoutes);
+app.use(`${env.API_BASE_URL}/printers`, printerRoutes);
+app.use(`${env.API_BASE_URL}/print-jobs`, printJobRoutes);
+app.use(`${env.API_BASE_URL}/transactions`, transactionRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -188,22 +201,32 @@ app.use((req, res) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-let server: any;
-
-// Middleware to ensure database connection in serverless environment
+let server: http.Server | null = null;
+let io: SocketIOServer | null = null;
 
 const startServer = async () => {
   try {
     await connectDatabase();
 
     // Start server only if not running on Vercel
-    // In Vercel, the app is exported and handled by the platform
     if (!process.env.VERCEL) {
       const PORT = env.PORT;
-      server = app.listen(PORT, () => {
+      server = http.createServer(app);
+      io = new SocketIOServer(server, {
+        cors: { origin: '*', methods: ['GET', 'POST'] },
+        pingTimeout: 60000,
+        pingInterval: 25000,
+      });
+      app.set('io', io);
+      registerOrderPrintHandler();
+      startPrinterStatusMonitor(io, 30_000);
+      autoOrderManager.start();
+
+      server.listen(PORT, () => {
         logger.info(`🚀 Server running on port ${PORT}`);
         logger.info(`📝 Environment: ${env.NODE_ENV}`);
         logger.info(`📡 API available at http://localhost:${PORT}${env.API_BASE_URL}`);
+        logger.info(`🔌 Socket.io attached for real-time events`);
         if (env.ATTACHMENT_STORAGE === 'cloudinary' && env.CLOUDINARY_NAME) {
           logger.info(`☁️ Image uploads: Cloudinary (${env.CLOUDINARY_NAME})`);
         } else {
@@ -213,7 +236,6 @@ const startServer = async () => {
         }
       });
 
-      // Handle port already in use error
       server.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
           logger.error(`❌ Port ${PORT} is already in use!`);
@@ -228,7 +250,6 @@ const startServer = async () => {
     }
   } catch (error) {
     logger.error('Failed to start server:', error);
-    // Only exit in standard environment, not Vercel
     if (!process.env.VERCEL) {
       process.exit(1);
     }

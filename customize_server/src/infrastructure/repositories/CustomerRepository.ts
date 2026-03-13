@@ -1,4 +1,8 @@
-import { ICustomerRepository, CustomerFilters, PaginatedCustomers } from '../../domain/repositories/ICustomerRepository';
+import {
+  ICustomerRepository,
+  CustomerFilters,
+  PaginatedCustomers,
+} from '../../domain/repositories/ICustomerRepository';
 import { Customer, CreateCustomerDTO, UpdateCustomerDTO } from '../../domain/entities/Customer';
 import { CustomerModel, CustomerDocument } from '../database/models/CustomerModel';
 import { NotFoundError } from '../../shared/errors/AppError';
@@ -7,7 +11,11 @@ export class CustomerRepository implements ICustomerRepository {
   private toDomain(document: CustomerDocument): Customer {
     return {
       id: document._id.toString(),
-      business_id: document.business_id ? (typeof document.business_id === 'string' ? document.business_id : document.business_id.toString()) : '',
+      business_id: document.business_id
+        ? typeof document.business_id === 'string'
+          ? document.business_id
+          : document.business_id.toString()
+        : '',
       name: document.name,
       email: document.email,
       phoneNumber: document.phoneNumber,
@@ -15,6 +23,7 @@ export class CustomerRepository implements ICustomerRepository {
       notes: document.notes,
       isActive: document.isActive,
       last_order_at: document.last_order_at,
+      address: document.address,
       created_at: document.created_at,
       updated_at: document.updated_at,
     };
@@ -77,7 +86,11 @@ export class CustomerRepository implements ICustomerRepository {
     return {
       customers: customers.map((doc: any) => ({
         id: doc._id.toString(),
-        business_id: doc.business_id ? (typeof doc.business_id === 'string' ? doc.business_id : doc.business_id.toString()) : '',
+        business_id: doc.business_id
+          ? typeof doc.business_id === 'string'
+            ? doc.business_id
+            : doc.business_id.toString()
+          : '',
         name: doc.name,
         email: doc.email,
         phoneNumber: doc.phoneNumber,
@@ -85,6 +98,7 @@ export class CustomerRepository implements ICustomerRepository {
         notes: doc.notes,
         isActive: doc.isActive !== undefined ? doc.isActive : true,
         last_order_at: doc.last_order_at,
+        address: doc.address,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
       })),
@@ -95,7 +109,11 @@ export class CustomerRepository implements ICustomerRepository {
     };
   }
 
-  async update(id: string, customerData: UpdateCustomerDTO, business_id?: string): Promise<Customer> {
+  async update(
+    id: string,
+    customerData: UpdateCustomerDTO,
+    business_id?: string
+  ): Promise<Customer> {
     const query: any = { _id: id };
     if (business_id) {
       query.business_id = business_id;
@@ -131,5 +149,12 @@ export class CustomerRepository implements ICustomerRepository {
     const count = await CustomerModel.countDocuments({ email: email.toLowerCase(), business_id });
     return count > 0;
   }
-}
 
+  async findByPhone(phoneNumber: string, business_id: string): Promise<Customer | null> {
+    const doc = await CustomerModel.findOne({
+      phoneNumber: phoneNumber.trim(),
+      business_id,
+    });
+    return doc ? this.toDomain(doc) : null;
+  }
+}

@@ -3,7 +3,12 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import { Order } from '@/types';
-import { getOrderStatusLabelKey, getOrderStatusColors, isScheduledOrder, IN_PROGRESS_STATUSES } from '@/data/order';
+import {
+  getOrderStatusLabelKey,
+  getOrderStatusColors,
+  isScheduledOrder,
+  IN_PROGRESS_STATUSES,
+} from '@/data/order';
 import cn from 'classnames';
 
 dayjs.extend(relativeTime);
@@ -29,9 +34,7 @@ export const OrderCardHeader = ({ order }: OrderCardHeaderProps) => {
   const isInProgress = IN_PROGRESS_STATUSES.includes(statusNorm);
   const showReadyTime = scheduled || isInProgress;
 
-  const readyTime = scheduled
-    ? order.schedule_time
-    : order.delivery_time;
+  const readyTime = scheduled ? order.schedule_time : order.delivery_time;
   const hasReadyTime = !!readyTime;
   const timeLabel = scheduled
     ? t('common:text-scheduled-for')
@@ -52,6 +55,23 @@ export const OrderCardHeader = ({ order }: OrderCardHeaderProps) => {
             <span className={cn('h-1.5 w-1.5 rounded-full', colors.dot)} />
             {t(`common:${getOrderStatusLabelKey(status, scheduled)}`)}
           </span>
+          {order.tracking_number && (
+            <span className="text-[11px] font-bold text-accent font-mono">
+              #{order.tracking_number}
+            </span>
+          )}
+          {order.order_type && (
+            <span
+              className={cn(
+                'text-[10px] font-bold px-2 py-0.5 rounded-full capitalize',
+                order.order_type === 'delivery'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                  : 'bg-orange-50 text-orange-600 border border-orange-100',
+              )}
+            >
+              {order.order_type}
+            </span>
+          )}
         </div>
 
         {showReadyTime && (
@@ -73,19 +93,30 @@ export const OrderCardHeader = ({ order }: OrderCardHeaderProps) => {
                 )}
               </>
             ) : (
-              <span className="text-lg sm:text-xl font-bold leading-none text-gray-300 mt-0.5">--</span>
+              <span className="text-lg sm:text-xl font-bold leading-none text-gray-300 mt-0.5">
+                --
+              </span>
             )}
           </div>
         )}
 
         <div className="flex flex-col gap-0.5 min-w-0 overflow-hidden border-t border-gray-100 pt-3">
-          <h3 className="text-base sm:text-lg font-bold leading-snug text-heading break-words line-clamp-2" title={customerName}>
+          <h3
+            className="text-base sm:text-lg font-bold leading-snug text-heading break-words line-clamp-2"
+            title={customerName}
+          >
             {customerName}
           </h3>
-          <span className="font-medium font-mono text-accent text-xs sm:text-sm truncate" title={contact}>
+          <span
+            className="font-medium font-mono text-accent text-xs sm:text-sm truncate"
+            title={contact}
+          >
             {contact}
           </span>
-          <span className="text-xs text-gray-500 break-words line-clamp-2" title={address}>
+          <span
+            className="text-xs text-gray-500 break-words line-clamp-2"
+            title={address}
+          >
             {address}
           </span>
         </div>

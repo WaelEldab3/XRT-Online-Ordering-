@@ -62,6 +62,9 @@ export const env = {
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: 15 * 60 * 1000,
   RATE_LIMIT_MAX: 100,
+
+  // Printing Architecture
+  PRINT_MODE: (process.env.PRINT_MODE || 'production') as 'production' | 'mock',
 } as const;
 
 // Validate required environment variables

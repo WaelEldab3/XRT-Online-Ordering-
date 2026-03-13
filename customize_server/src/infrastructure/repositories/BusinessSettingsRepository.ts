@@ -49,6 +49,16 @@ export class BusinessSettingsRepository implements IBusinessSettingsRepository {
       enableReviewPopup: document.enableReviewPopup,
       reviewSystem: document.reviewSystem,
       maxShopDistance: document.maxShopDistance,
+      nmiPublicKey: document.nmiPublicKey,
+      nmiPrivateKey: document.nmiPrivateKey,
+      authorizeNetPublicKey: document.authorizeNetPublicKey,
+      authorizeNetApiLoginId: document.authorizeNetApiLoginId,
+      authorizeNetTransactionKey: document.authorizeNetTransactionKey,
+      authorizeNetMode: document.authorizeNetMode,
+      useCashOnDelivery: document.useCashOnDelivery,
+      paymentGateway: document.paymentGateway,
+      defaultPaymentGateway: document.defaultPaymentGateway,
+      useEnableGateway: document.useEnableGateway,
     };
   }
 
@@ -61,6 +71,11 @@ export class BusinessSettingsRepository implements IBusinessSettingsRepository {
   async findByBusinessId(businessId: string): Promise<BusinessSettings | null> {
     const settingsDoc = await BusinessSettingsModel.findOne({ business: businessId });
     return settingsDoc ? this.toDomain(settingsDoc) : null;
+  }
+
+  async findAll(): Promise<BusinessSettings[]> {
+    const docs = await BusinessSettingsModel.find();
+    return docs.map((doc) => this.toDomain(doc));
   }
 
   async update(

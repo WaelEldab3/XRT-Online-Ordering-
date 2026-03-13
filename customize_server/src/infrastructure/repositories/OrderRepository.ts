@@ -1,6 +1,7 @@
 import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
 import {
   Order,
+  OrderPrintStatus,
   CreateOrderDTO,
   UpdateOrderStatusDTO,
   OrderStatus,
@@ -16,8 +17,8 @@ export class OrderRepository implements IOrderRepository {
 
     // Map items strictly to Domain entities
     const mappedItems: OrderItem[] = obj.items.map((item: any) => ({
-      id: item._id.toString(),
-      menu_item_id: item.menu_item_id.toString(),
+      id: item._id?.toString() || '',
+      menu_item_id: item.menu_item_id?.toString() || '',
       size_id: item.size_id ? item.size_id.toString() : undefined,
       name_snap: item.name_snap,
       size_snap: item.size_snap,
@@ -26,21 +27,45 @@ export class OrderRepository implements IOrderRepository {
       modifier_totals: item.modifier_totals,
       line_subtotal: item.line_subtotal,
       special_notes: item.special_notes,
-      modifiers: item.modifiers.map((mod: any) => ({
-        id: mod._id.toString(),
-        modifier_id: mod.modifier_id.toString(),
+      kitchen_section_snapshot: item.kitchen_section_snapshot ?? undefined,
+      modifiers: (item.modifiers || []).map((mod: any) => ({
+        id: mod._id?.toString() || '',
+        modifier_id: mod.modifier_id?.toString() || '',
         name_snapshot: mod.name_snapshot,
         modifier_quantity_id: mod.modifier_quantity_id
           ? mod.modifier_quantity_id.toString()
           : undefined,
         quantity_label_snapshot: mod.quantity_label_snapshot,
         unit_price_delta: mod.unit_price_delta,
+        selected_side: mod.selected_side ?? undefined,
       })),
     }));
 
+    // If delivery info is missing, try to use populated customer data
+    const populatedCustomer =
+      (obj as any).customer_id_populated ||
+      (typeof obj.customer_id === 'object' && obj.customer_id !== null
+        ? (obj.customer_id as any)
+        : null);
+
+    const delivery = obj.delivery ? { ...obj.delivery } : undefined;
+    // If no delivery, build one from populated customer for display purposes
+    const effectiveDelivery =
+      delivery ||
+      (populatedCustomer
+        ? {
+            name: populatedCustomer.name || populatedCustomer.firstName || '',
+            phone: populatedCustomer.phoneNumber || populatedCustomer.phone || '',
+          }
+        : undefined);
+
     return {
-      id: obj._id.toString(),
-      customer_id: obj.customer_id.toString(),
+      id: obj._id?.toString() || '',
+      business_id: obj.business_id?.toString() || '',
+      customer_id:
+        typeof obj.customer_id === 'object' && obj.customer_id !== null
+          ? obj.customer_id
+          : obj.customer_id?.toString() || '',
       order_number: obj.order_number,
       order_type: obj.order_type as any,
       service_time_type: obj.service_time_type as any,
@@ -54,10 +79,25 @@ export class OrderRepository implements IOrderRepository {
       completed_at: obj.completed_at,
       cancelled_reason: obj.cancelled_reason,
       cancelled_by: obj.cancelled_by,
-      money: obj.money,
-      delivery: obj.delivery,
+      money: {
+        ...obj.money,
+        payment_id: obj.money?.payment_id,
+        payment_status: obj.money?.payment_status || obj.payment_status,
+        coupon_code: obj.money?.coupon_code,
+        rewards_points_used: obj.money?.rewards_points_used,
+        card_type: obj.money?.card_type,
+        last_4: obj.money?.last_4,
+      },
+      payment_status: obj.payment_status || obj.money?.payment_status,
+      delivery: effectiveDelivery,
       notes: obj.notes,
       items: mappedItems,
+      print_status: (obj.print_status || []).map((ps: any) => ({
+        printer_id: ps.printer_id,
+        status: ps.status,
+        attempted_at: ps.attempted_at,
+        error: ps.error,
+      })),
     };
   }
 
@@ -68,16 +108,22 @@ export class OrderRepository implements IOrderRepository {
     const doc = new OrderModel({
       ...orderData,
       order_number: orderNumber,
-      status: 'pending',
+      status: (orderData as any).status || 'pending',
     });
 
     const saved = await doc.save();
     return this.mapToDomain(saved);
   }
 
+  private static readonly CUSTOMER_POPULATE = {
+    path: 'customer_id',
+    model: 'Customer',
+    select: 'name phoneNumber email',
+  };
+
   async findById(id: string): Promise<Order | null> {
     if (!Types.ObjectId.isValid(id)) return null;
-    const doc = await OrderModel.findById(id).exec();
+    const doc = await OrderModel.findById(id).populate(OrderRepository.CUSTOMER_POPULATE).exec();
     return doc ? this.mapToDomain(doc) : null;
   }
 
@@ -111,9 +157,7 @@ export class OrderRepository implements IOrderRepository {
         break;
 
       default:
-        query.status = Array.isArray(status)
-          ? { $in: status }
-          : status;
+        query.status = Array.isArray(status) ? { $in: status } : status;
         break;
     }
   }
@@ -130,7 +174,12 @@ export class OrderRepository implements IOrderRepository {
     const skip = (page - 1) * limit;
 
     const [docs, total] = await Promise.all([
-      OrderModel.find(query).sort({ created_at: -1 }).skip(skip).limit(limit).exec(),
+      OrderModel.find(query)
+        .populate(OrderRepository.CUSTOMER_POPULATE)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
       OrderModel.countDocuments(query).exec(),
     ]);
 
@@ -156,7 +205,12 @@ export class OrderRepository implements IOrderRepository {
     const skip = (page - 1) * limit;
 
     const [docs, total] = await Promise.all([
-      OrderModel.find(query).sort({ created_at: -1 }).skip(skip).limit(limit).exec(),
+      OrderModel.find(query)
+        .populate(OrderRepository.CUSTOMER_POPULATE)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
       OrderModel.countDocuments(query).exec(),
     ]);
 
@@ -184,7 +238,8 @@ export class OrderRepository implements IOrderRepository {
       updates.completed_at = new Date();
     } else if (updateData.status === 'canceled') {
       updates.cancelled_at = new Date();
-      if (updateData.cancelled_reason != null) updates.cancelled_reason = updateData.cancelled_reason;
+      if (updateData.cancelled_reason != null)
+        updates.cancelled_reason = updateData.cancelled_reason;
       if (updateData.cancelled_by != null) updates.cancelled_by = updateData.cancelled_by;
     }
 
@@ -193,13 +248,48 @@ export class OrderRepository implements IOrderRepository {
       updateOp.$unset = unsets;
     }
 
-    const doc = await OrderModel.findByIdAndUpdate(
-      id,
-      updateOp,
-      { new: true, runValidators: true }
-    ).exec();
+    const doc = await OrderModel.findByIdAndUpdate(id, updateOp, {
+      new: true,
+      runValidators: true,
+    }).exec();
 
     return doc ? this.mapToDomain(doc) : null;
+  }
+
+  async updatePrintStatus(
+    orderId: string,
+    printerId: string,
+    status: 'sent' | 'failed',
+    error?: string
+  ): Promise<Order | null> {
+    if (!Types.ObjectId.isValid(orderId)) return null;
+    const doc = await OrderModel.findById(orderId).exec();
+    if (!doc) return null;
+    const current = (doc.print_status || []) as OrderPrintStatus[];
+    const filtered = current.filter((ps) => ps.printer_id !== printerId);
+    filtered.push({
+      printer_id: printerId,
+      status: status as OrderPrintStatus['status'],
+      attempted_at: new Date(),
+      error: error ?? undefined,
+    });
+    doc.print_status = filtered as any;
+    await doc.save();
+    return this.mapToDomain(doc);
+  }
+
+  async clearPrintStatus(orderId: string, printerId?: string): Promise<Order | null> {
+    if (!Types.ObjectId.isValid(orderId)) return null;
+    const doc = await OrderModel.findById(orderId).exec();
+    if (!doc) return null;
+    const current = (doc.print_status || []) as OrderPrintStatus[];
+    if (printerId) {
+      doc.print_status = current.filter((ps) => ps.printer_id !== printerId) as any;
+    } else {
+      doc.print_status = [];
+    }
+    await doc.save();
+    return this.mapToDomain(doc);
   }
 
   async delete(id: string): Promise<boolean> {

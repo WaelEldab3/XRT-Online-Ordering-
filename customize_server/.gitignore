@@ -20,8 +20,16 @@ yarn-error.log*
 # Coverage
 coverage/
 
+# Build output
+dist/
+*.tsbuildinfo
+
 # Local uploads (disk storage when Cloudinary not configured)
 uploads/
+
+# Temporary files
+tmp*.json
+*.tmp
 
 # IDE
 .vscode/

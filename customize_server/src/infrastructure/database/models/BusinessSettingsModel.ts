@@ -50,6 +50,13 @@ const BusinessSettingsSchema = new Schema<BusinessSettingsDocument>(
         type: Number,
         default: 0,
       },
+      zones: [
+        {
+          radius: { type: Number, default: 0 },
+          fee: { type: Number, default: 0 },
+          min_order: { type: Number, default: 0 },
+        },
+      ],
     },
     fees: {
       service_fee: {
@@ -78,6 +85,15 @@ const BusinessSettingsSchema = new Schema<BusinessSettingsDocument>(
         default: 0,
       },
       deliveredOrderTime: {
+        type: Number,
+        default: 0,
+      },
+      auto_accept_orders: {
+        type: Boolean,
+        default: false,
+      },
+      auto_accept_order_types: [String],
+      auto_accept_time: {
         type: Number,
         default: 0,
       },
@@ -212,6 +228,52 @@ const BusinessSettingsSchema = new Schema<BusinessSettingsDocument>(
         type: Boolean,
         default: false,
       },
+    },
+    nmiPublicKey: {
+      type: String,
+      default: '',
+    },
+    nmiPrivateKey: {
+      type: String,
+      default: '',
+    },
+    authorizeNetPublicKey: {
+      type: String,
+      default: '',
+    },
+    authorizeNetApiLoginId: {
+      type: String,
+      default: '',
+    },
+    authorizeNetTransactionKey: {
+      type: String,
+      default: '',
+    },
+    authorizeNetMode: {
+      type: String,
+      enum: ['ui', 'iframe'],
+      default: 'ui',
+    },
+    authorizeNetEnvironment: {
+      type: String,
+      enum: ['sandbox', 'production'],
+      default: 'sandbox',
+    },
+    useCashOnDelivery: {
+      type: Boolean,
+      default: false,
+    },
+    paymentGateway: {
+      type: [Object],
+      default: [],
+    },
+    defaultPaymentGateway: {
+      type: String,
+      default: '',
+    },
+    useEnableGateway: {
+      type: Boolean,
+      default: true,
     },
   },
   {

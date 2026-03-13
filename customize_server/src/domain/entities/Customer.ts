@@ -8,6 +8,7 @@ export interface Customer {
   notes?: string;
   isActive: boolean;
   last_order_at?: Date;
+  address?: any;
   created_at: Date;
   updated_at: Date;
 }
@@ -19,6 +20,7 @@ export interface CreateCustomerDTO {
   phoneNumber: string;
   rewards?: number;
   notes?: string;
+  address?: any;
 }
 
 export interface UpdateCustomerDTO {
@@ -28,5 +30,6 @@ export interface UpdateCustomerDTO {
   rewards?: number;
   notes?: string;
   isActive?: boolean;
+  address?: any;
 }
 

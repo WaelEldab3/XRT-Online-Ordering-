@@ -12,6 +12,7 @@ interface ModifierShape {
   name_snapshot?: string;
   quantity_label_snapshot?: string;
   unit_price_delta?: number;
+  selected_side?: string;
 }
 
 export const OrderCardItems = ({ order }: OrderCardItemsProps) => {
@@ -64,14 +65,31 @@ export const OrderCardItems = ({ order }: OrderCardItemsProps) => {
                           className="text-[11px] text-gray-500 pl-2 border-l-2 border-gray-200"
                         >
                           + {mod.modifier_name_snap ?? mod.name_snapshot ?? ''}
-                          {(mod.quantity_label_snapshot) && (
-                            <span className="text-gray-400"> × {mod.quantity_label_snapshot}</span>
-                          )}
-                          {mod.unit_price_delta != null && mod.unit_price_delta !== 0 && (
-                            <span className="ml-1">
-                              <ListItemPrice value={mod.unit_price_delta} />
+                          {mod.quantity_label_snapshot && (
+                            <span className="text-gray-400">
+                              {' '}
+                              × {mod.quantity_label_snapshot}
                             </span>
                           )}
+                          {mod.selected_side && (
+                            <span
+                              className={`ml-1 text-[9px] font-bold uppercase px-1 py-0.5 rounded ${
+                                mod.selected_side === 'LEFT'
+                                  ? 'bg-orange-50 text-orange-600'
+                                  : mod.selected_side === 'RIGHT'
+                                    ? 'bg-purple-50 text-purple-600'
+                                    : 'bg-green-50 text-green-600'
+                              }`}
+                            >
+                              {mod.selected_side}
+                            </span>
+                          )}
+                          {mod.unit_price_delta != null &&
+                            mod.unit_price_delta !== 0 && (
+                              <span className="ml-1">
+                                <ListItemPrice value={mod.unit_price_delta} />
+                              </span>
+                            )}
                         </span>
                       ))}
                     </div>

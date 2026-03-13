@@ -4,16 +4,13 @@ import { COLORS } from '../config/colors';
 import { X, ShoppingBag, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import SignatureProducts from '../Component/Product/SignatureProducts';
+import { useSiteSettingsQuery } from '../api/hooks/useSiteSettings';
+import { formatPrice, getPriceValue } from '../utils/priceUtils';
 
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, cartTotal } = useCart();
   const navigate = useNavigate();
-
-  // Helper to parse price string (e.g., "£746.64" -> 746.64)
-  const getPriceValue = (priceStr) => {
-    if (!priceStr) return 0;
-    return parseFloat(priceStr.replace(/[^0-9.]/g, '')) || 0;
-  };
+  const { data: siteSettings } = useSiteSettingsQuery();
 
   return (
     <div 
@@ -97,7 +94,7 @@ const Cart = () => {
 
                   {/* Item Total */}
                   <div className="col-span-2 text-center hidden md:block font-bold text-[var(--primary)] text-lg">
-                    £{lineTotal.toFixed(2)}
+                    {formatPrice(lineTotal, siteSettings)}
                   </div>
                 </div>
               )})}
@@ -112,7 +109,7 @@ const Cart = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center text-gray-600">
                   <span>Subtotal</span>
-                  <span className="font-semibold">£{cartTotal.toFixed(2)}</span>
+                  <span className="font-semibold">{formatPrice(cartTotal, siteSettings)}</span>
                 </div>
                 <div className="flex justify-between items-center text-gray-600">
                   <span>Shipping</span>
@@ -120,7 +117,7 @@ const Cart = () => {
                 </div>
                 <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                   <span className="text-lg font-bold text-[var(--text-primary)]">Total</span>
-                  <span className="text-2xl font-bold text-[var(--primary)]">£{cartTotal.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-[var(--primary)]">{formatPrice(cartTotal, siteSettings)}</span>
                 </div>
               </div>
 

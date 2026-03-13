@@ -92,7 +92,8 @@
   "form-title-update-tax": "Update Tax",
   "form-title-create-shipping": "Create New Shipping",
   "form-title-update-shipping": "Update Shipping",
-  "form-title-transactions": "Transactions",
+  "form-title-order-history": "Order History",
+  "form-title-transactions": "Order History",
   "form-title-create-flash-sale": "Create flash sale schedule",
   "form-title-flash-sale-campaigns": "Flash Sale campaigns",
   "form-title-currently-flash-sales": "Currently on going flash sales.",
@@ -1131,5 +1132,15 @@
   "form-title-create-testimonial": "Create Testimonial",
   "form-title-edit-testimonial": "Edit Testimonial",
   "button-label-add-testimonial": "Add Testimonial",
-  "button-label-update-testimonial": "Update Testimonial"
+  "button-label-update-testimonial": "Update Testimonial",
+  "form-title-auto-order-management": "Auto Order Management",
+  "form-input-label-auto-accept-orders": "Auto Accept New Orders",
+  "form-input-tip-auto-accept-orders": "Enable to automatically move new orders to 'Accepted' status based on the delay set below.",
+  "form-input-label-auto-accept-types": "Auto Accept Order Types",
+  "form-input-tip-auto-accept-types": "Select which order types (Pickup/Delivery) should be auto-accepted.",
+  "form-input-label-auto-accept-time": "Auto Accept Delay (In Minutes)",
+  "form-input-tip-auto-accept-time": "Orders will be accepted after this number of minutes.",
+  "info-auto-complete-description": "Note: Orders in 'Ready' status will be automatically moved to 'Completed' status after the 'Ready Time' delay.",
+  "text-pickup": "Pickup",
+  "text-delivery": "Delivery"
 }

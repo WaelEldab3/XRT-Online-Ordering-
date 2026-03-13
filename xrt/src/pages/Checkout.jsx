@@ -1,24 +1,116 @@
-import React, { useState } from 'react';
-import { useCart } from '../context/CartContext';
-import { COLORS } from '../config/colors';
-import { ArrowLeft, Plus, Minus, ShoppingBag, Ticket, Trash2, MapPin, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import {
+  ArrowLeft,
+  ShoppingBag,
+  MapPin,
+  Ticket,
+  Heart,
+  Minus,
+  Plus,
+  Trash2,
+  Navigation,
+  LocateFixed,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useSiteSettingsQuery } from '../api/hooks/useSiteSettings';
+import { formatPrice, getPriceValue } from '../utils/priceUtils';
+import { calculateDistance } from '../utils/distanceUtils';
+import { loadSavedCustomer, saveCustomerData } from '../utils/customerStorage';
+import { geocodeAddress, buildAddressString } from '../utils/geocode';
+import { COLORS } from '../config/colors';
 import { restaurantLocation } from '@/constants/business';
 
-const TAX_RATE = 0.1; // 10% mock tax
-const TIP_OPTIONS = [10, 15, 20, 25];
+// Fix Leaflet icon issue
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+const DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+// Restaurant marker: green circle with store icon
+const RestaurantIcon = L.divIcon({
+  className: 'restaurant-marker',
+  html: `<div style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--primary, #22c55e);border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);color:white;font-size:20px;">🏪</div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+});
+
+// "You are here" marker (blue dot for current GPS location)
+const YouAreHereIcon = L.divIcon({
+  className: 'you-are-here-marker',
+  html: `<div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);color:white;font-size:14px;font-weight:bold;">●</div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+const DEFAULT_TIP_OPTIONS = [10, 15, 20, 25];
+const DEFAULT_TAX_RATE = 0;
+const DEFAULT_MAP_CENTER = [51.505, -0.09];
+
+/** Returns { lat, lng } with valid numbers so Leaflet never receives undefined. */
+function getShopLocation(location) {
+  if (!location || typeof location !== 'object') {
+    return { lat: DEFAULT_MAP_CENTER[0], lng: DEFAULT_MAP_CENTER[1] };
+  }
+  let lat = Number(location.lat);
+  let lng = Number(location.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng };
+  }
+  // GeoJSON: coordinates = [longitude, latitude]
+  const coords = location.coordinates;
+  if (Array.isArray(coords) && coords.length >= 2) {
+    lat = Number(coords[1]);
+    lng = Number(coords[0]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+  return { lat: DEFAULT_MAP_CENTER[0], lng: DEFAULT_MAP_CENTER[1] };
+}
 
 const Checkout = () => {
-  const { cartItems, updateQuantity, removeFromCart, cartTotal, orderType: contextOrderType, deliveryDetails, setShowDeliveryModal } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, cartTotal, orderType: contextOrderType, deliveryDetails, setDeliveryDetails, setShowDeliveryModal } = useCart();
   const navigate = useNavigate();
+  const { data: siteSettings, refetch: refetchSiteSettings } = useSiteSettingsQuery();
+  useEffect(() => {
+    refetchSiteSettings();
+  }, [refetchSiteSettings]);
+
+  const shopLocation = getShopLocation(siteSettings?.contactDetails?.location);
+  const deliveryZones = siteSettings?.delivery?.zones ?? [];
+  const tipOptions = siteSettings?.fees?.tip_options?.length > 0
+    ? siteSettings.fees.tip_options
+    : DEFAULT_TIP_OPTIONS;
+  const taxRate = siteSettings?.taxes?.sales_tax != null
+    ? siteSettings.taxes.sales_tax / 100
+    : DEFAULT_TAX_RATE;
 
   const [orderType, setOrderType] = useState(contextOrderType || 'delivery');
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
+  const [form, setForm] = useState(() => {
+    const saved = loadSavedCustomer();
+    return saved || { firstName: '', lastName: '', phone: '', email: '' };
   });
+
+  const [mapCenter, setMapCenter] = useState(DEFAULT_MAP_CENTER);
+  const [customerCoords, setCustomerCoords] = useState(null);
+  const [matchedZone, setMatchedZone] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [locateLoading, setLocateLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [selectedTip, setSelectedTip] = useState(null);
@@ -28,13 +120,52 @@ const Checkout = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [asapTime, setAsapTime] = useState('');
 
+  // Sync map center
+  useEffect(() => {
+    if (shopLocation?.lat != null && shopLocation?.lng != null) {
+      setMapCenter([shopLocation.lat, shopLocation.lng]);
+    }
+  }, [shopLocation?.lat, shopLocation?.lng]);
+
+  // Restore customer pin
+  useEffect(() => {
+    if (deliveryDetails?.lat != null && deliveryDetails?.lng != null) {
+      setCustomerCoords((prev) => prev || { lat: deliveryDetails.lat, lng: deliveryDetails.lng });
+    }
+  }, [deliveryDetails?.lat, deliveryDetails?.lng]);
+
+  useEffect(() => {
+    if (orderType !== 'delivery' || !deliveryDetails || typeof deliveryDetails !== 'object') {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      ...(deliveryDetails.firstName ? { firstName: deliveryDetails.firstName } : {}),
+      ...(deliveryDetails.lastName ? { lastName: deliveryDetails.lastName } : {}),
+      ...(deliveryDetails.phone ? { phone: deliveryDetails.phone } : {}),
+    }));
+  }, [orderType, deliveryDetails?.firstName, deliveryDetails?.lastName, deliveryDetails?.phone]);
+
+  // Update matched zone
+  useEffect(() => {
+    if (customerCoords && shopLocation?.lat != null && shopLocation?.lng != null) {
+      const distance = calculateDistance(shopLocation.lat, shopLocation.lng, customerCoords.lat, customerCoords.lng);
+      const sortedZones = [...deliveryZones].sort((a, b) => a.radius - b.radius);
+      const zone = sortedZones.find((z) => distance <= z.radius);
+      setMatchedZone(zone || null);
+    } else {
+      setMatchedZone(null);
+    }
+  }, [customerCoords, deliveryZones, shopLocation]);
+
   const calculateAsapTime = () => {
     const now = new Date();
     const asap = new Date(now.getTime() + 25 * 60000);
     return asap.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     setAsapTime(calculateAsapTime());
   }, []);
 
@@ -53,20 +184,65 @@ const Checkout = () => {
     if (promoCode.trim()) setPromoApplied(true);
   };
 
-  // Price helper
-  const getPriceValue = (priceStr) => {
-    if (!priceStr) return 0;
-    return parseFloat(String(priceStr).replace(/[^0-9.]/g, '')) || 0;
+  // Geocode typed address and set pin on map
+  const handleLocateAddressOnMap = async () => {
+    const address = buildAddressString(deliveryDetails);
+    if (!address.trim()) return;
+    setGeocodeLoading(true);
+    try {
+      const coords = await geocodeAddress(address);
+      if (coords) {
+        setCustomerCoords(coords);
+        setDeliveryDetails((prev) => ({ ...prev, lat: coords.lat, lng: coords.lng }));
+      }
+    } finally {
+      setGeocodeLoading(false);
+    }
   };
 
+  // Use browser GPS for delivery pin and show "You are here" on map
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocateLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCustomerCoords(coords);
+        setUserLocation(coords);
+        setDeliveryDetails((prev) => ({ ...prev, lat: coords.lat, lng: coords.lng }));
+        setLocateLoading(false);
+      },
+      () => setLocateLoading(false)
+    );
+  };
+
+  // Search location by address/place and set as delivery pin
+  const handleSearchLocation = async () => {
+    const query = searchQuery.trim();
+    if (!query) return;
+    setSearchLoading(true);
+    try {
+      const coords = await geocodeAddress(query);
+      if (coords) {
+        setCustomerCoords(coords);
+        setDeliveryDetails((prev) => ({ ...prev, lat: coords.lat, lng: coords.lng, address1: query }));
+      }
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+
   const subtotal = cartTotal;
-  const tax = subtotal * TAX_RATE;
+  const tax = subtotal * taxRate;
   const tipAmount = customTip
     ? Number(customTip) || 0
     : selectedTip
       ? subtotal * (selectedTip / 100)
       : 0;
-  const total = subtotal + tax + tipAmount;
+  
+  const deliveryFee = orderType === 'delivery' ? (matchedZone?.fee ?? 0) : 0;
+  const total = subtotal + tax + tipAmount + deliveryFee;
 
   // Build delivery address string
   const deliveryAddress = deliveryDetails
@@ -74,6 +250,216 @@ const Checkout = () => {
         .filter(Boolean)
         .join(', ')
     : '';
+
+  // Single zoom control (disable default to avoid duplicate)
+  function MapZoomControl() {
+    const map = useMap();
+    useEffect(() => {
+      const zoomControl = L.control.zoom({ position: 'topright' });
+      zoomControl.addTo(map);
+      return () => zoomControl.remove();
+    }, [map]);
+    return null;
+  }
+
+  // Fit map to show restaurant + delivery pin (and optional "you are here")
+  function FitMapToBounds({ shop, delivery, youAreHere }) {
+    const map = useMap();
+    useEffect(() => {
+      const points = [];
+      if (shop?.lat != null && shop?.lng != null) points.push([shop.lat, shop.lng]);
+      if (delivery?.lat != null && delivery?.lng != null) points.push([delivery.lat, delivery.lng]);
+      if (youAreHere?.lat != null && youAreHere?.lng != null) points.push([youAreHere.lat, youAreHere.lng]);
+      if (points.length < 2) return;
+      try {
+        const bounds = L.latLngBounds(points);
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+      } catch {
+        // fitBounds can throw if points are invalid; ignore
+      }
+    }, [map, shop?.lat, shop?.lng, delivery?.lat, delivery?.lng, youAreHere?.lat, youAreHere?.lng]);
+    return null;
+  }
+
+  const LocationMarker = () => {
+    useMapEvents({
+      click(e) {
+        setCustomerCoords(e.latlng);
+        setDeliveryDetails(prev => ({
+          ...prev,
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          address1: prev?.address1 || "Selected from map"
+        }));
+      },
+    });
+
+    return customerCoords === null ? null : (
+      <Marker position={customerCoords}>
+        <Popup>
+          <strong>Your delivery address</strong>
+          {matchedZone && (
+            <><br />Zone: {matchedZone.radius}km · Fee: {formatPrice(matchedZone.fee, siteSettings)}</>
+          )}
+        </Popup>
+      </Marker>
+    );
+  };
+
+  // Map cart items to order items format
+  const mapCartItemsToOrderItems = () => {
+    return cartItems.map((item) => {
+      const unitPrice = getPriceValue(item.price);
+
+      // Map modifiers from cart format to order format
+      const modifiers = [];
+      if (item.modifiers && typeof item.modifiers === 'object') {
+        Object.entries(item.modifiers).forEach(([groupTitle, value]) => {
+          if (!value) return;
+
+          if (typeof value === 'string') {
+            // Single modifier selected by label
+            const product = item; // reference back to original product data
+            const group = product.modifier_groups?.find((mg) => {
+              const g = mg.modifier_group || mg;
+              return g.name === groupTitle || g.display_name === groupTitle;
+            });
+            const modData = group?.modifiers?.find((m) => m.name === value);
+            if (modData) {
+              modifiers.push({
+                modifier_id: modData.id || modData._id,
+                name_snapshot: modData.name || value,
+                unit_price_delta: modData.price ?? 0,
+              });
+            }
+          } else if (Array.isArray(value)) {
+            // Multiple modifiers (checkbox style)
+            value.forEach((label) => {
+              const product = item;
+              const group = product.modifier_groups?.find((mg) => {
+                const g = mg.modifier_group || mg;
+                return g.name === groupTitle || g.display_name === groupTitle;
+              });
+              const modData = group?.modifiers?.find((m) => m.name === label);
+              if (modData) {
+                modifiers.push({
+                  modifier_id: modData.id || modData._id,
+                  name_snapshot: modData.name || label,
+                  unit_price_delta: modData.price ?? 0,
+                });
+              }
+            });
+          } else if (typeof value === 'object') {
+            // Complex modifiers with levels/placements
+            Object.entries(value).forEach(([label, details]) => {
+              if (!details) return;
+              const product = item;
+              const group = product.modifier_groups?.find((mg) => {
+                const g = mg.modifier_group || mg;
+                return g.name === groupTitle || g.display_name === groupTitle;
+              });
+              const modData = group?.modifiers?.find((m) => m.name === label);
+              if (modData) {
+                modifiers.push({
+                  modifier_id: modData.id || modData._id,
+                  name_snapshot: modData.name || label,
+                  unit_price_delta: modData.price ?? 0,
+                  quantity_label_snapshot: typeof details === 'object' ? details.level : undefined,
+                  selected_side: typeof details === 'object' ? details.side : undefined,
+                });
+              }
+            });
+          }
+        });
+      }
+
+      return {
+        menu_item_id: item.id,
+        name_snap: item.name,
+        size_id: item.size?.size_id || undefined,
+        size_snap: item.size?.label || item.size?.name || undefined,
+        unit_price: unitPrice,
+        quantity: item.qty,
+        modifiers,
+      };
+    });
+  };
+
+  const handleSubmitOrder = () => {
+    // Validate required fields
+    if (!form.phone.trim()) {
+      setSubmitError('Phone number is required');
+      return;
+    }
+    if (!form.firstName.trim()) {
+      setSubmitError('First name is required');
+      return;
+    }
+
+    if (orderType === 'delivery') {
+      if (deliveryZones.length === 0) {
+        setSubmitError('Delivery is not available (no delivery zones configured).');
+        return;
+      }
+      if (!customerCoords) {
+        setSubmitError('Please select your delivery location on the map.');
+        return;
+      }
+      if (!matchedZone) {
+        setSubmitError('Your location is outside our delivery area.');
+        return;
+      }
+      const minOrder = matchedZone.min_order ?? 0;
+      if (minOrder > 0 && subtotal < minOrder) {
+        setSubmitError(`Minimum order for your area is ${formatPrice(minOrder, siteSettings)}.`);
+        return;
+      }
+    }
+
+    setSubmitError('');
+
+    // Save customer data for next visit
+    saveCustomerData(form);
+
+    const orderPayload = {
+      customer: {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email || undefined,
+        phone: form.phone,
+      },
+      order_type: orderType || 'pickup',
+      service_time_type: 'ASAP',
+        money: {
+          subtotal: subtotal,
+          discount: 0,
+          delivery_fee: deliveryFee,
+          tax_total: tax,
+          tips: tipAmount,
+          total_amount: total,
+          currency: siteSettings?.currency || 'USD',
+          coupon_code: promoApplied ? promoCode : undefined,
+          // Payment type/token will be injected by the dedicated Payment screen
+        },
+      delivery: orderType === 'delivery' && deliveryDetails ? {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        phone: form.phone,
+        address: {
+          address1: deliveryDetails.address1,
+          apt: deliveryDetails.apt,
+          city: deliveryDetails.city,
+          state: deliveryDetails.state,
+          zipcode: deliveryDetails.zipcode,
+          formatted_address: deliveryAddress,
+          ...(customerCoords && { lat: customerCoords.lat, lng: customerCoords.lng }),
+        },
+      } : undefined,
+      notes: '',
+      items: mapCartItemsToOrderItems(),
+    };
+
+    // Forward the assembled payload directly to the Payment processor page
+    navigate('/payment', { state: { orderPayload } });
+  };
 
   // Redirect if cart is empty
   if (cartItems.length === 0) {
@@ -165,7 +551,7 @@ const Checkout = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    First Name
+                    First Name *
                   </label>
                   <input
                     id="firstName"
@@ -193,7 +579,7 @@ const Checkout = () => {
                 </div>
                 <div>
                   <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Phone Number
+                    Phone Number *
                   </label>
                   <input
                     id="phone"
@@ -309,10 +695,201 @@ const Checkout = () => {
               )}
             </section>
 
+            {/* Delivery Map & Zone Selection */}
+            {orderType === 'delivery' && (
+              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex items-center justify-center ">
+                    3
+                  </span>
+                  Set Delivery Location
+                </h2>
+                {deliveryZones.length === 0 ? (
+                  <div className="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-sm">
+                    Delivery zones are not configured. Please choose pickup or contact the store.
+                  </div>
+                ) : (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-gray-500">
+                      Please click on the map to pin your exact delivery location.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeliveryModal(true)}
+                      className="text-sm font-medium text-[var(--primary)] hover:underline flex items-center gap-1"
+                    >
+                      <MapPin size={14} />
+                      Change delivery address
+                    </button>
+                  </div>
+                )}
+
+                {deliveryZones.length > 0 && (
+                <>
+                  {/* Search + action buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <div className="flex-1 flex gap-2">
+                      <div className="relative flex-1">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search address or place..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSearchLocation()}
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSearchLocation}
+                        disabled={searchLoading || !searchQuery.trim()}
+                        className="px-4 py-2.5 rounded-xl border border-[var(--primary)] bg-[var(--primary)] text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      >
+                        {searchLoading ? 'Searching…' : 'Search'}
+                      </button>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleLocateAddressOnMap}
+                        disabled={geocodeLoading || !deliveryDetails?.address1}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      >
+                        <LocateFixed size={16} />
+                        {geocodeLoading ? 'Locating…' : 'Locate address'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleUseMyLocation}
+                        disabled={locateLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 disabled:opacity-50 text-sm font-medium"
+                      >
+                        <Navigation size={16} />
+                        {locateLoading ? 'Getting…' : 'My location'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Map full width, then info card below */}
+                  <div className="flex flex-col gap-4">
+                    <div className="w-full min-h-[420px] rounded-xl overflow-hidden border border-gray-200 relative z-10">
+                      <MapContainer
+                        center={mapCenter}
+                        zoom={13}
+                        style={{ height: '100%', minHeight: '420px', width: '100%' }}
+                        scrollWheelZoom={true}
+                        zoomControl={false}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <MapZoomControl />
+                        <FitMapToBounds shop={shopLocation} delivery={customerCoords} youAreHere={userLocation} />
+
+                        {/* Restaurant marker */}
+                        <Marker position={[shopLocation.lat, shopLocation.lng]} icon={RestaurantIcon}>
+                          <Popup>
+                            <strong>Restaurant</strong>
+                            {(siteSettings?.contactDetails?.formattedAddress || siteSettings?.contactDetails?.address) && (
+                              <><br />{siteSettings.contactDetails.formattedAddress || (() => {
+                                const a = siteSettings.contactDetails.address;
+                                if (!a || typeof a !== 'object') return '';
+                                return [a.street, [a.city, a.state].filter(Boolean).join(', '), a.zipCode, a.country].filter(Boolean).join(', ');
+                              })()}</>
+                            )}
+                            {siteSettings?.contactDetails?.contact && (
+                              <><br />{siteSettings.contactDetails.contact}</>
+                            )}
+                          </Popup>
+                        </Marker>
+
+                        {/* Delivery zones – click on zone also sets delivery pin */}
+                        {deliveryZones.map((zone, idx) => (
+                          <Circle
+                            key={idx}
+                            center={[shopLocation.lat, shopLocation.lng]}
+                            radius={zone.radius * 1000}
+                            pathOptions={{
+                              color: 'green',
+                              fillColor: 'green',
+                              fillOpacity: 0.15,
+                              weight: 2,
+                            }}
+                            eventHandlers={{
+                              click: (e) => {
+                                const { lat, lng } = e.latlng;
+                                setCustomerCoords({ lat, lng });
+                                setDeliveryDetails((prev) => ({ ...prev, lat, lng, address1: prev?.address1 || 'Selected from map' }));
+                              },
+                            }}
+                          />
+                        ))}
+
+                        <LocationMarker />
+
+                        {userLocation && (
+                          <Marker position={[userLocation.lat, userLocation.lng]} icon={YouAreHereIcon}>
+                            <Popup><strong>You are here</strong></Popup>
+                          </Marker>
+                        )}
+                      </MapContainer>
+                      <p className="text-xs text-gray-500 mt-2">Click anywhere on the map (including green zones) to set your delivery address.</p>
+                    </div>
+
+                    {/* Delivery info panel – beside map */}
+                    <div className="lg:w-72 shrink-0">
+                      {customerCoords ? (
+                        <div
+                          className="p-4 rounded-xl border transition-all duration-300 h-full"
+                          style={{
+                            backgroundColor: matchedZone ? '#f0fdf4' : '#fef2f2',
+                            borderColor: matchedZone ? '#bbf7d0' : '#fecaca',
+                          }}
+                        >
+                          <p className={`font-bold ${matchedZone ? 'text-green-700' : 'text-red-700'}`}>
+                            {matchedZone ? 'Location in Delivery Zone' : 'Outside Delivery Area'}
+                          </p>
+                          {matchedZone && (
+                            <>
+                              <p className="text-sm text-green-600 mt-1">
+                                Delivery Fee: {formatPrice(matchedZone.fee, siteSettings)}
+                              </p>
+                              {matchedZone.min_order != null && matchedZone.min_order > 0 && (
+                                <p className="text-sm text-green-600 mt-0.5">
+                                  Min. order: {formatPrice(matchedZone.min_order, siteSettings)}
+                                  {subtotal < matchedZone.min_order && (
+                                    <span className="text-amber-600 ml-1">(add {formatPrice(matchedZone.min_order - subtotal, siteSettings)} more)</span>
+                                  )}
+                                </p>
+                              )}
+                            </>
+                          )}
+                          {!matchedZone && (
+                            <p className="text-sm text-red-600 font-medium mt-1">
+                              Sorry, we don't deliver to this distance.
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-dashed border-gray-200 bg-gray-50 text-gray-500 text-sm h-full flex items-center justify-center">
+                          Click on the map or search for an address to set your delivery location.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+                )}
+              </section>
+            )}
+
             {/* Promo Code */}
             <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
               <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex items-center justify-center">3</span>
+                <span className="w-8 h-8 rounded-full bg-[var(--primary)] text-white text-sm font-bold flex items-center justify-center">
+                  {orderType === 'delivery' ? '4' : '3'}
+                </span>
                 Promo Code
               </h2>
 
@@ -358,6 +935,24 @@ const Checkout = () => {
                 </span>
               </h2>
 
+              {orderType === 'delivery' && (deliveryAddress || deliveryDetails) && (
+                <div className="mb-5 p-4 bg-green-50/60 rounded-xl border border-green-100">
+                  <div className="flex items-start gap-2.5">
+                    <MapPin size={16} className="text-[var(--primary)] mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-700 mb-0.5">Delivery Location</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{deliveryAddress || 'Not set'}</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowDeliveryModal(true)}
+                        className="mt-2 text-xs font-medium text-[var(--primary)] hover:underline"
+                      >
+                        Change delivery address
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
 
               {/* Cart Items */}
@@ -383,7 +978,7 @@ const Checkout = () => {
                       {/* Details */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 text-sm truncate">{item.name}</h4>
-                        <p className="text-xs text-gray-500 mt-0.5">£{unitPrice.toFixed(2)} each</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{formatPrice(unitPrice, siteSettings)} each</p>
 
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-2 mt-2">
@@ -415,7 +1010,7 @@ const Checkout = () => {
 
                       {/* Line Total */}
                       <span className="font-bold text-[var(--primary)] text-sm whitespace-nowrap mt-1">
-                        £{lineTotal.toFixed(2)}
+                        {formatPrice(lineTotal, siteSettings)}
                       </span>
                     </div>
                   );
@@ -429,7 +1024,7 @@ const Checkout = () => {
                   Add a Tip
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {TIP_OPTIONS.map((pct) => (
+                  {tipOptions.map((pct) => (
                     <button
                       key={pct}
                       onClick={() => {
@@ -459,7 +1054,7 @@ const Checkout = () => {
                 </div>
                 {tipAmount > 0 && (
                   <p className="mt-2 text-xs text-gray-500">
-                    Tip: £{tipAmount.toFixed(2)}
+                    Tip: {formatPrice(tipAmount, siteSettings)}
                   </p>
                 )}
               </div>
@@ -471,30 +1066,47 @@ const Checkout = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span className="font-semibold">£{subtotal.toFixed(2)}</span>
+                  <span className="font-semibold">{formatPrice(subtotal, siteSettings)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax (10%)</span>
-                  <span className="font-semibold">£{tax.toFixed(2)}</span>
+                  <span>Tax ({(taxRate * 100).toFixed(0)}%)</span>
+                  <span className="font-semibold">{formatPrice(tax, siteSettings)}</span>
                 </div>
+                {orderType === 'delivery' && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Delivery Fee</span>
+                    <span className="font-semibold">{formatPrice(deliveryFee, siteSettings)}</span>
+                  </div>
+                )}
                 {tipAmount > 0 && (
                   <div className="flex justify-between text-gray-600">
                     <span>Tip</span>
-                    <span className="font-semibold text-[var(--primary)]">£{tipAmount.toFixed(2)}</span>
+                    <span className="font-semibold text-[var(--primary)]">{formatPrice(tipAmount, siteSettings)}</span>
                   </div>
                 )}
                 <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
                   <span className="text-lg font-bold text-[var(--text-primary)]">Total</span>
-                  <span className="text-2xl font-bold text-[var(--primary)]">£{total.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-[var(--primary)]">{formatPrice(total, siteSettings)}</span>
                 </div>
               </div>
 
-              {/* Pay Button */}
-              <button
-                className="w-full mt-6 py-4 bg-[var(--primary)] hover:brightness-110 text-white font-bold text-lg rounded-xl transition-all shadow-lg shadow-green-200 hover:shadow-green-300 transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                Pay £{total.toFixed(2)}
-              </button>
+              {/* Error Message */}
+              {submitError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
+                  {submitError}
+                </div>
+              )}
+
+              {/* Continue to Payment Method */}
+              <div className="mt-6 mb-6">
+                <button
+                  onClick={handleSubmitOrder}
+                  className="w-full py-4 bg-[var(--primary)] text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all shadow-lg shadow-green-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <ShieldCheck size={20} />
+                  Proceed to Payment
+                </button>
+              </div>
 
               {/* Secure notice */}
               <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">

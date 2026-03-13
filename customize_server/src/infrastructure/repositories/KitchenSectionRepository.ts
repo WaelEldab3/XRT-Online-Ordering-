@@ -47,4 +47,17 @@ export class KitchenSectionRepository implements IKitchenSectionRepository {
     const doc = await KitchenSectionModel.findById(id);
     return doc ? this.toDomain(doc) : null;
   }
+
+  async update(id: string, data: Partial<CreateKitchenSectionDTO>): Promise<KitchenSection | null> {
+    const doc = await KitchenSectionModel.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    });
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await KitchenSectionModel.findByIdAndDelete(id);
+    return result !== null;
+  }
 }

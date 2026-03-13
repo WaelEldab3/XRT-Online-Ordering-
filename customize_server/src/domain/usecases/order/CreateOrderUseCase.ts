@@ -1,30 +1,72 @@
 import { IOrderRepository } from '../../repositories/IOrderRepository';
-import { CreateOrderDTO, Order } from '../../entities/Order';
+import { IItemRepository } from '../../repositories/IItemRepository';
+import { ICategoryRepository } from '../../repositories/ICategoryRepository';
+import { CreateOrderDTO, Order, OrderItem } from '../../entities/Order';
+
+import { IBusinessSettingsRepository } from '../../repositories/IBusinessSettingsRepository';
+
+const KITCHEN_SECTION_UNASSIGNED = 'Unassigned';
 
 export class CreateOrderUseCase {
-  constructor(private orderRepository: IOrderRepository) {}
+  constructor(
+    private orderRepository: IOrderRepository,
+    private itemRepository: IItemRepository,
+    private categoryRepository: ICategoryRepository,
+    private businessSettingsRepository: IBusinessSettingsRepository
+  ) {}
+
+  /**
+   * Resolve kitchen section name for a menu item via Item → Category → kitchen_section_data.
+   * Uses cache to avoid repeated lookups for the same menu_item_id.
+   */
+  private async resolveKitchenSectionForItem(
+    menuItemId: string,
+    cache: Map<string, string>
+  ): Promise<string> {
+    const cached = cache.get(menuItemId);
+    if (cached !== undefined) return cached;
+
+    let sectionName = KITCHEN_SECTION_UNASSIGNED;
+    try {
+      const item = await this.itemRepository.findById(menuItemId);
+      if (item?.category_id) {
+        const category = await this.categoryRepository.findById(item.category_id);
+        sectionName = category?.kitchen_section_data?.name ?? KITCHEN_SECTION_UNASSIGNED;
+      }
+    } catch {
+      // Keep Unassigned on any lookup failure
+    }
+    cache.set(menuItemId, sectionName);
+    return sectionName;
+  }
 
   async execute(orderData: CreateOrderDTO): Promise<Order> {
-    // 1. Calculate line subtotals dynamically to ensure correctness
-    const calculatedItems = orderData.items.map((item) => {
-      // line_subtotal => (unit_price + modifier_totals) * quantity
+    const sectionCache = new Map<string, string>();
+
+    // 1. Resolve kitchen section and calculate line subtotals for each item
+    const calculatedItems: (OrderItem & { modifier_totals: number; line_subtotal: number })[] = [];
+    for (const item of orderData.items) {
       const modifierTotals = item.modifiers.reduce(
         (acc, mod) => acc + (mod.unit_price_delta || 0),
         0
       );
       const lineSubtotal = (item.unit_price + modifierTotals) * item.quantity;
-      return {
+      const kitchen_section_snapshot = await this.resolveKitchenSectionForItem(
+        item.menu_item_id,
+        sectionCache
+      );
+      calculatedItems.push({
         ...item,
         modifier_totals: modifierTotals,
         line_subtotal: lineSubtotal,
-      };
-    });
+        kitchen_section_snapshot,
+      });
+    }
 
     // 2. Sum up subtotals
     const computedSubtotal = calculatedItems.reduce((acc, item) => acc + item.line_subtotal, 0);
 
-    // 3. Optional: Verify calculated vs provided total to ensure consistency
-    const providedTotal = orderData.money.total_amount;
+    // 3. Verify calculated vs provided total to ensure consistency
     const expectedTotal =
       computedSubtotal +
       orderData.money.delivery_fee +
@@ -32,19 +74,20 @@ export class CreateOrderUseCase {
       orderData.money.tips -
       orderData.money.discount;
 
-    // Adjusting money payload to ensure precision
     const sanitizedMoney = {
       ...orderData.money,
       subtotal: computedSubtotal,
       total_amount: expectedTotal,
     };
 
+    // 4. Check for auto-accept settings and business ID consistency
     const sanitizedData: CreateOrderDTO = {
       ...orderData,
       money: sanitizedMoney,
       items: calculatedItems,
     };
 
-    return this.orderRepository.create(sanitizedData);
+    const order = await this.orderRepository.create(sanitizedData);
+    return order;
   }
 }

@@ -6,8 +6,8 @@ import { requirePermission } from '../middlewares/authorize';
 const router = Router();
 const modifierController = new ModifierController();
 
-// All modifier routes require authentication
-router.use(requireAuth);
+// Modifier routes need explicit authentication instead of global router.use
+// to prevent bleeding into other routes mounted on the same base path.
 
 // Sort order update - specific route before generic /:id routes
 router.post(
@@ -19,16 +19,23 @@ router.post(
 // Export modifiers
 router.get(
   '/modifiers/export',
+  requireAuth,
   requirePermission('modifiers:read'),
   modifierController.exportModifiers
 );
 
 // Get all modifiers - requires modifiers:read permission
-router.get('/modifiers', requirePermission('modifiers:read'), modifierController.index);
+router.get(
+  '/modifiers',
+  requireAuth,
+  requirePermission('modifiers:read'),
+  modifierController.index
+);
 
 // Get all modifiers for a group - requires modifiers:read permission
 router.get(
   '/modifier-groups/:groupId/modifiers',
+  requireAuth,
   requirePermission('modifiers:read'),
   modifierController.getAll
 );
@@ -36,6 +43,7 @@ router.get(
 // Get single modifier - requires modifiers:read permission
 router.get(
   '/modifier-groups/:groupId/modifiers/:id',
+  requireAuth,
   requirePermission('modifiers:read'),
   modifierController.getById
 );
@@ -43,6 +51,7 @@ router.get(
 // Create modifier - requires modifiers:create permission
 router.post(
   '/modifier-groups/:groupId/modifiers',
+  requireAuth,
   requirePermission('modifiers:create'),
   modifierController.create
 );
@@ -50,6 +59,7 @@ router.post(
 // Update modifier - requires modifiers:update permission
 router.put(
   '/modifier-groups/:groupId/modifiers/:id',
+  requireAuth,
   requirePermission('modifiers:update'),
   modifierController.update
 );
@@ -57,6 +67,7 @@ router.put(
 // Delete modifier - requires modifiers:delete permission
 router.delete(
   '/modifier-groups/:groupId/modifiers/:id',
+  requireAuth,
   requirePermission('modifiers:delete'),
   modifierController.delete
 );

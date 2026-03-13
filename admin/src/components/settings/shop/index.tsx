@@ -27,7 +27,6 @@ import SelectInput from '@/components/ui/select-input';
 import { CURRENCY } from '@/data/currencies';
 import { CURRENCY_FORMATS } from '@/data/currency-formats';
 
-
 const DAYS = [
   'Monday',
   'Tuesday',
@@ -73,12 +72,20 @@ type ShopFormValues = {
     allowScheduleOrder?: boolean;
     maxDays?: number;
     deliveredOrderTime?: number;
+    auto_accept_orders?: boolean;
+    auto_accept_order_types?: any;
+    auto_accept_time?: number;
   };
   delivery?: {
     enabled?: boolean;
     radius: number;
     fee: number;
     min_order: number;
+    zones?: {
+      radius: number;
+      fee: number;
+      min_order?: number;
+    }[];
   };
   fees?: {
     service_fee?: number;
@@ -168,12 +175,21 @@ export default function SettingsForm({ settings }: IProps) {
         allowScheduleOrder: options?.orders?.allowScheduleOrder ?? false,
         maxDays: options?.orders?.maxDays ?? 0,
         deliveredOrderTime: options?.orders?.deliveredOrderTime ?? 0,
+        auto_accept_orders: options?.orders?.auto_accept_orders ?? false,
+        auto_accept_order_types: options?.orders?.auto_accept_order_types?.map(
+          (type: string) => ({
+            label: type.charAt(0).toUpperCase() + type.slice(1),
+            value: type,
+          }),
+        ) ?? [],
+        auto_accept_time: options?.orders?.auto_accept_time ?? 0,
       },
       delivery: {
         enabled: options?.delivery?.enabled ?? false,
         radius: options?.delivery?.radius ?? options?.maxShopDistance ?? 0,
         fee: options?.delivery?.fee ?? 0,
         min_order: options?.delivery?.min_order ?? 0,
+        zones: options?.delivery?.zones ?? [],
       },
       fees: {
         service_fee: options?.fees?.service_fee ?? 0,
@@ -201,6 +217,15 @@ export default function SettingsForm({ settings }: IProps) {
     name: 'operating_hours.schedule',
   });
 
+  const {
+    fields: zoneFields,
+    append: appendZone,
+    remove: removeZone,
+  } = useFieldArray({
+    control,
+    name: 'delivery.zones',
+  });
+
   const useGoogleMap = watch('useGoogleMap');
   const allowScheduleOrder = watch('orders.allowScheduleOrder');
   async function onSubmit(values: ShopFormValues) {
@@ -212,7 +237,7 @@ export default function SettingsForm({ settings }: IProps) {
             icon: social?.icon?.value ?? social?.icon,
             url: social?.url,
           }))
-        : options?.contactDetails?.socials ?? [],
+        : (options?.contactDetails?.socials ?? []),
     };
 
     const payload = {
@@ -228,19 +253,30 @@ export default function SettingsForm({ settings }: IProps) {
         currencyOptions: {
           ...values?.currencyOptions,
           formation:
-            (values?.currencyOptions?.formation as { code?: string } | undefined)
-              ?.code ?? values?.currencyOptions?.formation,
+            (
+              values?.currencyOptions?.formation as
+                | { code?: string }
+                | undefined
+            )?.code ?? values?.currencyOptions?.formation,
         },
         contactDetails,
-        maxShopDistance: Number(
-          values.maxShopDistance || values?.delivery?.radius || 0,
-        ),
+        maxShopDistance: (() => {
+          const zones = values?.delivery?.zones ?? [];
+          if (zones.length === 0) return 0;
+          return Math.max(...zones.map((z: any) => Number(z.radius) || 0), 0);
+        })(),
         useGoogleMap: false,
         delivery: {
-          ...values?.delivery,
-          radius: Number(values?.delivery?.radius ?? 0),
-          fee: Number(values?.delivery?.fee ?? 0),
-          min_order: Number(values?.delivery?.min_order ?? 0),
+          enabled: values?.delivery?.enabled ?? false,
+          radius: 0,
+          fee: 0,
+          min_order: 0,
+          zones:
+            values?.delivery?.zones?.map((z: any) => ({
+              radius: Number(z.radius),
+              fee: Number(z.fee),
+              min_order: Number(z.min_order ?? 0),
+            })) ?? [],
         },
         fees: {
           ...values?.fees,
@@ -270,6 +306,11 @@ export default function SettingsForm({ settings }: IProps) {
           allowScheduleOrder: values?.orders?.allowScheduleOrder,
           maxDays: Number(values?.orders?.maxDays ?? 0),
           deliveredOrderTime: Number(values?.orders?.deliveredOrderTime ?? 0),
+          auto_accept_orders: values?.orders?.auto_accept_orders,
+          auto_accept_order_types: values?.orders?.auto_accept_order_types?.map(
+            (v: any) => v.value,
+          ),
+          auto_accept_time: Number(values?.orders?.auto_accept_time ?? 0),
         },
         footer_text: options?.footer_text,
         copyrightText: options?.copyrightText,
@@ -410,7 +451,6 @@ export default function SettingsForm({ settings }: IProps) {
             variant="outline"
             className="mb-5 mt-5"
           />
-
         </Card>
       </div>
 
@@ -467,30 +507,61 @@ export default function SettingsForm({ settings }: IProps) {
               toolTipText={t('form:form-input-tip-enable-delivery')}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">
-            <Input
-              label={t('form:form-input-label-delivery-radius')}
-              {...register('delivery.radius')}
-              type="number"
+
+          <div className="mt-8">
+            <Label className="mb-5 underline decoration-dashed uppercase text-sm font-bold text-gray-400">
+              {t('Multi-Radius Delivery Zones')}
+            </Label>
+
+            <div className="space-y-4">
+              {zoneFields.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end bg-gray-50 p-4 rounded-xl border border-gray-100"
+                >
+                  <Input
+                    label={t('Radius (km/mi)')}
+                    {...register(`delivery.zones.${index}.radius` as const)}
+                    type="number"
+                    variant="outline"
+                    error={t(errors.delivery?.zones?.[index]?.radius?.message!)}
+                  />
+                  <Input
+                    label={t('Fee')}
+                    {...register(`delivery.zones.${index}.fee` as const)}
+                    type="number"
+                    variant="outline"
+                    error={t(errors.delivery?.zones?.[index]?.fee?.message!)}
+                  />
+                  <Input
+                    label={t('Min Order')}
+                    {...register(`delivery.zones.${index}.min_order` as const)}
+                    type="number"
+                    variant="outline"
+                    error={t(
+                      errors.delivery?.zones?.[index]?.min_order?.message!,
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => removeZone(index)}
+                    variant="outline"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    {t('Remove')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => appendZone({ radius: 0, fee: 0, min_order: 0 })}
+              className="mt-4 bg-gray-100 text-gray-700 hover:bg-gray-200"
               variant="outline"
-              error={t(errors.delivery?.radius?.message!)}
-            />
-            <Input
-              label={t('form:form-input-label-delivery-fee')}
-              toolTipText={t('form:form-input-tip-delivery-fee')}
-              {...register('delivery.fee')}
-              type="number"
-              variant="outline"
-              error={t(errors.delivery?.fee?.message!)}
-            />
-            <Input
-              label={t('form:form-input-label-min-order')}
-              toolTipText={t('form:form-input-tip-min-order')}
-              {...register('delivery.min_order')}
-              type="number"
-              variant="outline"
-              error={t(errors.delivery?.min_order?.message!)}
-            />
+            >
+              + {t('Add Delivery Zone')}
+            </Button>
           </div>
         </Card>
       </div>
@@ -533,6 +604,53 @@ export default function SettingsForm({ settings }: IProps) {
               />
             </div>
           )}
+
+          <div className="mt-8 border-t border-gray-100 pt-8">
+            <Label className="mb-5 underline decoration-dashed uppercase text-sm font-bold text-gray-400">
+              {t('form:form-title-auto-order-management')}
+            </Label>
+
+            <div className="mt-6 mb-5">
+              <SwitchInput
+                name="orders.auto_accept_orders"
+                control={control}
+                label={t('form:form-input-label-auto-accept-orders')}
+                toolTipText={t('form:form-input-tip-auto-accept-orders')}
+              />
+            </div>
+
+            {watch('orders.auto_accept_orders') && (
+              <div className="space-y-5 mb-8">
+                <SelectInput
+                  name="orders.auto_accept_order_types"
+                  control={control}
+                  getOptionLabel={(option: any) => option.label}
+                  getOptionValue={(option: any) => option.value}
+                  options={[
+                    { label: t('form:text-pickup'), value: 'pickup' },
+                    { label: t('form:text-delivery'), value: 'delivery' },
+                  ]}
+                  isMulti
+                  label={t('form:form-input-label-auto-accept-types')}
+                  toolTipText={t('form:form-input-tip-auto-accept-types')}
+                />
+                <Input
+                  label={t('form:form-input-label-auto-accept-time')}
+                  toolTipText={t('form:form-input-tip-auto-accept-time')}
+                  {...register('orders.auto_accept_time')}
+                  type="number"
+                  variant="outline"
+                  error={t(errors.orders?.auto_accept_time?.message!)}
+                />
+              </div>
+            )}
+
+            <div className="mt-8 pt-8 border-t border-gray-50">
+              <p className="text-sm text-gray-500 italic">
+                {t('form:info-auto-complete-description')}
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
 

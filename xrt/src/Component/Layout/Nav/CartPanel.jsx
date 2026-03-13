@@ -5,11 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../../context/CartContext';
 import { COLORS } from '../../../config/colors';
 import { products } from '../../../config/constants';
+import { useSiteSettingsQuery } from '../../../api/hooks/useSiteSettings';
+import { formatPrice, getPriceValue } from '../../../utils/priceUtils';
 
 
 export default function CartPanel({ open, setclosefun }) {
   const navigate = useNavigate();
   const { cartItems, removeFromCart, updateQuantity, addToCart, cartTotal, orderType } = useCart();
+  const { data: siteSettings } = useSiteSettingsQuery();
   const scrollContainerRef = useRef(null);
 
   const scroll = (direction) => {
@@ -110,7 +113,7 @@ export default function CartPanel({ open, setclosefun }) {
                             {item.name}
                             </h4>
                             <div className="text-sm text-gray-500 mb-2">
-                            Price: {item.price}
+                            Price: {formatPrice(getPriceValue(item.price), siteSettings)}
                             </div>
                             <div className="flex items-center gap-2">
                             <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
@@ -192,7 +195,7 @@ export default function CartPanel({ open, setclosefun }) {
                               {product.name}
                             </h4>
                             <div className="text-xs font-bold text-[var(--primary)]">
-                              ${displayPrice}
+                              {formatPrice(displayPrice, siteSettings)}
                             </div>
                           </div>
                       )})}
@@ -212,7 +215,7 @@ export default function CartPanel({ open, setclosefun }) {
             <div className="p-5 bg-white border-t border-gray-100 shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.05)]">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-gray-600 font-medium">Total:</span>
-                <span className="text-xl font-bold text-[var(--primary)]">£{cartTotal.toFixed(2)}</span>
+                <span className="text-xl font-bold text-[var(--primary)]">{formatPrice(cartTotal, siteSettings)}</span>
               </div>
               
               <div className="flex flex-col gap-3">

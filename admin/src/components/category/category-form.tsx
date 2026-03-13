@@ -94,9 +94,7 @@ export default function CreateOrUpdateCategoriesForm({
   const { locale } = router;
 
   const { data: kitchenSectionsData, isLoading: loadingKitchenSections } =
-    useKitchenSectionsQuery({
-      language: locale,
-    });
+    useKitchenSectionsQuery();
 
   const kitchenSectionOptions = useMemo(() => {
     // The API response is likely { success: true, data: [...] }

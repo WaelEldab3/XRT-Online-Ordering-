@@ -170,21 +170,34 @@ export const ORDER_STATUS_SERVER_VALUES = [
 ] as const;
 
 /** Return the allowed status options for a given order type. "out of delivery" only applies to delivery orders. */
-export function getStatusOptionsForOrderType(orderType?: string): typeof ORDER_STATUS_SERVER_VALUES[number][] {
+export function getStatusOptionsForOrderType(
+  orderType?: string,
+): (typeof ORDER_STATUS_SERVER_VALUES)[number][] {
   if (orderType === 'delivery') return [...ORDER_STATUS_SERVER_VALUES];
   return ORDER_STATUS_SERVER_VALUES.filter((s) => s !== 'out of delivery');
 }
 
-export const IN_PROGRESS_STATUSES = ['accepted', 'inkitchen', 'ready', 'out of delivery'];
+export const IN_PROGRESS_STATUSES = [
+  'accepted',
+  'inkitchen',
+  'ready',
+  'out of delivery',
+];
 
 /** Whether the order should be treated as a scheduled order */
-export function isScheduledOrder(order: { order_status?: string; schedule_time?: string | null }): boolean {
+export function isScheduledOrder(order: {
+  order_status?: string;
+  schedule_time?: string | null;
+}): boolean {
   const s = (order.order_status ?? '').toLowerCase().replace(/\s+/g, ' ');
   return !!order.schedule_time && IN_PROGRESS_STATUSES.includes(s);
 }
 
 /** Translation key for order status label (use with t(`common:${getOrderStatusLabelKey(s)}`)) */
-export function getOrderStatusLabelKey(status: string, scheduled?: boolean): string {
+export function getOrderStatusLabelKey(
+  status: string,
+  scheduled?: boolean,
+): string {
   if (scheduled) return 'text-scheduled';
   const normalized = (status ?? '').toLowerCase().replace(/\s+/g, ' ');
   const map: Record<string, string> = {
@@ -205,22 +218,43 @@ export interface StatusColors {
   dot: string;
 }
 
-export const SCHEDULED_COLORS: StatusColors = { badge: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' };
-const IN_PROGRESS_COLORS: StatusColors = { badge: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' };
+export const SCHEDULED_COLORS: StatusColors = {
+  badge: 'bg-purple-50 text-purple-700 border-purple-200',
+  dot: 'bg-purple-500',
+};
+const IN_PROGRESS_COLORS: StatusColors = {
+  badge: 'bg-blue-50 text-blue-700 border-blue-200',
+  dot: 'bg-blue-500',
+};
 
 /** Tailwind classes for status badge (bg + text + border) and dot color */
-export function getOrderStatusColors(status: string, scheduled?: boolean): StatusColors {
+export function getOrderStatusColors(
+  status: string,
+  scheduled?: boolean,
+): StatusColors {
   if (scheduled) return SCHEDULED_COLORS;
   const s = (status ?? '').toLowerCase().replace(/\s+/g, ' ');
   const palette: Record<string, StatusColors> = {
-    pending:          { badge: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-500' },
-    accepted:         IN_PROGRESS_COLORS,
-    inkitchen:        IN_PROGRESS_COLORS,
-    ready:            IN_PROGRESS_COLORS,
+    pending: {
+      badge: 'bg-amber-50 text-amber-700 border-amber-200',
+      dot: 'bg-amber-500',
+    },
+    accepted: IN_PROGRESS_COLORS,
+    inkitchen: IN_PROGRESS_COLORS,
+    ready: IN_PROGRESS_COLORS,
     'out of delivery': IN_PROGRESS_COLORS,
-    completed:        { badge: 'bg-green-50 text-green-700 border-green-200',        dot: 'bg-green-500' },
-    canceled:         { badge: 'bg-red-50 text-red-700 border-red-200',              dot: 'bg-red-500' },
-    cancelled:        { badge: 'bg-red-50 text-red-700 border-red-200',              dot: 'bg-red-500' },
+    completed: {
+      badge: 'bg-green-50 text-green-700 border-green-200',
+      dot: 'bg-green-500',
+    },
+    canceled: {
+      badge: 'bg-red-50 text-red-700 border-red-200',
+      dot: 'bg-red-500',
+    },
+    cancelled: {
+      badge: 'bg-red-50 text-red-700 border-red-200',
+      dot: 'bg-red-500',
+    },
   };
   return palette[s] ?? palette.pending;
 }
@@ -236,6 +270,7 @@ export const useUpdateOrderMutation = () => {
       clear_schedule,
       cancelled_reason,
       cancelled_by,
+      silent,
     }: {
       id: string;
       status: string;
@@ -243,6 +278,7 @@ export const useUpdateOrderMutation = () => {
       clear_schedule?: boolean;
       cancelled_reason?: string;
       cancelled_by?: string;
+      silent?: boolean;
     }) =>
       orderClient.updateStatus(String(id), toServerStatus(status), {
         ready_time,
@@ -250,8 +286,10 @@ export const useUpdateOrderMutation = () => {
         cancelled_reason,
         cancelled_by,
       }),
-    onSuccess: () => {
-      toast.success(t('common:successfully-updated'));
+    onSuccess: (data, variables) => {
+      if (!variables.silent) {
+        toast.success(t('common:successfully-updated'));
+      }
     },
     onError: (error: any) => {
       const message =
