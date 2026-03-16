@@ -55,7 +55,6 @@ export default function SideMenu({ open, setclosefun }) {
                 {nav_links.map(link => (
                   <li key={link.name} className="ml-[30px] flex justify-between w-[230px] mt-2 mb-4 text-black cursor-pointer group relative font-[400]">
                     <Link to={link.path}>{link.name}</Link>
-                    <i className='fa-solid fa-chevron-down'></i>
                     <span className="block w-0 border-b-[1px] border-white transition-all duration-300 group-hover:w-full absolute left-0 -bottom-1"></span>
                   </li>
                 ))}
