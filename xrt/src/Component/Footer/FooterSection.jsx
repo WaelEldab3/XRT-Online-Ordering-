@@ -32,22 +32,16 @@ export default function FooterSection() {
           </ul>
         </div>
         <div className="text-center md:text-left">
-            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">MY ACCOUNT</span>
+            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">QUICK LINKS</span>
             <ul className="pt-0">
                 <My_Account/>
             </ul>
         </div>
         <div className="text-center md:text-left">
-            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">INFORMATION</span>
-          <ul className="pt-0">
+            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">CATEGORIES</span>
+          <ul className="pt-0 grid grid-cols-2 md:grid-cols-1">
             <Categories/>
           </ul>
-        </div>
-        <div className="text-center md:text-left">
-            <span className="font-bold text-[#FFA900] text-[17px] block mb-4">CATEGORIES</span>
-            <ul className="pt-0">
-                <Categories_2/>
-            </ul>
         </div>
       </div>
       <div className="bg-[#315234] flex flex-col md:flex-row justify-between items-center py-6 md:py-0 md:h-[60px] px-4 md:px-8 lg:px-[70px] gap-4 md:gap-0">

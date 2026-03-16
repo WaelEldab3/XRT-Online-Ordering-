@@ -40,7 +40,7 @@ const Header = () => {
         {!isAcceptingOrders && notAcceptingOrdersMessage && (
           <NotAcceptingOrders message={notAcceptingOrdersMessage} />
         )}
-        <Top_Navbar address={address} email={email} />
+        <Top_Navbar address={address} phone={phone} />
         <MiddleNav count={cartCount} total={cartTotal.toFixed(2)} link={"/"} setclickfun={setclickfun} onCartClick={() => setCartOpen(true)} />
         <SubNav phone={phone} />
         <SideMenu open={open} setclosefun={() => setopen(false)} />

@@ -662,7 +662,11 @@ export const STORE_LOCATION = {
   phone: "(1800)-88-66-991",
 };
 
-export const MY_ACCOUNT = ["My Account", "Contact", "Shopping Cart", "Shop"];
+export const MY_ACCOUNT = [
+  { name: "Home", path: "/" },
+  { name: "Menu", path: "/menu" },
+  { name: "Contact", path: "/contact" },
+];
 export const CATEGORIES_Footer = [
   "Pizza",
   "Calzones",
