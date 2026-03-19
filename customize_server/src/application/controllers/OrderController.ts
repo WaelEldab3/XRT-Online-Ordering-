@@ -17,6 +17,7 @@ import { PrintLogRepository } from '../../infrastructure/repositories/PrintLogRe
 import { Server as SocketIOServer } from 'socket.io';
 
 import { BusinessSettingsRepository } from '../../infrastructure/repositories/BusinessSettingsRepository';
+import * as AuthorizeNet from 'authorizenet';
 
 export class OrderController {
   private createOrderUseCase: CreateOrderUseCase;
@@ -165,5 +166,157 @@ export class OrderController {
     const printLogRepo = new PrintLogRepository();
     const logs = await printLogRepo.findByOrderId(orderId);
     return sendSuccess(res, 'Print logs retrieved', logs);
+  });
+
+  /** POST /orders/:id/refund — Process a full or partial refund for an order. */
+  refundOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id: orderId } = req.params;
+    const { amount } = req.body; // If empty, it means a full refund
+
+    const orderRepository = new OrderRepository();
+    const order = await orderRepository.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (!order.money.payment_id) {
+      return res.status(400).json({ success: false, message: 'Order has no associated payment ID to refund' });
+    }
+
+    // Determine refund amount
+    const rawTotalAmount = parseFloat(String(order.money.total_amount || 0));
+    const refundAmountRaw = amount !== undefined ? parseFloat(String(amount)) : rawTotalAmount;
+    
+    if (isNaN(refundAmountRaw) || refundAmountRaw <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid refund amount.' });
+    }
+
+    if (refundAmountRaw > rawTotalAmount) {
+      return res.status(400).json({ success: false, message: 'Refund amount cannot exceed the original order total.' });
+    }
+
+    const formattedAmount = refundAmountRaw.toFixed(2);
+
+    // Get gateway credentials
+    const businessSettingsRepository = new BusinessSettingsRepository();
+    const settings = await businessSettingsRepository.findByBusinessId(order.business_id);
+
+    // If payment was NMI (just failing gracefully to focus on AuthNet)
+    if (order.money.payment === 'nmi') {
+      return res.status(400).json({ success: false, message: 'Refunds for NMI are currently not implemented via this endpoint.' });
+    }
+
+    const authNetApiLoginId = settings?.authorizeNetApiLoginId;
+    const authNetTransactionKey = settings?.authorizeNetTransactionKey;
+
+    if (!authNetApiLoginId || !authNetTransactionKey) {
+      return res.status(500).json({ success: false, message: 'Authorize.Net payment gateway is not configured' });
+    }
+
+    const merchantAuthenticationType = new AuthorizeNet.APIContracts.MerchantAuthenticationType();
+    merchantAuthenticationType.setName(authNetApiLoginId);
+    merchantAuthenticationType.setTransactionKey(authNetTransactionKey);
+
+    // Attempt Refund Transaction
+    const transactionRequestType = new AuthorizeNet.APIContracts.TransactionRequestType();
+    transactionRequestType.setTransactionType(AuthorizeNet.APIContracts.TransactionTypeEnum.REFUNDTRANSACTION);
+    transactionRequestType.setAmount(formattedAmount);
+    transactionRequestType.setRefTransId(order.money.payment_id);
+    
+    // AuthNet Refunds require the last 4 digits of the card
+    const last4 = order.money.last_4 || '0000'; // Fallback so it doesn't crash if mysteriously missing
+    const paymentType = new AuthorizeNet.APIContracts.PaymentType();
+    const creditCard = new AuthorizeNet.APIContracts.CreditCardType();
+    creditCard.setCardNumber(last4);
+    creditCard.setExpirationDate('XXXX');
+    paymentType.setCreditCard(creditCard);
+    transactionRequestType.setPayment(paymentType);
+
+    const createRequest = new AuthorizeNet.APIContracts.CreateTransactionRequest();
+    createRequest.setMerchantAuthentication(merchantAuthenticationType);
+    createRequest.setTransactionRequest(transactionRequestType);
+
+    const environment = settings?.authorizeNetEnvironment || 'sandbox';
+    const endpoint = environment === 'production' 
+      ? AuthorizeNet.Constants.endpoint.production 
+      : AuthorizeNet.Constants.endpoint.sandbox;
+
+    const executeTransaction = async (requestToExecute: any): Promise<any> => {
+      const ctrl = new AuthorizeNet.APIControllers.CreateTransactionController(requestToExecute.getJSON());
+      ctrl.setEnvironment(endpoint);
+
+      return new Promise((resolve, reject) => {
+        ctrl.execute(() => {
+          const apiResponse = ctrl.getResponse();
+          const response = new AuthorizeNet.APIContracts.CreateTransactionResponse(apiResponse);
+
+          if (response != null && response.getMessages().getResultCode() == AuthorizeNet.APIContracts.MessageTypeEnum.OK) {
+            const tr = response.getTransactionResponse();
+            if (tr && tr.getMessages() != null) {
+              resolve(tr);
+            } else {
+              let errorMsg = 'Transaction Failed.';
+              if (tr && tr.getErrors() != null) {
+                errorMsg = tr.getErrors().getError()[0].getErrorText();
+              }
+              reject(new Error(errorMsg));
+            }
+          } else {
+            let errorMsg = 'Transaction Failed.';
+            const tr = response?.getTransactionResponse();
+            if (tr && tr.getErrors() != null) {
+              errorMsg = tr.getErrors().getError()[0].getErrorText();
+            } else if (response && response.getMessages() != null) {
+              errorMsg = response.getMessages().getMessage()[0].getText();
+            }
+            reject(new Error(errorMsg));
+          }
+        });
+      });
+    };
+
+    try {
+      await executeTransaction(createRequest);
+    } catch (refundError: any) {
+      // If refund fails, it might be because the transaction is unsettled. Attempt VOID as fallback if it's a full refund.
+      if (refundError.message.toLowerCase().includes('settled') || refundError.message.toLowerCase().includes('cannot issue a credit')) {
+        if (refundAmountRaw === rawTotalAmount) {
+          // Attempt VOID
+          const voidTransactionRequestType = new AuthorizeNet.APIContracts.TransactionRequestType();
+          voidTransactionRequestType.setTransactionType(AuthorizeNet.APIContracts.TransactionTypeEnum.VOIDTRANSACTION);
+          voidTransactionRequestType.setRefTransId(order.money.payment_id);
+          
+          const voidRequest = new AuthorizeNet.APIContracts.CreateTransactionRequest();
+          voidRequest.setMerchantAuthentication(merchantAuthenticationType);
+          voidRequest.setTransactionRequest(voidTransactionRequestType);
+
+          try {
+            await executeTransaction(voidRequest);
+          } catch (voidError: any) {
+             return res.status(400).json({ success: false, message: `Refund failed (Unsettled). Void attempt also failed: ${voidError.message}` });
+          }
+        } else {
+          return res.status(400).json({ success: false, message: `Partial refunds can only be processed after the original transaction has settled (usually overnight).` });
+        }
+      } else {
+        return res.status(400).json({ success: false, message: `Payment Gateway Error: ${refundError.message}` });
+      }
+    }
+
+    // 2. Update Order Status
+    const newStatus = refundAmountRaw === rawTotalAmount ? 'refunded' : 'partially_refunded';
+    
+    // We can use the existing OrderModel or import it directly if it wasn't at the top.
+    // However, we imported OrderRepository, but OrderModel is used directly.
+    const { OrderModel } = await import('../../infrastructure/database/models/OrderModel');
+    const updatedOrder = await OrderModel.findByIdAndUpdate(orderId, {
+      $set: {
+        'money.payment_status': newStatus,
+        'order_status': newStatus === 'refunded' ? 'cancelled' : order.status,
+      }
+    }, { new: true });
+    
+    return sendSuccess(res, `Order successfully ${newStatus}`, updatedOrder);
   });
 }

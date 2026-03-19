@@ -1,32 +1,34 @@
 import React from 'react'
 import NavLinks from './NavLinks'
 import { useCart } from '../../../context/CartContext';
-
+import { formatPhone } from '../../../utils/phoneUtils';
 const SubNav = (props) => {
   const { orderType, setOrderType, deliveryDetails, setShowDeliveryModal } = useCart();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 
-  const toggleDropdown = () => setIsOpen(!isOpen);
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
   
   const selectOrderType = (type) => {
     if (type === 'delivery') {
       setOrderType(type);
       setShowDeliveryModal(true);
-      setIsOpen(false);
+      setIsDropdownOpen(false);
       return;
     }
     setOrderType(type);
-    setIsOpen(false);
+    setIsDropdownOpen(false);
   };
 
   const currentOrderType = orderType === 'delivery' ? 'Delivery' : 'Pick up';
 
   return (
-    <div className='header-container hidden lg:flex  bg-[#3D6642]'>
+    <div className='header-container relative hidden lg:flex bg-[#3D6642]'>
         <NavLinks className={'flex gap-[30px] bg-[#3D6642] py-[20px] '}/>
 
+        {/* Status Badge moved to Top_Navbar */}
 
-        <div className="right_side flex items-center gap-6">
+        <div className="right_side flex items-center gap-4">
+
           {/* Order Type Dropdown */}
           <div className="relative group/type">
             <div 
@@ -43,11 +45,11 @@ const SubNav = (props) => {
                <span className="text-[#FFA900] text-sm font-bold uppercase tracking-wider">
                  {currentOrderType}
                </span>
-               <i className={`fa-solid fa-chevron-down text-[#FFA900] text-xs opacity-70 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}></i>
+               <i className={`fa-solid fa-chevron-down text-[#FFA900] text-xs opacity-70 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}></i>
             </div>
 
             {/* Dropdown Menu */}
-            {isOpen && (
+            {isDropdownOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 py-1">
                 <button
                   onClick={() => selectOrderType('pickup')}
@@ -78,7 +80,7 @@ const SubNav = (props) => {
           <div className="rounded-full w-[35px] h-[35px] bg-[#D9E8DB] flex items-center justify-center shadow-[0_4px_18px_rgba(0,0,0,0.04)] group-hover:cursor-pointer">
             <i className="fa-solid fa-headset text-[#3D6642]"></i>
           </div>
-          <h5 className='pl-[5px] text-[#FFA900] font-bold group-hover:cursor-pointer'>{props.phone}</h5>
+          <h5 className='pl-[5px] text-[#FFA900] font-bold group-hover:cursor-pointer'>{formatPhone(props.phone)}</h5>
         </div>
         </div>
     </div>

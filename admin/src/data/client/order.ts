@@ -78,13 +78,19 @@ export const orderClient = {
       },
     };
   },
-  /** Update order status (PUT /orders/:id/status). Use server status values: pending, accepted, inkitchen, ready, out of delivery, completed, canceled */
   updateStatus: (id: string, status: string, body?: { cancelled_reason?: string; cancelled_by?: string; ready_time?: string; clear_schedule?: boolean }) => {
     const orderId = String(id).trim();
     if (!orderId) return Promise.reject(new Error('Order id is required'));
     return HttpClient.put<Order>(`${API_ENDPOINTS.ORDERS}/${orderId}/status`, {
       status,
       ...body,
+    });
+  },
+  refund: (id: string, amount?: number) => {
+    const orderId = String(id).trim();
+    if (!orderId) return Promise.reject(new Error('Order id is required'));
+    return HttpClient.post<Order>(`${API_ENDPOINTS.ORDERS}/${orderId}/refund`, {
+      amount,
     });
   },
   paginated: ({ tracking_number, ...params }: Partial<OrderQueryOptions>) => {

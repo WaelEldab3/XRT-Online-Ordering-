@@ -1,6 +1,7 @@
 import React from "react";
 import { Phone } from "lucide-react";
 import { useSiteSettingsQuery } from "../../api";
+import { formatPhone } from "../../utils/phoneUtils";
 
 export default function Location() {
   const { data: settings } = useSiteSettingsQuery();
@@ -36,7 +37,7 @@ export default function Location() {
           href={`tel:${contactDetails?.contact}`}
           className="mt-2 text-[#E1E1E1] text-[17px] hover:text-[#5C9963] transition-colors"
         >
-          {contactDetails?.contact}
+          {formatPhone(contactDetails?.contact)}
         </a>
       </li>
       {/* Operating Hours */}

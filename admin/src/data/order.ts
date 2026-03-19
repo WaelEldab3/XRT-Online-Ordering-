@@ -304,6 +304,29 @@ export const useUpdateOrderMutation = () => {
   });
 };
 
+export const useRefundOrderMutation = () => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount?: number }) =>
+      orderClient.refund(id, amount),
+    onSuccess: () => {
+      toast.success(t('common:text-refund-success'));
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        t('common:error-refund-failed');
+      toast.error(message);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ORDERS] });
+    },
+  });
+};
+
 export const useDownloadInvoiceMutation = (
   {
     order_id,

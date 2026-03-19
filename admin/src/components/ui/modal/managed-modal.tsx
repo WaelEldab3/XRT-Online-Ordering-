@@ -119,6 +119,10 @@ const DeclineAbuseReportView = dynamic(
   () => import('@/components/reviews/decline-report-confirmation'),
 );
 
+const RefundModal = dynamic(
+  () => import('@/components/order/refund-modal'),
+);
+
 const CreateOrUpdateAddressForm = dynamic(
   () => import('@/components/address/create-or-update'),
 );

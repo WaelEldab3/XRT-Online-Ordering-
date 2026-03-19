@@ -24,6 +24,7 @@ import { SUPER_ADMIN } from '@/utils/constants';
 import { getAuthCredentials } from '@/utils/auth-utils';
 import { NoDataFound } from '@/components/icons/no-data-found';
 import TransactionDetailsModal from './transaction-details-modal';
+import { useModalAction } from '@/components/ui/modal/modal.context';
 
 type IProps = {
   transactions: any[] | undefined;
@@ -45,6 +46,7 @@ const OrderTransactionList = ({
   const { mutate: createConversations, isPending: creating } =
     useCreateConversations();
   const [loading, setLoading] = useState<boolean | string | undefined>(false);
+  const { openModal } = useModalAction();
 
   const columns = [
     {
@@ -121,15 +123,34 @@ const OrderTransactionList = ({
       dataIndex: 'id',
       key: 'actions',
       align: 'right',
-      render: (id: string, record: any) => (
-        <Button
-          size="small"
-          onClick={() => setSelectedTransaction(record)}
-          className="!bg-accent !text-light"
-        >
-          {t('common:text-show-more')}
-        </Button>
-      ),
+      render: (id: string, record: any) => {
+        const canRefund = record?.payment_status === 'paid' || typeof record?.money?.payment_status === 'string' && record?.money?.payment_status === 'paid' || record?.payment_status === 'partially_refunded' || record?.money?.payment_status === 'partially_refunded';
+        
+        // determine total amount
+        const totalAmount = record?.amount ?? record?.money?.total_amount ?? record?.total ?? 0;
+
+        return (
+          <div className="flex items-center justify-end gap-2">
+            {canRefund && (
+              <Button
+                size="small"
+                variant="outline"
+                onClick={() => openModal('REFUND_ORDER', { orderId: record?.id, totalAmount })}
+                className="!text-red-500 hover:!bg-red-50 !border-red-500 hover:!border-red-500"
+              >
+                Refund
+              </Button>
+            )}
+            <Button
+              size="small"
+              onClick={() => setSelectedTransaction(record)}
+              className="!bg-accent !text-light"
+            >
+              {t('common:text-show-more')}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

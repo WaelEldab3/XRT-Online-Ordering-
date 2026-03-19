@@ -75,11 +75,14 @@ export const shopValidationSchema = yup.object().shape({
         .default(0),
       auto_accept_orders: yup.boolean().optional(),
       auto_accept_order_types: yup.array().optional(),
-      auto_accept_time: yup
+      auto_accept_ready_time_pickup: yup
         .number()
-        .transform((v) => (isNaN(v) ? 0 : v))
-        .min(0, 'Must be positive')
-        .default(0),
+        .typeError('form:error-must-number')
+        .min(0),
+      auto_accept_ready_time_delivery: yup
+        .number()
+        .typeError('form:error-must-number')
+        .min(0),
     })
     .optional(),
   delivery: yup

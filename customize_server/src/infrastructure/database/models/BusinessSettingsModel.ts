@@ -93,7 +93,11 @@ const BusinessSettingsSchema = new Schema<BusinessSettingsDocument>(
         default: false,
       },
       auto_accept_order_types: [String],
-      auto_accept_time: {
+      auto_accept_ready_time_pickup: {
+        type: Number,
+        default: 0,
+      },
+      auto_accept_ready_time_delivery: {
         type: Number,
         default: 0,
       },

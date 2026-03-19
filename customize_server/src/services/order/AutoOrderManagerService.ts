@@ -34,18 +34,36 @@ export class AutoOrderManagerService {
 
         // 1. Handle Auto-Accept
         // settings.business is the ID of the business
-        if (settings.orders?.auto_accept_orders && (settings.orders.auto_accept_time ?? 0) >= 0) {
-          const acceptTimeThreshold = new Date(Date.now() - (settings.orders.auto_accept_time || 0) * 60000);
+        if (settings.orders?.auto_accept_orders) {
+          const acceptTimeThreshold = new Date(Date.now());
           
-          await OrderModel.updateMany(
-            {
-              business_id: settings.business,
-              status: 'pending',
-              order_type: { $in: settings.orders.auto_accept_order_types || [] },
-              created_at: { $lte: acceptTimeThreshold }
-            },
-            { $set: { status: 'accepted' } }
-          );
+          for (const type of settings.orders.auto_accept_order_types || []) {
+            let prepTimeMinutes = 0;
+            if (type === 'pickup') {
+              prepTimeMinutes = settings.orders.auto_accept_ready_time_pickup || 0;
+            } else if (type === 'delivery') {
+              prepTimeMinutes = settings.orders.auto_accept_ready_time_delivery || 0;
+            }
+
+            const readyTime = prepTimeMinutes > 0 
+              ? new Date(Date.now() + prepTimeMinutes * 60000) 
+              : undefined;
+
+            const updatePayload: any = { status: 'accepted' };
+            if (readyTime) {
+              updatePayload.ready_time = readyTime;
+            }
+
+            await OrderModel.updateMany(
+              {
+                business_id: settings.business,
+                status: 'pending',
+                order_type: type,
+                created_at: { $lte: acceptTimeThreshold }
+              },
+              { $set: updatePayload }
+            );
+          }
         }
 
         // 2. Handle Auto-Complete (Default behavior for 'ready' orders)
