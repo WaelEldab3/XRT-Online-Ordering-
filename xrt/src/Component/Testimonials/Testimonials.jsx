@@ -89,7 +89,7 @@ export default function Testimonials() {
         ❯
       </button>
 
-      <div className="w-full max-w-[900px]">
+      <div className="w-full max-w-[900px] my-auto">
         <Swiper
           modules={[Autoplay, Navigation]}
           slidesPerView={1}

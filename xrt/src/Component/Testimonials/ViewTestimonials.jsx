@@ -17,10 +17,10 @@ export default function ViewTestimonials({ item }) {
         <img
           src={imageSrc}
           alt={item.name}
-          className="w-[80px] h-[80px] rounded-full mb-5 object-cover"
+          className="hidden w-[80px] h-[80px] rounded-full mb-5 object-cover"
         />
       ) : (
-        <div className="w-[80px] h-[80px] rounded-full mb-5 bg-gray-200 flex items-center justify-center">
+        <div className="hidden w-[80px] h-[80px] rounded-full mb-5 bg-gray-200 flex items-center justify-center">
           <UserCircle className="w-12 h-12 text-gray-400" />
         </div>
       )}
