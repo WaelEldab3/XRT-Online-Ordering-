@@ -10,14 +10,14 @@ export const siteSettings = {
   name: 'XRT Restaurant System',
   description: 'Restaurant Management Platform',
   logo: {
-    url: '/logo.svg',
+    url: '/logo.png',
     alt: 'XRT Restaurant System',
     href: '/',
     width: 138,
     height: 34,
   },
   collapseLogo: {
-    url: '/collapse-logo.svg',
+    url: '/logo.png',
     alt: 'XRT',
     href: '/',
     width: 32,

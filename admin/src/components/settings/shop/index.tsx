@@ -74,7 +74,8 @@ type ShopFormValues = {
     deliveredOrderTime?: number;
     auto_accept_orders?: boolean;
     auto_accept_order_types?: any;
-    auto_accept_time?: number;
+    auto_accept_ready_time_pickup?: number;
+    auto_accept_ready_time_delivery?: number;
   };
   delivery?: {
     enabled?: boolean;
@@ -176,13 +177,14 @@ export default function SettingsForm({ settings }: IProps) {
         maxDays: options?.orders?.maxDays ?? 0,
         deliveredOrderTime: options?.orders?.deliveredOrderTime ?? 0,
         auto_accept_orders: options?.orders?.auto_accept_orders ?? false,
-        auto_accept_order_types: options?.orders?.auto_accept_order_types?.map(
+        auto_accept_order_types: options?.orders?.auto_accept_order_types?.filter(Boolean).map(
           (type: string) => ({
             label: type.charAt(0).toUpperCase() + type.slice(1),
             value: type,
           }),
         ) ?? [],
-        auto_accept_time: options?.orders?.auto_accept_time ?? 0,
+        auto_accept_ready_time_pickup: options?.orders?.auto_accept_ready_time_pickup ?? 0,
+        auto_accept_ready_time_delivery: options?.orders?.auto_accept_ready_time_delivery ?? 0,
       },
       delivery: {
         enabled: options?.delivery?.enabled ?? false,
@@ -310,7 +312,8 @@ export default function SettingsForm({ settings }: IProps) {
           auto_accept_order_types: values?.orders?.auto_accept_order_types?.map(
             (v: any) => v.value,
           ),
-          auto_accept_time: Number(values?.orders?.auto_accept_time ?? 0),
+          auto_accept_ready_time_pickup: Number(values?.orders?.auto_accept_ready_time_pickup ?? 0),
+          auto_accept_ready_time_delivery: Number(values?.orders?.auto_accept_ready_time_delivery ?? 0),
         },
         footer_text: options?.footer_text,
         copyrightText: options?.copyrightText,
@@ -635,12 +638,20 @@ export default function SettingsForm({ settings }: IProps) {
                   toolTipText={t('form:form-input-tip-auto-accept-types')}
                 />
                 <Input
-                  label={t('form:form-input-label-auto-accept-time')}
-                  toolTipText={t('form:form-input-tip-auto-accept-time')}
-                  {...register('orders.auto_accept_time')}
+                  label={t('Default Pickup Ready Time (minutes)')}
+                  toolTipText={t('How long until a pickup order is ready, starting right after auto-accept.')}
+                  {...register('orders.auto_accept_ready_time_pickup')}
                   type="number"
                   variant="outline"
-                  error={t(errors.orders?.auto_accept_time?.message!)}
+                  error={t(errors.orders?.auto_accept_ready_time_pickup?.message!)}
+                />
+                <Input
+                  label={t('Default Delivery Ready Time (minutes)')}
+                  toolTipText={t('How long until a delivery order is ready for dispatch, starting right after auto-accept.')}
+                  {...register('orders.auto_accept_ready_time_delivery')}
+                  type="number"
+                  variant="outline"
+                  error={t(errors.orders?.auto_accept_ready_time_delivery?.message!)}
                 />
               </div>
             )}

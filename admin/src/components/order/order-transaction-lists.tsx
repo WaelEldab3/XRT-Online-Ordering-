@@ -24,6 +24,7 @@ import { SUPER_ADMIN } from '@/utils/constants';
 import { getAuthCredentials } from '@/utils/auth-utils';
 import { NoDataFound } from '@/components/icons/no-data-found';
 import TransactionDetailsModal from './transaction-details-modal';
+import { useModalAction } from '@/components/ui/modal/modal.context';
 
 type IProps = {
   transactions: any[] | undefined;
@@ -45,6 +46,7 @@ const OrderTransactionList = ({
   const { mutate: createConversations, isPending: creating } =
     useCreateConversations();
   const [loading, setLoading] = useState<boolean | string | undefined>(false);
+  const { openModal } = useModalAction();
 
   const columns = [
     {
@@ -121,15 +123,40 @@ const OrderTransactionList = ({
       dataIndex: 'id',
       key: 'actions',
       align: 'right',
-      render: (id: string, record: any) => (
-        <Button
-          size="small"
-          onClick={() => setSelectedTransaction(record)}
-          className="!bg-accent !text-light"
-        >
-          {t('common:text-show-more')}
-        </Button>
-      ),
+      render: (id: string, record: any) => {
+        const isTransactionCompleted = record?.status === 'completed' || record?.status === 'refunded' || record?.status === 'partially_refunded';
+        const isOrderPaid = record?.payment_status === 'paid' || record?.payment_status === 'partially_refunded' || record?.money?.payment_status === 'paid' || record?.money?.payment_status === 'partially_refunded' || record?.order_id?.money?.payment_status === 'paid' || record?.order_id?.money?.payment_status === 'partially_refunded';
+        
+        const canRefund = (isTransactionCompleted || isOrderPaid) && record?.status !== 'failed' && record?.status !== 'pending';
+        
+        // determine total amount
+        const totalAmount = record?.amount ?? record?.money?.total_amount ?? record?.order_id?.money?.total_amount ?? record?.total ?? 0;
+
+        // Get the actual order ID so refund works!
+        const actualOrderId = record?.order_id?.id || record?.order_id?._id || record?.order_id || record?.id;
+
+        return (
+          <div className="flex items-center justify-end gap-2">
+            {canRefund && (
+              <Button
+                size="small"
+                variant="outline"
+                onClick={() => openModal('REFUND_ORDER', { orderId: actualOrderId, totalAmount })}
+                className="!text-red-500 hover:!bg-red-50 !border-red-500 hover:!border-red-500"
+              >
+                Refund
+              </Button>
+            )}
+            <Button
+              size="small"
+              onClick={() => setSelectedTransaction(record)}
+              className="!bg-accent !text-light"
+            >
+              {t('common:text-show-more')}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

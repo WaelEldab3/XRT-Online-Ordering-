@@ -230,6 +230,10 @@ const OrderList = ({
               id={id}
               detailsUrl={`${router.asPath}/${id}`}
               customLocale={order.language}
+              data={{
+                  payment_status: order?.payment_status ?? '',
+                  total_amount: order?.total ?? 0,
+              }}
             />
           </>
         );

@@ -5,6 +5,7 @@ import { DownloadIcon } from '@/components/icons/download-icon';
 import StatusColor from '@/components/order/status-color';
 import Badge from '@/components/ui/badge/badge';
 import cn from 'classnames';
+import { useModalAction } from '@/components/ui/modal/modal.context';
 
 interface OrderHeaderProps {
   order: any;
@@ -18,6 +19,14 @@ export default function OrderHeader({
   loading,
 }: OrderHeaderProps) {
   const { t } = useTranslation('common');
+  const { openModal } = useModalAction();
+
+  const handleRefund = () => {
+    openModal('REFUND_ORDER', {
+      orderId: order?.id,
+      totalAmount: order?.total,
+    });
+  };
 
   return (
     <div className="flex flex-col rounded-lg border border-border-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -41,14 +50,25 @@ export default function OrderHeader({
           />
         </div>
       </div>
-      <Button
-        onClick={onDownloadInvoice}
-        loading={loading}
-        className="w-full sm:w-auto"
-      >
-        <DownloadIcon className="h-4 w-4 me-3" />
-        {t('text-download')} {t('text-invoice')}
-      </Button>
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        {(order?.payment_status === 'paid' || order?.payment_status === 'partially_refunded') && (
+          <Button
+            onClick={handleRefund}
+            variant="outline"
+            className="!text-red-500 hover:!bg-red-50 border-red-500 hover:border-red-500 w-full sm:w-auto"
+          >
+            Refund
+          </Button>
+        )}
+        <Button
+          onClick={onDownloadInvoice}
+          loading={loading}
+          className="w-full sm:w-auto"
+        >
+          <DownloadIcon className="h-4 w-4 me-3" />
+          {t('text-download')} {t('text-invoice')}
+        </Button>
+      </div>
     </div>
   );
 }

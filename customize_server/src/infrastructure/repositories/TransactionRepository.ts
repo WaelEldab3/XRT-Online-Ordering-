@@ -89,7 +89,7 @@ export class TransactionRepository implements ITransactionRepository {
         },
       },
       { $unwind: '$order_details' },
-      { $match: { 'order_details.status': 'completed' } },
+      { $match: { 'order_details.status': { $in: ['completed', 'canceled'] } } },
       { $sort: { created_at: -1 } },
       {
         $facet: {

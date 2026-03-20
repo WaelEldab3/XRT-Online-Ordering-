@@ -48,7 +48,7 @@ const OrderMoneySchema = new Schema(
     currency: { type: String, required: true, default: 'USD' },
     payment: { type: String, required: true }, // ENUM or string
     payment_id: { type: String },
-    payment_status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+    payment_status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'], default: 'pending' },
     coupon_code: { type: String },
     rewards_points_used: { type: Number },
     card_type: { type: String },
@@ -105,7 +105,7 @@ const OrderSchema = new Schema<OrderDocument>(
     cancelled_reason: { type: String },
     cancelled_by: { type: String }, // e.g., 'customer', 'admin', 'system'
     money: { type: OrderMoneySchema, required: true },
-    payment_status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+    payment_status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'], default: 'pending' },
     delivery: { type: OrderDeliverySchema },
     notes: { type: String },
     items: { type: [OrderItemSchema], required: true },

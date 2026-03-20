@@ -119,6 +119,10 @@ const DeclineAbuseReportView = dynamic(
   () => import('@/components/reviews/decline-report-confirmation'),
 );
 
+const RefundModal = dynamic(
+  () => import('@/components/order/refund-modal'),
+);
+
 const CreateOrUpdateAddressForm = dynamic(
   () => import('@/components/address/create-or-update'),
 );
@@ -247,6 +251,8 @@ function renderModal(view: MODAL_VIEWS | undefined, data: any) {
       return <ItemPreviewView />;
     case 'DELETE_USER':
       return <UserDeleteView />;
+    case 'REFUND_ORDER':
+      return <RefundModal />;
 
     case 'DELETE_TAG':
       return <TagDeleteView />;

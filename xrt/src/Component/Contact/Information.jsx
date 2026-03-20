@@ -1,11 +1,20 @@
-import { Mail, MapPinned, PhoneCall } from "lucide-react";
+import { Mail, MapPinned, Clock } from "lucide-react";
 import React from "react";
 import { useSiteSettingsQuery } from "../../api";
+import { formatPhone } from "../../utils/phoneUtils";
+import { useStoreStatus, to12Hour } from "../../hooks/useStoreStatus";
+
+const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function Information() {
   const { data: settings } = useSiteSettingsQuery();
   const contactDetails = settings?.contactDetails;
-  const schedule = settings?.operating_hours?.schedule;
+  const { isOpen, todaySlot, schedule } = useStoreStatus();
+
+  // Sort schedule by week order
+  const sortedSchedule = schedule.length
+    ? [...schedule].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
+    : [];
 
   return (
     <>
@@ -40,14 +49,14 @@ export default function Information() {
 
         <div className="flex justify-center md:justify-start">
           <div className="flex items-start gap-4">
-            <PhoneCall
+            <Mail
               strokeWidth={0.5}
               size={50}
               className="text-[#5D9063] shrink-0"
             />
             <div>
-              <h3 className="font-bold text-[#2F3E30] text-[20px] whitespace-nowrap">Contact</h3>
-              <div className="text-[#656766] py-2 whitespace-nowrap">
+              <h3 className="font-bold text-[#2F3E30] text-[20px]">Contact</h3>
+              <div className="text-[#656766] max-w-[250px] py-2">
                 <p>Mobile: <span className="font-bold">{contactDetails?.contact}</span></p>
                 <p className="mt-1">E-mail: <a href={`mailto:${contactDetails?.emailAddress}`} className="font-[500] text-[#528959] hover:underline">{contactDetails?.emailAddress}</a></p>
               </div>
@@ -57,14 +66,14 @@ export default function Information() {
 
         <div className="flex justify-center md:justify-start">
           <div className="flex items-start gap-4">
-            <Mail
+            <Clock
               strokeWidth={0.5}
               size={50}
               className="text-[#5D9063] shrink-0"
             />
             <div>
-              <h3 className="font-bold text-[#2F3E30] text-[20px] whitespace-nowrap">Hour of operation</h3>
-              <div className="text-[#656766] py-2 whitespace-nowrap">
+              <h3 className="font-bold text-[#2F3E30] text-[20px]">Hour of operation</h3>
+              <div className="text-[#656766] max-w-[250px] py-2">
                 {(() => {
                   if (!schedule) return null;
 
@@ -94,6 +103,28 @@ export default function Information() {
                   );
                 })()}
               </div>
+              {sortedSchedule.length > 0 ? (
+                <ul className="space-y-1">
+                  {sortedSchedule.map((slot) => {
+                    const isToday = todaySlot?.day === slot.day;
+                    return (
+                      <li
+                        key={slot.day}
+                        className={`flex justify-between text-sm gap-4 ${isToday ? 'font-bold text-[#2F3E30]' : 'text-[#656766]'}`}
+                      >
+                        <span className="min-w-[80px]">{slot.day.slice(0, 3)}</span>
+                        <span>
+                          {slot.is_closed
+                            ? 'Closed'
+                            : `${to12Hour(slot.open_time)} – ${to12Hour(slot.close_time)}`}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="text-[#656766] text-sm">No hours available</p>
+              )}
             </div>
           </div>
         </div>

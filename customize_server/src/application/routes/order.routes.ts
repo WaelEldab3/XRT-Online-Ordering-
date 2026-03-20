@@ -63,4 +63,11 @@ router.delete(
   orderController.delete
 );
 
+// Refund order (full or partial)
+router.post(
+  '/:id/refund',
+  // requireAuth,
+  orderController.refundOrder
+);
+
 export default router;
