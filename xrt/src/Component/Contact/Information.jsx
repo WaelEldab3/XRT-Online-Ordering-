@@ -34,7 +34,7 @@ export default function Information() {
           </div>
         ) : null}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-y-12 md:gap-x-24 lg:gap-x-[150px] px-8 md:px-12 lg:px-[100px] py-[50px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-y-12 md:gap-x-24 lg:gap-x-[140px] px-8 md:px-12 lg:px-[100px] py-[50px]">
         <div className="flex justify-center md:justify-start">
           <div className="flex items-start gap-4">
             <MapPinned
